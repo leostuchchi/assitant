@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres_astrology
+    environment:
+      POSTGRES_DB: p_assistant_bd
+      POSTGRES_USER: pers_assist
+      POSTGRES_PASSWORD: astra123  # Простой пароль без специальных символов
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pers_assist -d p_assistant_bd"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
