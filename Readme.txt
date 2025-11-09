@@ -181,7 +181,7 @@ def get_main_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="📊 Расчет натальной карты")],
-            [KeyboardButton(text="📅 Рекомендации на сегодня")],
+            [KeyboardButton(text="📅 Данные на сегодня")],
         ],
         resize_keyboard=True
     )
@@ -193,7 +193,7 @@ async def cmd_start(message: types.Message):
     welcome_text = """
 👋 Добро пожаловать в ваш персональный ассистент!
 
-Я помогу вам получать персонализированные рекомендации на основе:
+Я помогу вам получать персонализированные данные на основе:
 • 🌟 Натальной карты и астрологических транзитов
 • 🔢 Психоматрицы по дате рождения  
 • ⚡ Биоритмов на каждый день
@@ -220,7 +220,7 @@ async def start_data_collection(message: types.Message, state: FSMContext):
         )
     else:
         await message.answer(
-            "📊 Начнем сбор данных для персонализированных рекомендаций!\n\n"
+            "📊 Начнем сбор данных для персонализированных данных!\n\n"
             "Пожалуйста, введите вашу дату рождения в формате ГГГГ-ММ-ДД:",
             reply_markup=types.ReplyKeyboardRemove()
         )
@@ -324,7 +324,7 @@ async def process_job_position(message: types.Message, state: FSMContext):
         if result['success']:
             await message.answer(
                 "🎉 Поздравляем! Все данные успешно собраны!\n\n"
-                "Теперь вы можете получать персонализированные рекомендации:",
+                "Теперь вы можете получать персонализированные данные:",
                 reply_markup=get_main_keyboard()
             )
         else:
@@ -344,38 +344,99 @@ async def process_job_position(message: types.Message, state: FSMContext):
     await state.clear()
 
 
-@router.message(lambda message: message.text == "📅 Рекомендации на сегодня")
-async def get_todays_recommendations(message: types.Message):
-    """Получение рекомендаций на сегодня"""
+@router.message(lambda message: message.text == "📅 Данные на сегодня")
+async def get_todays_data(message: types.Message):
+    """Получение данных на сегодня"""
 
     # Проверяем наличие данных
     status = await assistant.get_user_data_status(message.from_user.id)
     if not status['is_complete']:
         await message.answer(
-            "❌ Сначала необходимо собрать данные для рекомендаций!\n"
+            "❌ Сначала необходимо собрать данные!\n"
             "Нажмите '📊 Расчет натальной карты'",
             reply_markup=get_main_keyboard()
         )
         return
 
-    processing_msg = await message.answer("🔄 Формирую рекомендации на сегодня...")
+    processing_msg = await message.answer("🔄 Формирую данные на сегодня...")
 
     try:
         result = await assistant.get_todays_recommendations(message.from_user.id)
 
         if result['success']:
-            await message.answer(result['recommendations'], parse_mode="Markdown")
+            # Отправляем пользователю форматированные данные
+            await message.answer(result['user_data'], parse_mode="Markdown")
+
+            # Данные для модели уже выводятся через print в assistant.py
+            await message.answer(
+                "🤖 *Данные для AI модели сформированы и отправлены на обработку*\n"
+                "Результаты будут доступны в ближайшее время!",
+                parse_mode="Markdown"
+            )
         else:
             await message.answer(result['message'])
 
     except Exception as e:
-        logger.error(f"Ошибка получения рекомендаций на сегодня: {e}")
+        logger.error(f"Ошибка получения данных на сегодня: {e}")
         await message.answer(
-            "❌ Произошла ошибка при формировании рекомендаций\n"
+            "❌ Произошла ошибка при формировании данных\n"
             "Попробуйте позже или обратитесь в поддержку."
         )
 
     await processing_msg.delete()
+
+
+@router.message(Command("status"))
+async def cmd_status(message: types.Message):
+    """Проверка статуса данных пользователя"""
+    try:
+        status = await assistant.get_user_data_status(message.from_user.id)
+
+        status_text = "📊 **Статус ваших данных:**\n\n"
+
+        if status['is_complete']:
+            status_text += "✅ Все данные собраны и готовы к использованию\n\n"
+        else:
+            status_text += "❌ Не все данные собраны\n\n"
+
+        status_text += f"• Основные данные: {'✅' if status['has_basic_data'] else '❌'}\n"
+        status_text += f"• Натальная карта: {'✅' if status['has_natal_chart'] else '❌'}\n"
+        status_text += f"• Психоматрица: {'✅' if status['has_psyho_matrix'] else '❌'}\n"
+        status_text += f"• Биоритмы: {'✅' if status['has_biorhythms'] else '❌'}\n\n"
+
+        if not status['is_complete']:
+            status_text += "Нажмите '📊 Расчет натальной карты' для сбора недостающих данных"
+
+        await message.answer(status_text, parse_mode="Markdown")
+
+    except Exception as e:
+        logger.error(f"Ошибка проверки статуса: {e}")
+        await message.answer("❌ Не удалось проверить статус данных")
+
+
+@router.message(Command("help"))
+async def cmd_help(message: types.Message):
+    """Справка по командам бота"""
+    help_text = """
+📋 **Доступные команды:**
+
+/start - Начать работу с ботом
+/status - Проверить статус ваших данных
+/help - Показать эту справку
+
+**Основные действия:**
+
+📊 Расчет натальной карты - Собрать или обновить ваши данные
+📅 Данные на сегодня - Получить расчеты на текущий день
+
+**Что рассчитывается:**
+• Астрологические транзиты и аспекты
+• Биоритмы (физический, эмоциональный, интеллектуальный)
+• Нумерологическая психоматрица
+• Все данные передаются в AI модель для формирования персонализированных рекомендаций
+    """
+
+    await message.answer(help_text, parse_mode="Markdown")
 
 
 @router.message()
@@ -385,7 +446,6 @@ async def handle_other_messages(message: types.Message):
         "Выберите действие из меню ниже:",
         reply_markup=get_main_keyboard()
     )
-
 
 __init__.py
 
@@ -730,7 +790,7 @@ from backend.user_services import create_or_update_user, get_user_profile, updat
 from backend.chart_services import create_and_save_natal_chart, get_user_natal_chart
 from backend.matrix_services import calculate_and_save_psyho_matrix, get_user_matrix
 from backend.prediction_services import generate_and_save_prediction, get_todays_prediction, \
-    format_prediction_for_display
+    format_data_for_user, format_data_for_model
 from backend.biorhythm_services import calculate_and_save_biorhythms, get_user_biorhythms
 from backend.database import async_session
 from datetime import datetime, date, timedelta
@@ -741,7 +801,7 @@ logger = logging.getLogger(__name__)
 
 
 class PersonalAssistant:
-    """Главный класс помощника для управления всеми данными и рекомендациями"""
+    """Главный класс помощника для управления всеми данными"""
 
     def __init__(self):
         pass
@@ -811,140 +871,40 @@ class PersonalAssistant:
                 'message': f"❌ Ошибка при сборе данных: {str(e)}"
             }
 
-    async def update_professional_info(self, telegram_id: int, current_city: str, profession: str,
-                                       job_position: str = None):
-        """Обновление профессиональной информации"""
-        try:
-            await update_user_profession(telegram_id, profession, job_position)
-
-            # Обновляем город проживания
-            user_profile = await get_user_profile(telegram_id)
-            if user_profile:
-                await create_or_update_user(
-                    telegram_id=telegram_id,
-                    birth_date=user_profile['birth_date'],
-                    birth_time=user_profile['birth_time'],
-                    birth_city=user_profile['birth_city'],
-                    current_city=current_city,
-                    profession=profession,
-                    job_position=job_position
-                )
-
-            logger.info(f"✅ Профессиональные данные обновлены для {telegram_id}")
-            return {
-                'success': True,
-                'message': "✅ Профессиональная информация успешно обновлена!"
-            }
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка обновления профессии для {telegram_id}: {e}")
-            return {
-                'success': False,
-                'message': f"❌ Ошибка обновления данных: {str(e)}"
-            }
-
     async def get_todays_recommendations(self, telegram_id: int):
-        """Получение рекомендаций на сегодня"""
+        """Получение данных на сегодня с раздельным выводом"""
         try:
             target_date = date.today()
-            logger.info(f"📅 Формирование рекомендаций на сегодня для {telegram_id}")
+            logger.info(f"📅 Формирование данных на сегодня для {telegram_id}")
 
-            # Генерируем предсказание на сегодня
+            # Получаем данные расчетов
             prediction = await generate_and_save_prediction(telegram_id, target_date)
 
-            # Форматируем для отображения - теперь это строка
-            formatted_prediction = await format_prediction_for_display(prediction)
+            # Получаем профиль пользователя для модели
+            user_profile = await get_user_profile(telegram_id)
 
-            # Добавляем лунную фазу
-            lunar_phase = calculate_lunar_phase(target_date)
+            # 1. Данные для пользователя (через бот)
+            user_data = await format_data_for_user(prediction)
 
-            # ✅ Теперь formatted_prediction - это строка, а не список
-            final_recommendations = f"{formatted_prediction}\n\n🌙 Текущая лунная фаза: {lunar_phase}"
-
-            # Вывод рекомендаций для отладки
-            print(f"Recommendations for user {telegram_id} on {target_date.isoformat()}:")
-            print(final_recommendations)
+            # 2. Данные для модели (через print)
+            model_data = await format_data_for_model(telegram_id, user_profile, prediction)
 
             return {
                 'success': True,
                 'date': target_date.isoformat(),
-                'recommendations': final_recommendations,  # ✅ Теперь это строка
-                'raw_data': prediction,
-                'lunar_phase': lunar_phase
+                'user_data': user_data,  # Для отображения в боте
+                'model_data': model_data,  # Для AI модели (выводится через print)
+                'raw_data': prediction
             }
 
         except Exception as e:
-            logger.error(f"❌ Ошибка получения рекомендаций на сегодня для {telegram_id}: {e}")
+            logger.error(f"❌ Ошибка получения данных на сегодня для {telegram_id}: {e}")
             return {
                 'success': False,
-                'message': f"❌ Не удалось получить рекомендации на сегодня: {str(e)}"
+                'message': f"❌ Не удалось получить данные на сегодня: {str(e)}"
             }
 
-    async def get_tomorrows_recommendations(self, telegram_id: int):
-        """Получение рекомендаций на завтра"""
-        try:
-            tomorrow = date.today() + timedelta(days=1)
-            logger.info(f"📅 Формирование рекомендаций на завтра ({tomorrow}) для {telegram_id}")
-
-            prediction = await generate_and_save_prediction(telegram_id, tomorrow)
-            formatted_prediction = await format_prediction_for_display(prediction)
-
-            lunar_phase = calculate_lunar_phase(tomorrow)
-            final_recommendations = f"{formatted_prediction}\n\n🌙 Лунная фаза на завтра: {lunar_phase}"
-
-            print(f"Recommendations for user {telegram_id} on {tomorrow.isoformat()}:")
-            print(final_recommendations)
-
-            return {
-                'success': True,
-                'date': tomorrow.isoformat(),
-                'recommendations': final_recommendations,
-                'raw_data': prediction,
-                'lunar_phase': lunar_phase
-            }
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка получения рекомендаций на завтра для {telegram_id}: {e}")
-            return {
-                'success': False,
-                'message': f"❌ Не удалось получить рекомендации на завтра: {str(e)}"
-            }
-
-    async def get_date_recommendations(self, telegram_id: int, target_date: date):
-        """Получение рекомендаций на выбранную дату"""
-        try:
-            logger.info(f"📅 Формирование рекомендаций на {target_date} для {telegram_id}")
-
-            if target_date < date.today():
-                return {
-                    'success': False,
-                    'message': "❌ Нельзя получить рекомендации для прошедших дат"
-                }
-
-            prediction = await generate_and_save_prediction(telegram_id, target_date)
-            formatted_prediction = await format_prediction_for_display(prediction)
-
-            lunar_phase = calculate_lunar_phase(target_date)
-            final_recommendations = f"{formatted_prediction}\n\n🌙 Лунная фаза на {target_date}: {lunar_phase}"
-
-            print(f"Recommendations for user {telegram_id} on {target_date.isoformat()}:")
-            print(final_recommendations)
-
-            return {
-                'success': True,
-                'date': target_date.isoformat(),
-                'recommendations': final_recommendations,
-                'raw_data': prediction,
-                'lunar_phase': lunar_phase
-            }
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка получения рекомендаций на {target_date} для {telegram_id}: {e}")
-            return {
-                'success': False,
-                'message': f"❌ Не удалось получить рекомендации на выбранную дату: {str(e)}"
-            }
-
+    # Остальные методы остаются без изменений...
     async def get_user_data_status(self, telegram_id: int):
         """Проверка статуса собранных данных пользователя"""
         try:
@@ -975,93 +935,6 @@ class PersonalAssistant:
                 'has_psyho_matrix': False,
                 'has_biorhythms': False,
                 'is_complete': False
-            }
-
-    async def get_user_statistics(self, telegram_id: int):
-        """Получение статистики пользователя"""
-        try:
-            from backend.prediction_services import get_prediction_statistics
-            from backend.biorhythm_services import get_biorhythm_statistics
-
-            data_status = await self.get_user_data_status(telegram_id)
-            prediction_stats = await get_prediction_statistics(telegram_id)
-            biorhythm_stats = await get_biorhythm_statistics(telegram_id)
-
-            return {
-                'data_status': data_status,
-                'prediction_stats': prediction_stats,
-                'biorhythm_stats': biorhythm_stats,
-                'calculated_at': datetime.now().isoformat()
-            }
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка получения статистики для {telegram_id}: {e}")
-            return {
-                'data_status': {},
-                'prediction_stats': {},
-                'biorhythm_stats': {},
-                'error': str(e)
-            }
-
-    async def cleanup_user_data(self, telegram_id: int):
-        """Очистка данных пользователя (для администрирования)"""
-        try:
-            from backend.biorhythm_services import cleanup_old_biorhythms
-            from backend.prediction_services import cleanup_old_predictions
-
-            biorhythm_cleaned = await cleanup_old_biorhythms()
-            prediction_cleaned = await cleanup_old_predictions()
-
-            logger.info(f"🧹 Очищены данные для пользователя {telegram_id}")
-            return {
-                'success': True,
-                'biorhythm_records_cleaned': biorhythm_cleaned,
-                'prediction_records_cleaned': prediction_cleaned,
-                'message': f"✅ Очищено {biorhythm_cleaned} записей биоритмов и {prediction_cleaned} предсказаний"
-            }
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка очистки данных для {telegram_id}: {e}")
-            return {
-                'success': False,
-                'message': f"❌ Ошибка при очистке данных: {str(e)}"
-            }
-
-    async def validate_user_data(self, telegram_id: int):
-        """Проверка корректности данных пользователя"""
-        try:
-            from backend.prediction_services import validate_prediction_data
-
-            data_status = await self.get_user_data_status(telegram_id)
-            prediction_valid = await validate_prediction_data(telegram_id)
-
-            issues = []
-
-            if not data_status['has_basic_data']:
-                issues.append("Отсутствуют основные данные пользователя")
-            if not data_status['has_natal_chart']:
-                issues.append("Отсутствует натальная карта")
-            if not data_status['has_psyho_matrix']:
-                issues.append("Отсутствует психоматрица")
-            if not data_status['has_biorhythms']:
-                issues.append("Отсутствуют данные биоритмов")
-            if not prediction_valid:
-                issues.append("Некорректные данные предсказаний")
-
-            return {
-                'is_valid': len(issues) == 0,
-                'issues': issues,
-                'data_status': data_status,
-                'prediction_valid': prediction_valid
-            }
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка валидации данных для {telegram_id}: {e}")
-            return {
-                'is_valid': False,
-                'issues': [f"Ошибка валидации: {str(e)}"],
-                'data_status': {},
-                'prediction_valid': False
             }
 
 
@@ -1118,10 +991,6 @@ class BiorhythmCalculator:
             # Общий показатель энергии
             overall_energy = self._calculate_overall_energy(physical, emotional, intellectual, intuitive)
 
-            # Рекомендации на основе биоритмов
-            recommendations = self._generate_recommendations(physical, emotional, intellectual, intuitive,
-                                                             overall_energy)
-
             biorhythm_data = {
                 'calculation_date': target_date.isoformat(),
                 'days_lived': days_lived,
@@ -1132,7 +1001,6 @@ class BiorhythmCalculator:
                     'intuitive': intuitive
                 },
                 'overall_energy': overall_energy,
-                'recommendations': recommendations,
                 'critical_days': self._find_critical_days(physical, emotional, intellectual, target_date),
                 'peak_days': self._find_peak_days(physical, emotional, intellectual, target_date)
             }
@@ -1213,75 +1081,13 @@ class BiorhythmCalculator:
         # Нормализуем до 0-100%
         energy_percentage = ((total_energy + 1) / 2) * 100
 
-        # Определяем уровень энергии
-        if energy_percentage >= 80:
-            level = "очень высокий"
-            description = "Отличный день для активных действий и важных решений"
-        elif energy_percentage >= 60:
-            level = "высокий"
-            description = "Хороший день для продуктивной работы"
-        elif energy_percentage >= 40:
-            level = "средний"
-            description = "Стабильный день, подходит для рутинных задач"
-        elif energy_percentage >= 20:
-            level = "низкий"
-            description = "День для отдыха и восстановления сил"
-        else:
-            level = "очень низкий"
-            description = "Рекомендуется беречь энергию, избегать нагрузок"
-
         return {
             'value': round(total_energy, 4),
-            'percentage': round(energy_percentage, 2),
-            'level': level,
-            'description': description
+            'percentage': round(energy_percentage, 2)
         }
 
-    def _generate_recommendations(self, physical: Dict, emotional: Dict, intellectual: Dict, intuitive: Dict,
-                                  overall: Dict) -> List[str]:
-        """Генерация рекомендаций на основе биоритмов"""
-        recommendations = []
-
-        # Физические рекомендации
-        if physical['value'] > 0.5:
-            recommendations.append("💪 Идеальный день для спорта и физической активности")
-        elif physical['value'] < -0.5:
-            recommendations.append("🛌 Избегайте тяжелых физических нагрузок")
-
-        # Эмоциональные рекомендации
-        if emotional['value'] > 0.6:
-            recommendations.append("😊 Отличное время для общения и новых знакомств")
-        elif emotional['value'] < -0.4:
-            recommendations.append("🧘 Контролируйте эмоции, избегайте конфликтов")
-
-        # Интеллектуальные рекомендации
-        if intellectual['value'] > 0.5:
-            recommendations.append("📚 Благоприятный период для обучения и анализа")
-        elif intellectual['value'] < -0.3:
-            recommendations.append("📝 Отложите сложные интеллектуальные задачи")
-
-        # Интуитивные рекомендации
-        if intuitive['value'] > 0.4:
-            recommendations.append("🔮 Доверяйте интуиции при принятии решений")
-
-        # Общие рекомендации по энергии
-        if overall['percentage'] > 70:
-            recommendations.append("🚀 Используйте высокую энергию для важных проектов")
-        elif overall['percentage'] < 30:
-            recommendations.append("⚡ Экономьте силы, планируйте короткие перерывы")
-
-        # Если рекомендаций мало, добавляем общие
-        if len(recommendations) < 3:
-            recommendations.extend([
-                "📅 Следуйте своему естественному ритму",
-                "⏰ Планируйте задачи в соответствии с энергетическими пиками",
-                "💧 Пейте足够 воды для поддержания энергии"
-            ])
-
-        return recommendations[:5]  # Не более 5 рекомендаций
-
     def _find_critical_days(self, physical: Dict, emotional: Dict, intellectual: Dict, target_date: date) -> List[Dict]:
-        """Определение критических дней (ближайшие 7 дней)"""
+        """Определение критических дней"""
         critical_days = []
 
         # Проверяем текущий день
@@ -1290,14 +1096,13 @@ class BiorhythmCalculator:
                 abs(intellectual['value']) > 0.9):
             critical_days.append({
                 'date': target_date.isoformat(),
-                'cycles': self._get_critical_cycles(physical, emotional, intellectual),
-                'description': 'Критический день - будьте осторожны'
+                'cycles': self._get_critical_cycles(physical, emotional, intellectual)
             })
 
         return critical_days
 
     def _find_peak_days(self, physical: Dict, emotional: Dict, intellectual: Dict, target_date: date) -> List[Dict]:
-        """Определение пиковых дней (ближайшие 7 дней)"""
+        """Определение пиковых дней"""
         peak_days = []
 
         # Проверяем текущий день
@@ -1312,8 +1117,7 @@ class BiorhythmCalculator:
 
             peak_days.append({
                 'date': target_date.isoformat(),
-                'cycles': peak_cycles,
-                'description': f'Пик энергии в циклах: {", ".join(peak_cycles)}'
+                'cycles': peak_cycles
             })
 
         return peak_days
@@ -1353,7 +1157,7 @@ from backend.biorhythm_calculator import BiorhythmCalculator
 from backend.user_services import get_user_profile
 from sqlalchemy.future import select
 from sqlalchemy import func, and_
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import logging
 import asyncio
 
@@ -1541,6 +1345,33 @@ async def get_biorhythm_statistics(telegram_id: int):
             'last_calculation': None,
             'calculation_range_days': 0
         }
+
+
+async def cleanup_old_biorhythms(days_old: int = 30):
+    """Очистка старых записей биоритмов"""
+    try:
+        cutoff_date = date.today() - timedelta(days=days_old)
+
+        async with async_session() as session:
+            result = await session.execute(
+                Biorhythms.__table__.delete().where(
+                    Biorhythms.calculation_date < cutoff_date
+                )
+            )
+            deleted_count = result.rowcount
+
+            await session.commit()
+
+            if deleted_count > 0:
+                logger.info(f"🗑️ Удалено {deleted_count} старых записей биоритмов (старше {days_old} дней)")
+            else:
+                logger.info("✅ Старых записей биоритмов для удаления не найдено")
+
+            return deleted_count
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка при очистке старых биоритмов: {e}")
+        return 0
 
 chart_services.py:
 
@@ -2242,18 +2073,6 @@ class AstroPredictor:
             swe.SATURN: 'Saturn', swe.URANUS: 'Uranus',
             swe.NEPTUNE: 'Neptune', swe.PLUTO: 'Pluto'
         }
-        # Русские названия для пользователя
-        self.planet_names_ru = {
-            'Sun': 'Солнце', 'Moon': 'Луна', 'Mercury': 'Меркурий',
-            'Venus': 'Венера', 'Mars': 'Марс', 'Jupiter': 'Юпитер',
-            'Saturn': 'Сатурн', 'Uranus': 'Уран', 'Neptune': 'Нептун', 'Pluto': 'Плутон'
-        }
-        self.sign_names_ru = {
-            'Aries': 'Овен', 'Taurus': 'Телец', 'Gemini': 'Близнецы',
-            'Cancer': 'Рак', 'Leo': 'Лев', 'Virgo': 'Дева',
-            'Libra': 'Весы', 'Scorpio': 'Скорпион', 'Sagittarius': 'Стрелец',
-            'Capricorn': 'Козерог', 'Aquarius': 'Водолей', 'Pisces': 'Рыбы'
-        }
         self.planet_names_to_ids = {v: k for k, v in self.planets_ml.items()}
 
     def calculate_transits(self, target_date):
@@ -2312,163 +2131,8 @@ class AstroPredictor:
                 return (name, exact, orb)
         return None
 
-    def get_planet_influence(self, planet_name):
-        """Определяет сферу влияния планеты на основе астрологических принципов"""
-        influences = {
-            'Sun': 'личную энергию, творчество, самореализацию',
-            'Moon': 'эмоции, интуицию, домашние дела',
-            'Mercury': 'общение, обучение, документы',
-            'Venus': 'отношения, финансы, искусство',
-            'Mars': 'действия, инициативу, спорт',
-            'Jupiter': 'расширение, возможности, путешествия',
-            'Saturn': 'ответственность, карьеру, долгосрочные планы',
-            'Uranus': 'изменения, инновации, неожиданные события',
-            'Neptune': 'интуицию, творчество, духовность',
-            'Pluto': 'трансформацию, глубокие изменения'
-        }
-        return influences.get(planet_name, 'личное развитие')
-
-    def get_aspect_meaning(self, aspect_type, strength):
-        """Получает значение аспекта в зависимости от силы на основе астрологических принципов"""
-        if aspect_type == 'conjunction':
-            if strength > 0.7:
-                return "мощное соединение - время начинаний"
-            else:
-                return "соединение - новые возможности"
-        elif aspect_type == 'opposition':
-            if strength > 0.7:
-                return "сильная оппозиция - важные решения"
-            else:
-                return "оппозиция - требует баланса"
-        elif aspect_type == 'square':
-            if strength > 0.7:
-                return "напряженный квадрат - преодоление препятствий"
-            else:
-                return "квадрат - вызовы для роста"
-        elif aspect_type == 'trine':
-            if strength > 0.7:
-                return "гармоничный трин - благоприятное время"
-            else:
-                return "трин - поддержка и удача"
-        elif aspect_type == 'sextile':
-            if strength > 0.7:
-                return "благоприятный секстиль - хорошие возможности"
-            else:
-                return "секстиль - шансы для развития"
-        return "влияние на вашу энергию"
-
-    def generate_personal_recommendations(self, aspects, transits):
-        """Генерация персонализированных рекомендаций на основе РАСЧЕТОВ аспектов"""
-        recommendations = []
-        warnings = []
-
-        # Анализируем самые сильные аспекты (топ-3)
-        strong_aspects = [a for a in aspects if a['strength'] > 0.6][:3]
-
-        for aspect in strong_aspects:
-            transit_planet_ru = self.planet_names_ru.get(aspect['transit_planet'], aspect['transit_planet'])
-            natal_planet_ru = self.planet_names_ru.get(aspect['natal_planet'], aspect['natal_planet'])
-            influence_area = self.get_planet_influence(aspect['natal_planet'])
-            aspect_meaning = self.get_aspect_meaning(aspect['aspect'], aspect['strength'])
-
-            recommendation = f"{transit_planet_ru} {aspect_meaning} в сфере {influence_area}"
-
-            if aspect['aspect'] in ['trine', 'sextile', 'conjunction']:
-                # Благоприятные аспекты на основе РАСЧЕТОВ
-                if aspect['aspect'] == 'conjunction':
-                    actions = {
-                        'Sun': 'начинайте новые проекты, проявляйте инициативу',
-                        'Moon': 'доверяйте интуиции, займитесь домом',
-                        'Mercury': 'общайтесь, учитесь, подписывайте документы',
-                        'Venus': 'укрепляйте отношения, занимайтесь творчеством',
-                        'Mars': 'действуйте решительно, занимайтесь спортом',
-                        'Jupiter': 'расширяйте горизонты, путешествуйте',
-                        'Saturn': 'стройте долгосрочные планы, берите ответственность',
-                        'Uranus': 'экспериментируйте, будьте открыты новому',
-                        'Neptune': 'развивайте интуицию, занимайтесь творчеством',
-                        'Pluto': 'трансформируйте старые привычки'
-                    }
-                elif aspect['aspect'] in ['trine', 'sextile']:
-                    actions = {
-                        'Sun': 'используйте свою энергию для творчества',
-                        'Moon': 'положитесь на внутренние ощущения',
-                        'Mercury': 'эффективно общайтесь и договаривайтесь',
-                        'Venus': 'гармонизируйте отношения и финансы',
-                        'Mars': 'реализуйте планы с энтузиазмом',
-                        'Jupiter': 'используйте расширяющиеся возможности',
-                        'Saturn': 'стройте прочный фундамент',
-                        'Uranus': 'внедряйте инновационные идеи',
-                        'Neptune': 'развивайте духовные практики',
-                        'Pluto': 'глубоко трансформируйтесь'
-                    }
-
-                action = actions.get(aspect['natal_planet'], 'используйте эту энергию для роста')
-                recommendations.append(f"{recommendation}. {action} (сила аспекта: {aspect['strength']:.2f})")
-
-            else:
-                # Сложные аспекты (квадрат, оппозиция) на основе РАСЧЕТОВ
-                cautions = {
-                    'Sun': 'избегайте конфликтов, будьте дипломатичны',
-                    'Moon': 'контролируйте эмоции, избегайте импульсивности',
-                    'Mercury': 'проверяйте информацию, избегайте споров',
-                    'Venus': 'будьте осторожны в отношениях и финансах',
-                    'Mars': 'избегайте рисков, действуйте обдуманно',
-                    'Jupiter': 'не переоценивайте возможности',
-                    'Saturn': 'не избегайте ответственности, но и не перегружайтесь',
-                    'Uranus': 'будьте готовы к неожиданностям',
-                    'Neptune': 'различайте иллюзии и реальность',
-                    'Pluto': 'избегайте манипуляций и давления'
-                }
-
-                caution = cautions.get(aspect['natal_planet'], 'будьте внимательны и осторожны')
-                warnings.append(f"{recommendation}. {caution} (сила аспекта: {aspect['strength']:.2f})")
-
-        # Добавляем информацию о ретроградных планетах на основе РАСЧЕТОВ
-        retrograde_planets = [p for p, data in transits.items() if data.get('retrograde')]
-        if retrograde_planets:
-            retro_names = [self.planet_names_ru.get(p, p) for p in retrograde_planets]
-            if len(retro_names) > 0:
-                warnings.append(f"Ретроградные {', '.join(retro_names)} - время пересмотра и анализа")
-
-        # Если аспектов мало, добавляем рекомендации на основе общей картины РАСЧЕТОВ
-        if not recommendations and not warnings:
-            total_aspects = len(aspects)
-            if total_aspects > 0:
-                avg_strength = sum(a['strength'] for a in aspects) / total_aspects
-                recommendations.append(
-                    f"Наблюдается {total_aspects} аспектов со средней силой {avg_strength:.2f} - следите за изменениями в соответствующих сферах")
-            else:
-                # Если аспектов нет вообще - это тоже результат расчета
-                recommendations.append(
-                    "Сегодня минимальная астрологическая активность - хороший день для рутинных дел и планирования")
-
-        return recommendations[:4], warnings[:3]  # Ограничиваем количество
-
-    def analyze_natal_elements(self):
-        """Анализирует элементный баланс натальной карты на основе РАСЧЕТОВ"""
-        if 'ml_features' in self.natal_chart and 'element_balance' in self.natal_chart['ml_features']:
-            return self.natal_chart['ml_features']['element_balance']
-        return None
-
-    def get_element_recommendation(self, elements):
-        """Рекомендации на основе РАСЧЕТОВ элементного баланса"""
-        if not elements:
-            return None
-
-        max_element = max(elements.items(), key=lambda x: x[1])
-        element_value = max_element[1]
-
-        recommendations = {
-            'fire': f"Доминирует огонь ({element_value} планет) - используйте свою энергию и инициативу для новых начинаний",
-            'earth': f"Доминирует земля ({element_value} планет) - сосредоточьтесь на практических задачах и стабильности",
-            'air': f"Доминирует воздух ({element_value} планет) - развивайте общение, обучение и интеллектуальную деятельность",
-            'water': f"Доминирует вода ({element_value} планет) - доверяйте интуиции и развивайте эмоциональную чувствительность"
-        }
-
-        return recommendations.get(max_element[0])
-
     def generate_prediction(self, target_date):
-        """Основной метод генерации предсказания на основе РАСЧЕТОВ"""
+        """Основной метод генерации данных для предсказания на основе РАСЧЕТОВ"""
         try:
             # Рассчитываем транзиты
             transits = self.calculate_transits(target_date)
@@ -2494,37 +2158,26 @@ class AstroPredictor:
             # Анализируем аспекты
             aspects = self.analyze_aspects(transits, natal_positions)
 
-            # Генерируем персонализированные рекомендации и предостережения на основе РАСЧЕТОВ
-            recommendations, warnings = self.generate_personal_recommendations(aspects, transits)
-
-            # Добавляем рекомендации на основе элементного баланса если есть
-            element_balance = self.analyze_natal_elements()
-            if element_balance:
-                element_recommendation = self.get_element_recommendation(element_balance)
-                if element_recommendation and len(recommendations) < 4:
-                    recommendations.append(element_recommendation)
-
             return {
                 'prediction_date': target_date.strftime('%Y-%m-%d'),
-                'significant_aspects': aspects[:5],
-                'recommendations': recommendations,
-                'warnings': warnings,
-                'transits_count': len(transits),
+                'transits': transits,
+                'aspects': aspects,
                 'aspects_count': len(aspects),
-                'strong_aspects_count': len([a for a in aspects if a['strength'] > 0.7])
+                'strong_aspects_count': len([a for a in aspects if a['strength'] > 0.7]),
+                'retrograde_planets': [p for p, data in transits.items() if data.get('retrograde')]
             }
 
         except Exception as e:
-            # В случае ошибки возвращаем пустое предсказание с информацией об ошибке
+            # В случае ошибки возвращаем пустые данные с информацией об ошибке
             return {
                 'prediction_date': target_date.strftime('%Y-%m-%d'),
-                'significant_aspects': [],
-                'recommendations': [f"Ошибка расчета: {str(e)} - обратитесь к администратору"],
-                'warnings': ["Временные технические трудности при расчете аспектов"],
-                'transits_count': 0,
+                'transits': {},
+                'aspects': [],
                 'aspects_count': 0,
                 'strong_aspects_count': 0,
-                'calculation_error': True
+                'retrograde_planets': [],
+                'calculation_error': True,
+                'error_message': str(e)
             }
 
     async def save_prediction_to_db(self, telegram_id: int, prediction_date: date):
@@ -2555,182 +2208,55 @@ prediction_services.py:
 from backend.database import async_session, NatalPredictions
 from backend.predictions import AstroPredictor
 from backend.chart_services import get_user_natal_chart
+from backend.matrix_services import get_user_matrix
 from backend.biorhythm_services import calculate_and_save_biorhythms
 from sqlalchemy.future import select
 from sqlalchemy import func
 import logging
+import json
 from datetime import datetime, date
 
 logger = logging.getLogger(__name__)
 
 
-class PredictionCombiner:
-    """Класс для объединения астрологических предсказаний и биоритмов"""
+class DataCombiner:
+    """Класс для объединения данных астрологии и биоритмов"""
 
     def __init__(self):
         pass
 
-    def combine_recommendations(self, astro_prediction: dict, biorhythm_data: dict) -> list:
-        """Объединение рекомендаций из астрологии и биоритмов на основе РАСЧЕТОВ"""
+    def combine_calculation_data(self, astro_prediction: dict, biorhythm_data: dict) -> dict:
+        """Объединение данных из астрологии и биоритмов"""
 
-        # Берем рекомендации из обоих источников
-        astro_recommendations = astro_prediction.get('recommendations', [])
-        biorhythm_recommendations = biorhythm_data.get('recommendations', [])
-
-        # Объединяем рекомендации
-        all_recommendations = astro_recommendations + biorhythm_recommendations
-
-        # Сортируем по приоритету на основе РАСЧЕТОВ
-        priority_recommendations = self._prioritize_recommendations(all_recommendations)
-
-        return priority_recommendations[:8]  # Не более 8 рекомендаций
-
-    def _prioritize_recommendations(self, recommendations: list) -> list:
-        """Приоритизация рекомендаций на основе РАСЧЕТОВ"""
-        high_priority = []
-        medium_priority = []
-        low_priority = []
-
-        for rec in recommendations:
-            rec_lower = rec.lower()
-
-            # Высокий приоритет - предостережения и критические дни на основе РАСЧЕТОВ
-            if any(word in rec_lower for word in
-                   ['осторожн', 'избегай', 'опасн', 'критич', 'не рискуй', 'береги', 'ретроградн']):
-                high_priority.append(rec)
-            # Средний приоритет - активные действия на основе РАСЧЕТОВ
-            elif any(word in rec_lower for word in ['идеальн', 'отличн', 'благоприятн', 'используй', 'высок', 'пик']):
-                medium_priority.append(rec)
-            # Низкий приоритет - информационные рекомендации
-            else:
-                low_priority.append(rec)
-
-        return high_priority + medium_priority + low_priority
-
-    def generate_energy_analysis(self, astro_prediction: dict, biorhythm_data: dict) -> str:
-        """Анализ энергетического состояния на основе РАСЧЕТОВ обоих методов"""
-
-        # Данные из биоритмов
-        energy_level = biorhythm_data.get('overall_energy', {}).get('level', 'средний')
-        energy_percentage = biorhythm_data.get('overall_energy', {}).get('percentage', 50)
-
-        # Данные из астрологии
-        aspects = astro_prediction.get('significant_aspects', [])
-        strong_aspects = [a for a in aspects if a.get('strength', 0) > 0.7]
-        challenging_aspects = [a for a in strong_aspects if a.get('aspect') in ['square', 'opposition']]
-        harmonious_aspects = [a for a in strong_aspects if a.get('aspect') in ['trine', 'sextile', 'conjunction']]
-
-        # Формируем анализ на основе РАСЧЕТОВ
-        analysis_parts = []
-
-        # Анализ энергии из биоритмов
-        analysis_parts.append(f"⚡ Уровень энергии: {energy_level} ({energy_percentage:.1f}%)")
-
-        # Анализ аспектов из астрологии
-        if challenging_aspects:
-            analysis_parts.append(f"🎯 Сложных аспектов: {len(challenging_aspects)}")
-
-        if harmonious_aspects:
-            analysis_parts.append(f"🌟 Гармоничных аспектов: {len(harmonious_aspects)}")
-
-        # Общий вывод на основе РАСЧЕТОВ
-        if energy_percentage > 70 and len(challenging_aspects) == 0:
-            analysis_parts.append("✅ Идеальный день для активных действий")
-        elif energy_percentage < 30 and len(challenging_aspects) > 2:
-            analysis_parts.append("⚠️ Сохраняйте спокойствие, избегайте нагрузок")
-        elif len(harmonious_aspects) > len(challenging_aspects):
-            analysis_parts.append("📊 Преобладают гармоничные влияния")
-        else:
-            analysis_parts.append("📈 Сбалансированный энергетический профиль")
-
-        return " | ".join(analysis_parts)
-
-    def create_daily_schedule(self, biorhythm_data: dict) -> list:
-        """Создание рекомендуемого расписания дня на основе РАСЧЕТОВ биоритмов"""
-
-        cycles = biorhythm_data.get('cycles', {})
-        schedule = []
-
-        # Утренние рекомендации на основе РАСЧЕТОВ интеллектуального цикла
-        morning_rec = "🌅 Утро: "
-        intellectual_value = cycles.get('intellectual', {}).get('value', 0)
-        if intellectual_value > 0.3:
-            morning_rec += f"планирование и анализ (интеллектуальный цикл: {intellectual_value:.2f})"
-        else:
-            morning_rec += f"легкая разминка и рутина (интеллектуальный цикл: {intellectual_value:.2f})"
-        schedule.append(morning_rec)
-
-        # Дневные рекомендации на основе РАСЧЕТОВ физического цикла
-        day_rec = "🌞 День: "
-        physical_value = cycles.get('physical', {}).get('value', 0)
-        if physical_value > 0.5:
-            day_rec += f"активная работа и движение (физический цикл: {physical_value:.2f})"
-        elif physical_value > 0:
-            day_rec += f"умеренная активность (физический цикл: {physical_value:.2f})"
-        else:
-            day_rec += f"спокойная деятельность (физический цикл: {physical_value:.2f})"
-        schedule.append(day_rec)
-
-        # Вечерние рекомендации на основе РАСЧЕТОВ эмоционального цикла
-        evening_rec = "🌙 Вечер: "
-        emotional_value = cycles.get('emotional', {}).get('value', 0)
-        if emotional_value > 0.4:
-            evening_rec += f"общение и творчество (эмоциональный цикл: {emotional_value:.2f})"
-        else:
-            evening_rec += f"отдых и уединение (эмоциональный цикл: {emotional_value:.2f})"
-        schedule.append(evening_rec)
-
-        return schedule
-
-    def _extract_critical_notes(self, astro_prediction: dict, biorhythm_data: dict) -> list:
-        """Извлечение критических замечаний на основе РАСЧЕТОВ обоих источников"""
-        critical_notes = []
-
-        # Критические дни из биоритмов на основе РАСЧЕТОВ
-        critical_days = biorhythm_data.get('critical_days', [])
-        if critical_days:
-            for day in critical_days:
-                critical_notes.append(f"⚠️ {day.get('description', 'Критический день по биоритмам')}")
-
-        # Сложные аспекты из астрологии на основе РАСЧЕТОВ
-        aspects = astro_prediction.get('significant_aspects', [])
-        challenging_aspects = [a for a in aspects if
-                               a.get('aspect') in ['square', 'opposition'] and a.get('strength', 0) > 0.7]
-
-        for aspect in challenging_aspects[:2]:  # Не более 2 самых сильных
-            planet1 = aspect.get('transit_planet', '')
-            planet2 = aspect.get('natal_planet', '')
-            aspect_type = aspect.get('aspect', '')
-            strength = aspect.get('strength', 0)
-
-            planet1_ru = self._get_planet_name_ru(planet1)
-            planet2_ru = self._get_planet_name_ru(planet2)
-
-            if aspect_type == 'square':
-                critical_notes.append(f"🔺 Напряженный аспект: {planet1_ru} - {planet2_ru} (сила: {strength:.2f})")
-            elif aspect_type == 'opposition':
-                critical_notes.append(f"⚖️ Сложный выбор: {planet1_ru} - {planet2_ru} (сила: {strength:.2f})")
-
-        # Предостережения из астрологии
-        warnings = astro_prediction.get('warnings', [])
-        critical_notes.extend(warnings[:2])  # Не более 2 предостережений
-
-        return critical_notes[:4]  # Не более 4 критических заметок
-
-    def _get_planet_name_ru(self, planet_name: str) -> str:
-        """Получение русского названия планеты"""
-        planet_names_ru = {
-            'Sun': 'Солнце', 'Moon': 'Луна', 'Mercury': 'Меркурий',
-            'Venus': 'Венера', 'Mars': 'Марс', 'Jupiter': 'Юпитер',
-            'Saturn': 'Сатурн', 'Uranus': 'Уран', 'Neptune': 'Нептун', 'Pluto': 'Плутон'
+        return {
+            'calculation_date': datetime.now().isoformat(),
+            'astro_data': {
+                'transits_count': len(astro_prediction.get('transits', {})),
+                'aspects_count': astro_prediction.get('aspects_count', 0),
+                'strong_aspects_count': astro_prediction.get('strong_aspects_count', 0),
+                'retrograde_planets': astro_prediction.get('retrograde_planets', []),
+                'key_aspects': astro_prediction.get('aspects', [])[:5]
+            },
+            'biorhythm_data': {
+                'overall_energy': biorhythm_data.get('overall_energy', {}),
+                'physical_cycle': biorhythm_data.get('cycles', {}).get('physical', {}),
+                'emotional_cycle': biorhythm_data.get('cycles', {}).get('emotional', {}),
+                'intellectual_cycle': biorhythm_data.get('cycles', {}).get('intellectual', {}),
+                'critical_days_count': len(biorhythm_data.get('critical_days', [])),
+                'peak_days_count': len(biorhythm_data.get('peak_days', []))
+            },
+            'calculation_metadata': {
+                'calculation_timestamp': datetime.now().isoformat(),
+                'data_sources': ['astrology', 'biorhythms'],
+                'calculation_methods': ['swiss_ephemeris', 'sine_wave_analysis']
+            }
         }
-        return planet_names_ru.get(planet_name, planet_name)
 
 
 async def generate_and_save_prediction(telegram_id: int, target_date: date):
-    """Генерация и сохранение предсказания с биоритмами на основе РАСЧЕТОВ"""
+    """Генерация и сохранение данных для предсказания"""
     try:
-        logger.info(f"🔮 Генерация предсказания для пользователя {telegram_id} на {target_date}")
+        logger.info(f"🔮 Генерация данных для пользователя {telegram_id} на {target_date}")
 
         # Получаем натальную карту пользователя
         natal_data = await get_user_natal_chart(telegram_id)
@@ -2740,59 +2266,26 @@ async def generate_and_save_prediction(telegram_id: int, target_date: date):
 
         logger.info(f"✅ Натальная карта найдена для {telegram_id}")
 
-        # Рассчитываем биоритмы на основе РАСЧЕТОВ
+        # Получаем психоматрицу пользователя
+        matrix_data = await get_user_matrix(telegram_id)
+        logger.info(f"✅ Психоматрица получена для {telegram_id}")
+
+        # Рассчитываем биоритмы
         biorhythm_data = await calculate_and_save_biorhythms(telegram_id, target_date)
         logger.info(f"✅ Биоритмы рассчитаны для {telegram_id}")
 
-        # Генерируем астрологическое предсказание на основе РАСЧЕТОВ
+        # Генерируем астрологические данные
         predictor = AstroPredictor(natal_data)
         astro_prediction = predictor.generate_prediction(target_date)
-        logger.info(f"✅ Астрологическое предсказание сгенерировано для {telegram_id}")
+        logger.info(f"✅ Астрологические данные сгенерированы для {telegram_id}")
 
-        # Объединяем предсказания на основе РАСЧЕТОВ
-        combiner = PredictionCombiner()
-        combined_recommendations = combiner.combine_recommendations(astro_prediction, biorhythm_data)
-        energy_analysis = combiner.generate_energy_analysis(astro_prediction, biorhythm_data)
-        daily_schedule = combiner.create_daily_schedule(biorhythm_data)
-        critical_notes = combiner._extract_critical_notes(astro_prediction, biorhythm_data)
+        # Объединяем данные
+        combiner = DataCombiner()
+        combined_data = combiner.combine_calculation_data(astro_prediction, biorhythm_data)
 
-        # Создаем финальное предсказание на основе РАСЧЕТОВ
-        final_prediction = {
-            'prediction_date': target_date.isoformat(),
-            'energy_analysis': energy_analysis,
-            'biorhythms_summary': {
-                'overall_energy': biorhythm_data.get('overall_energy', {}),
-                'physical_cycle': biorhythm_data.get('cycles', {}).get('physical', {}),
-                'emotional_cycle': biorhythm_data.get('cycles', {}).get('emotional', {}),
-                'intellectual_cycle': biorhythm_data.get('cycles', {}).get('intellectual', {}),
-                'critical_days_count': len(biorhythm_data.get('critical_days', [])),
-                'peak_days_count': len(biorhythm_data.get('peak_days', []))
-            },
-            'astro_summary': {
-                'significant_aspects_count': len(astro_prediction.get('significant_aspects', [])),
-                'strong_aspects_count': astro_prediction.get('strong_aspects_count', 0),
-                'transits_count': astro_prediction.get('transits_count', 0),
-                'key_aspects': astro_prediction.get('significant_aspects', [])[:3]
-            },
-            'combined_recommendations': combined_recommendations,
-            'daily_schedule': daily_schedule,
-            'critical_notes': critical_notes,
+        logger.info(f"✅ Комбинированные данные созданы для {telegram_id}")
 
-            # Полные данные для детального анализа
-            'full_astro_prediction': astro_prediction,
-            'full_biorhythm_data': biorhythm_data,
-
-            # Мета-информация о расчетах
-            'calculation_metadata': {
-                'calculation_timestamp': datetime.now().isoformat(),
-                'data_sources': ['astrology', 'biorhythms'],
-                'calculation_methods': ['swiss_ephemeris', 'sine_wave_analysis']
-            }
-        }
-
-        logger.info(f"✅ Комбинированное предсказание создано для {telegram_id}")
-
-        # Сохраняем предсказание в БД
+        # Сохраняем данные в БД
         async with async_session() as session:
             result = await session.execute(
                 select(NatalPredictions).where(NatalPredictions.telegram_id == telegram_id)
@@ -2801,34 +2294,38 @@ async def generate_and_save_prediction(telegram_id: int, target_date: date):
 
             if existing_record:
                 # Обновляем существующую запись
-                existing_record.predictions = final_prediction
+                existing_record.predictions = combined_data
                 existing_record.updated_at = func.now()
-                logger.info(f"📝 Обновлено существующее предсказание для {telegram_id}")
+                logger.info(f"📝 Обновлены данные для {telegram_id}")
             else:
                 # Создаем новую запись
                 new_record = NatalPredictions(
                     telegram_id=telegram_id,
-                    predictions=final_prediction,
+                    predictions=combined_data,
                     assistant_data={},
                 )
                 session.add(new_record)
-                logger.info(f"🆕 Создано новое предсказание для {telegram_id}")
+                logger.info(f"🆕 Созданы новые данные для {telegram_id}")
 
             await session.commit()
-            logger.info(f"💾 Предсказание успешно сохранено в БД для {telegram_id}")
+            logger.info(f"💾 Данные успешно сохранены в БД для {telegram_id}")
 
-        return final_prediction
+        return {
+            'natal_chart': natal_data,
+            'psyho_matrix': matrix_data,
+            'daily_calculations': combined_data
+        }
 
     except ValueError as e:
         logger.warning(f"❌ Ошибка валидации для {telegram_id}: {e}")
         raise
     except Exception as e:
-        logger.error(f"❌ Ошибка при генерации предсказания для {telegram_id}: {e}")
-        raise Exception(f"Не удалось сгенерировать предсказание на основе расчетов: {str(e)}")
+        logger.error(f"❌ Ошибка при генерации данных для {telegram_id}: {e}")
+        raise Exception(f"Не удалось сгенерировать данные на основе расчетов: {str(e)}")
 
 
 async def get_user_predictions(telegram_id: int):
-    """Получение предсказаний пользователя"""
+    """Получение данных пользователя"""
     try:
         async with async_session() as session:
             result = await session.execute(
@@ -2841,125 +2338,162 @@ async def get_user_predictions(telegram_id: int):
             return None
 
     except Exception as e:
-        logger.error(f"❌ Ошибка при получении предсказаний {telegram_id}: {e}")
+        logger.error(f"❌ Ошибка при получении данных {telegram_id}: {e}")
         return None
 
 
 async def get_todays_prediction(telegram_id: int):
-    """Получение предсказания на сегодня"""
+    """Получение данных на сегодня"""
     try:
         today = datetime.now().date()
 
-        # Получаем сохраненное предсказание
+        # Получаем сохраненные данные
         predictions = await get_user_predictions(telegram_id)
 
-        if predictions and predictions.get('prediction_date') == today.isoformat():
-            logger.info(f"✅ Использовано сохраненное предсказание для {telegram_id}")
+        if predictions and predictions.get('calculation_date', '').startswith(today.isoformat()):
+            logger.info(f"✅ Использованы сохраненные данные для {telegram_id}")
             return predictions
 
-        # Если предсказания на сегодня нет, генерируем новое на основе РАСЧЕТОВ
-        logger.info(f"🔄 Генерация нового предсказания для {telegram_id}")
+        # Если данных на сегодня нет, генерируем новые
+        logger.info(f"🔄 Генерация новых данных для {telegram_id}")
         return await generate_and_save_prediction(telegram_id, today)
 
     except Exception as e:
-        logger.error(f"❌ Ошибка при получении сегодняшнего предсказания {telegram_id}: {e}")
+        logger.error(f"❌ Ошибка при получении сегодняшних данных {telegram_id}: {e}")
         return None
 
 
-async def format_prediction_for_display(prediction: dict) -> str:
-    """Форматирование предсказания для отображения в боте на основе РАСЧЕТОВ"""
+async def format_data_for_user(prediction: dict) -> str:
+    """Форматирование данных для отображения пользователю"""
     if not prediction:
-        return "❌ Не удалось получить предсказание на основе расчетов"
+        return "❌ Не удалось получить данные расчетов"
 
     try:
+        daily_data = prediction.get('daily_calculations', {})
+
         lines = []
-        prediction_date = prediction.get('prediction_date', 'сегодня')
-        lines.append(f"🔮 **Ваше предсказание на {prediction_date}**")
+        calculation_date = daily_data.get('calculation_date', 'сегодня')
+        lines.append(f"📊 **Результаты расчетов на {calculation_date}**")
         lines.append("")
 
-        # Анализ энергии на основе РАСЧЕТОВ
-        energy_analysis = prediction.get('energy_analysis', '')
-        if energy_analysis:
-            lines.append(f"⚡ {energy_analysis}")
-            lines.append("")
-
-        # Биоритмы на основе РАСЧЕТОВ
-        biorhythms = prediction.get('biorhythms_summary', {})
+        # Биоритмы
+        biorhythms = daily_data.get('biorhythm_data', {})
         if biorhythms:
             overall_energy = biorhythms.get('overall_energy', {})
             lines.append(
-                f"📊 **Биоритмы:** {overall_energy.get('level', 'средний').title()} уровень энергии ({overall_energy.get('percentage', 0):.1f}%)")
+                f"⚡ **Общая энергия:** {overall_energy.get('percentage', 0):.1f}%")
 
             physical = biorhythms.get('physical_cycle', {})
             emotional = biorhythms.get('emotional_cycle', {})
             intellectual = biorhythms.get('intellectual_cycle', {})
 
             lines.append(
-                f"💪 Физический: {physical.get('phase', 'нейтральная')} ({physical.get('percentage', 0):.1f}%) - {physical.get('trend', 'стабильно')}")
+                f"💪 **Физический цикл:** {physical.get('percentage', 0):.1f}% ({physical.get('phase', 'нейтральная')})")
             lines.append(
-                f"😊 Эмоциональный: {emotional.get('phase', 'нейтральная')} ({emotional.get('percentage', 0):.1f}%) - {emotional.get('trend', 'стабильно')}")
+                f"😊 **Эмоциональный цикл:** {emotional.get('percentage', 0):.1f}% ({emotional.get('phase', 'нейтральная')})")
             lines.append(
-                f"🧠 Интеллектуальный: {intellectual.get('phase', 'нейтральная')} ({intellectual.get('percentage', 0):.1f}%) - {intellectual.get('trend', 'стабильно')}")
+                f"🧠 **Интеллектуальный цикл:** {intellectual.get('percentage', 0):.1f}% ({intellectual.get('phase', 'нейтральная')})")
             lines.append("")
 
-        # Астрологическая сводка на основе РАСЧЕТОВ
-        astro_summary = prediction.get('astro_summary', {})
-        if astro_summary:
+        # Астрологические данные
+        astro_data = daily_data.get('astro_data', {})
+        if astro_data:
             lines.append(
-                f"🌟 **Астрология:** {astro_summary.get('significant_aspects_count', 0)} аспектов, {astro_summary.get('strong_aspects_count', 0)} сильных")
+                f"🌟 **Астрология:** {astro_data.get('aspects_count', 0)} аспектов, {astro_data.get('strong_aspects_count', 0)} сильных")
+
+            retrograde_planets = astro_data.get('retrograde_planets', [])
+            if retrograde_planets:
+                lines.append(f"🔄 **Ретроградные планеты:** {', '.join(retrograde_planets)}")
+
             lines.append("")
 
-        # Расписание дня на основе РАСЧЕТОВ биоритмов
-        schedule = prediction.get('daily_schedule', [])
-        if schedule:
-            lines.append("🕒 **Рекомендуемое расписание на основе биоритмов:**")
-            for item in schedule:
-                lines.append(f"   {item}")
-            lines.append("")
+        lines.append("📈 *Все данные готовы для формирования персонализированных рекомендаций*")
 
-        # Рекомендации на основе РАСЧЕТОВ
-        recommendations = prediction.get('combined_recommendations', [])
-        if recommendations:
-            lines.append("💫 **Рекомендации на день (на основе расчетов):**")
-            for i, rec in enumerate(recommendations[:6], 1):  # Не более 6 рекомендаций
-                lines.append(f"{i}. {rec}")
-            lines.append("")
-
-        # Критические заметки на основе РАСЧЕТОВ
-        critical_notes = prediction.get('critical_notes', [])
-        if critical_notes:
-            lines.append("⚠️ **Обратите внимание (на основе расчетов):**")
-            for note in critical_notes[:3]:  # Не более 3 заметок
-                lines.append(f"   • {note}")
-            lines.append("")
-
-        # Информация о расчетах
-        lines.append("📈 *Все рекомендации основаны на математических расчетах:*")
-        lines.append("   • Астрологические транзиты и аспекты")
-        lines.append("   • Биоритмы (физический, эмоциональный, интеллектуальный циклы)")
-        lines.append("   • Статистический анализ влияний")
-
-        # ✅ ВАЖНО: Возвращаем объединенную строку, а не список
         return "\n".join(lines)
 
     except Exception as e:
-        logger.error(f"❌ Ошибка форматирования предсказания: {e}")
-        return "❌ Произошла ошибка при формировании предсказания на основе расчетов"
+        logger.error(f"❌ Ошибка форматирования данных: {e}")
+        return "❌ Произошла ошибка при формировании данных расчетов"
 
 
+async def format_data_for_model(telegram_id: int, user_profile: dict, prediction: dict) -> str:
+    """Форматирование данных для модели ИИ"""
+    if not prediction:
+        return "❌ No calculation data available"
+
+    try:
+        model_data = {
+            'user_profile': {
+                'telegram_id': telegram_id,
+                'profession': user_profile.get('profession'),
+                'job_position': user_profile.get('job_position'),
+                'current_city': user_profile.get('current_city'),
+                'birth_date': user_profile.get('birth_date').isoformat() if user_profile.get('birth_date') else None,
+                'birth_city': user_profile.get('birth_city')
+            },
+            'natal_chart': prediction.get('natal_chart', {}),
+            'psyho_matrix': prediction.get('psyho_matrix', {}),
+            'daily_calculations': prediction.get('daily_calculations', {}),
+            'timestamp': datetime.now().isoformat()
+        }
+
+        # Красивый вывод для отладки
+        print("\n" + "=" * 80)
+        print("🤖 DATA FOR AI MODEL:")
+        print("=" * 80)
+        print(f"👤 User ID: {telegram_id}")
+        print(f"💼 Profession: {user_profile.get('profession', 'Not specified')}")
+        print(f"📋 Position: {user_profile.get('job_position', 'Not specified')}")
+        print(f"🏙️ City: {user_profile.get('current_city', 'Not specified')}")
+
+        # Натальная карта
+        natal_chart = prediction.get('natal_chart', {})
+        if natal_chart:
+            planets = natal_chart.get('planets', {})
+            print(f"\n🌟 Natal Chart: {len(planets)} planets calculated")
+            print(f"   📍 Birth location: {natal_chart.get('metadata', {}).get('location', {}).get('city', 'Unknown')}")
+
+        # Психоматрица
+        matrix = prediction.get('psyho_matrix', {})
+        if matrix:
+            basic_numbers = matrix.get('basic_numbers', {})
+            print(f"🔢 Psyho Matrix: First number: {basic_numbers.get('first', 'N/A')}")
+
+        # Ежедневные расчеты
+        daily = prediction.get('daily_calculations', {})
+        if daily:
+            biorhythms = daily.get('biorhythm_data', {})
+            astro = daily.get('astro_data', {})
+            print(f"📊 Daily Calculations:")
+            print(f"   ⚡ Energy: {biorhythms.get('overall_energy', {}).get('percentage', 0):.1f}%")
+            print(f"   🌟 Aspects: {astro.get('aspects_count', 0)}")
+
+        print("=" * 80)
+        print("JSON Data for AI Model:")
+        print("=" * 80)
+        print(json.dumps(model_data, ensure_ascii=False, indent=2))
+        print("=" * 80 + "\n")
+
+        return json.dumps(model_data, ensure_ascii=False)
+
+    except Exception as e:
+        logger.error(f"❌ Error formatting data for model: {e}")
+        return json.dumps({'error': str(e)})
+
+
+# Остальные функции остаются без изменений...
 async def get_prediction_statistics(telegram_id: int) -> dict:
-    """Получение статистики предсказаний пользователя"""
+    """Получение статистики данных пользователя"""
     try:
         prediction = await get_user_predictions(telegram_id)
         if not prediction:
             return {}
 
+        daily_data = prediction.get('daily_calculations', {})
         return {
-            'last_calculation_date': prediction.get('prediction_date'),
-            'biorhythm_energy': prediction.get('biorhythms_summary', {}).get('overall_energy', {}).get('percentage', 0),
-            'astro_aspects_count': prediction.get('astro_summary', {}).get('significant_aspects_count', 0),
-            'recommendations_count': len(prediction.get('combined_recommendations', [])),
-            'critical_notes_count': len(prediction.get('critical_notes', []))
+            'last_calculation_date': daily_data.get('calculation_date'),
+            'biorhythm_energy': daily_data.get('biorhythm_data', {}).get('overall_energy', {}).get('percentage', 0),
+            'astro_aspects_count': daily_data.get('astro_data', {}).get('aspects_count', 0)
         }
 
     except Exception as e:
@@ -2968,39 +2502,33 @@ async def get_prediction_statistics(telegram_id: int) -> dict:
 
 
 async def validate_prediction_data(telegram_id: int) -> bool:
-    """Проверка корректности данных предсказания"""
+    """Проверка корректности данных"""
     try:
         prediction = await get_user_predictions(telegram_id)
         if not prediction:
             return False
 
         # Проверяем наличие обязательных полей
-        required_fields = ['prediction_date', 'energy_analysis', 'combined_recommendations']
+        required_fields = ['natal_chart', 'psyho_matrix', 'daily_calculations']
         for field in required_fields:
-            if field not in prediction or not prediction[field]:
+            if field not in prediction:
                 return False
-
-        # Проверяем что рекомендации не пустые
-        if not prediction.get('combined_recommendations'):
-            return False
 
         return True
 
     except Exception as e:
-        logger.error(f"❌ Ошибка валидации данных предсказания для {telegram_id}: {e}")
+        logger.error(f"❌ Ошибка валидации данных для {telegram_id}: {e}")
         return False
 
 
 async def cleanup_old_predictions():
-    """Очистка устаревших предсказаний (для администрирования)"""
+    """Очистка устаревших данных"""
     try:
-        # В текущей структуре у нас только одно предсказание на пользователя
-        # Эта функция может быть использована для будущих расширений
-        logger.info("🔄 Очистка устаревших предсказаний не требуется в текущей структуре")
+        logger.info("🔄 Очистка устаревших данных не требуется в текущей структуре")
         return 0
 
     except Exception as e:
-        logger.error(f"❌ Ошибка при очистке предсказаний: {e}")
+        logger.error(f"❌ Ошибка при очистке данных: {e}")
         return 0
 
 psyho_matrix.py:
@@ -3049,10 +2577,7 @@ class PsyhoMatrixCalculator:
                 'fourth': fourth_number
             },
             'pythagoras_matrix': matrix_numbers,
-            'characteristics': self._calculate_characteristics(matrix_numbers),
-            'energy_level': self._analyze_energy(first_number),
-            'life_purpose': self._analyze_life_purpose(fourth_number),
-            'talents': self._analyze_talents(matrix_numbers),
+            'digit_counts': self._calculate_digit_counts(matrix_numbers),
             'calculated_at': datetime.now().isoformat()
         }
 
@@ -3073,164 +2598,13 @@ class PsyhoMatrixCalculator:
 
         return matrix
 
-    def _calculate_characteristics(self, matrix):
-        """Расчет характеристик на основе матрицы"""
-        characteristics = {
-            'character': self._analyze_character(matrix),
-            'energy': self._analyze_energy_level(matrix),
-            'interest': self._analyze_interest(matrix),
-            'health': self._analyze_health(matrix),
-            'logic': self._analyze_logic(matrix),
-            'labor': self._analyze_labor(matrix),
-            'luck': self._analyze_luck(matrix),
-            'duty': self._analyze_duty(matrix),
-            'memory': self._analyze_memory(matrix)
+    def _calculate_digit_counts(self, matrix):
+        """Расчет статистики по цифрам"""
+        return {
+            'total_digits': sum(matrix.values()),
+            'strong_digits': [digit for digit, count in matrix.items() if count >= 2],
+            'missing_digits': [digit for digit in map(str, range(1, 10)) if matrix.get(digit, 0) == 0]
         }
-        return characteristics
-
-    def _analyze_character(self, matrix):
-        """Анализ характера по цифре 1 - ТОЛЬКО НА ОСНОВЕ РАСЧЕТОВ"""
-        count_1 = matrix.get('1', 0)
-        if count_1 == 1:
-            return "Уравновешенный характер"
-        elif count_1 == 2:
-            return "Сильный характер, лидерские качества"
-        elif count_1 >= 3:
-            return "Очень сильный характер, возможна жесткость"
-        else:
-            return "Мягкий характер, нуждается в поддержке"
-
-    def _analyze_energy_level(self, matrix):
-        """Анализ энергии по цифре 2 - ТОЛЬКО НА ОСНОВЕ РАСЧЕТОВ"""
-        count_2 = matrix.get('2', 0)
-        if count_2 == 1:
-            return "Средний уровень энергии"
-        elif count_2 == 2:
-            return "Высокая энергия, экстрасенсорные способности"
-        elif count_2 >= 3:
-            return "Очень высокая энергия, нужно учиться управлять"
-        else:
-            return "Низкая энергия, берегите силы"
-
-    def _analyze_interest(self, matrix):
-        """Анализ интересов по цифре 3 - ТОЛЬКО НА ОСНОВЕ РАСЧЕТОВ"""
-        count_3 = matrix.get('3', 0)
-        if count_3 == 1:
-            return "Разносторонние интересы"
-        elif count_3 >= 2:
-            return "Глубокие интересы в точных науках"
-        else:
-            return "Творческие интересы"
-
-    def _analyze_health(self, matrix):
-        """Анализ здоровья по цифре 4 - ТОЛЬКО НА ОСНОВЕ РАСЧЕТОВ"""
-        count_4 = matrix.get('4', 0)
-        if count_4 == 1:
-            return "Хорошее здоровье"
-        elif count_4 >= 2:
-            return "Отличное здоровье, выносливость"
-        else:
-            return "Внимание к здоровью"
-
-    def _analyze_logic(self, matrix):
-        """Анализ логики по цифре 5 - ТОЛЬКО НА ОСНОВЕ РАСЧЕТОВ"""
-        count_5 = matrix.get('5', 0)
-        if count_5 == 1:
-            return "Практическая логика"
-        elif count_5 >= 2:
-            return "Сильная интуиция, предвидение"
-        else:
-            return "Образное мышление"
-
-    def _analyze_labor(self, matrix):
-        """Анализ трудолюбия по цифре 6 - ТОЛЬКО НА ОСНОВЕ РАСЧЕТОВ"""
-        count_6 = matrix.get('6', 0)
-        if count_6 == 1:
-            return "Физический труд приносит удовольствие"
-        elif count_6 >= 2:
-            return "Трудоголик, любит ручной труд"
-        else:
-            return "Интеллектуальный труд"
-
-    def _analyze_luck(self, matrix):
-        """Анализ удачи по цифре 7 - ТОЛЬКО НА ОСНОВЕ РАСЧЕТОВ"""
-        count_7 = matrix.get('7', 0)
-        if count_7 == 1:
-            return "Удача в мелочах"
-        elif count_7 >= 2:
-            return "Везение, ангел-хранитель"
-        else:
-            return "Нужно прилагать усилия"
-
-    def _analyze_duty(self, matrix):
-        """Анализ чувства долга по цифре 8 - ТОЛЬКО НА ОСНОВЕ РАСЧЕТОВ"""
-        count_8 = matrix.get('8', 0)
-        if count_8 == 1:
-            return "Ответственность, надежность"
-        elif count_8 >= 2:
-            return "Сильное чувство долга"
-        else:
-            return "Свобода важнее обязательств"
-
-    def _analyze_memory(self, matrix):
-        """Анализ памяти по цифре 9 - ТОЛЬКО НА ОСНОВЕ РАСЧЕТОВ"""
-        count_9 = matrix.get('9', 0)
-        if count_9 == 1:
-            return "Хорошая память"
-        elif count_9 >= 2:
-            return "Отличная память, умственные способности"
-        else:
-            return "Практическая память"
-
-    def _analyze_energy(self, first_number):
-        """Анализ общего уровня энергии - ТОЛЬКО НА ОСНОВЕ РАСЧЕТОВ"""
-        if first_number < 10:
-            return f"Низкая энергия (число {first_number}) - рекомендуется отдых и восстановление"
-        elif first_number < 20:
-            return f"Сбалансированная энергия (число {first_number}) - стабильность в действиях"
-        else:
-            return f"Высокая энергия (число {first_number}) - время активных действий"
-
-    def _analyze_life_purpose(self, fourth_number):
-        """Анализ жизненного предназначения - ТОЛЬКО НА ОСНОВЕ РАСЧЕТОВ"""
-        # Основано на нумерологическом значении четвертого числа
-        purposes = {
-            1: f"Лидерство и инициатива (число {fourth_number}) - ваше призвание вести за собой",
-            2: f"Гармония и сотрудничество (число {fourth_number}) - ваш путь в партнерстве",
-            3: f"Творчество и самовыражение (число {fourth_number}) - ваша миссия в искусстве",
-            4: f"Стабильность и порядок (число {fourth_number}) - ваша задача в организации",
-            5: f"Свобода и изменения (число {fourth_number}) - ваша судьба в трансформациях",
-            6: f"Семья и ответственность (число {fourth_number}) - ваше предназначение в заботе",
-            7: f"Знания и анализ (число {fourth_number}) - ваш дар в исследованиях",
-            8: f"Деньги и власть (число {fourth_number}) - ваша сила в управлении",
-            9: f"Служение и гуманизм (число {fourth_number}) - ваше призвание в помощи людям"
-        }
-        return purposes.get(fourth_number,
-                            f"Многогранное предназначение (число {fourth_number}) - исследуйте разные пути")
-
-    def _analyze_talents(self, matrix):
-        """Анализ талантов на основе матрицы - ТОЛЬКО НА ОСНОВЕ РАСЧЕТОВ"""
-        talents = []
-
-        # Каждый талант основан на конкретных расчетах матрицы
-        if matrix.get('3', 0) >= 2:
-            talents.append(f"Технические способности (цифра 3: {matrix.get('3', 0)})")
-        if matrix.get('5', 0) >= 1:
-            talents.append(f"Интуиция и предвидение (цифра 5: {matrix.get('5', 0)})")
-        if matrix.get('7', 0) >= 2:
-            talents.append(f"Творческие способности (цифра 7: {matrix.get('7', 0)})")
-        if matrix.get('9', 0) >= 2:
-            talents.append(f"Аналитический ум (цифра 9: {matrix.get('9', 0)})")
-        if matrix.get('2', 0) >= 2:
-            talents.append(f"Экстрасенсорные способности (цифра 2: {matrix.get('2', 0)})")
-
-        # Если талантов не найдено по расчетам, анализируем доминирующие цифры
-        if not talents:
-            max_digit = max(matrix.items(), key=lambda x: x[1])
-            if max_digit[1] > 0:
-                talents.append(f"Практические навыки (доминирующая цифра {max_digit[0]}: {max_digit[1]})")
-
-        return talents
 
 user_services.py:  
 

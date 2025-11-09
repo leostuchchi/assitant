@@ -46,10 +46,6 @@ class BiorhythmCalculator:
             # Общий показатель энергии
             overall_energy = self._calculate_overall_energy(physical, emotional, intellectual, intuitive)
 
-            # Рекомендации на основе биоритмов
-            recommendations = self._generate_recommendations(physical, emotional, intellectual, intuitive,
-                                                             overall_energy)
-
             biorhythm_data = {
                 'calculation_date': target_date.isoformat(),
                 'days_lived': days_lived,
@@ -60,7 +56,6 @@ class BiorhythmCalculator:
                     'intuitive': intuitive
                 },
                 'overall_energy': overall_energy,
-                'recommendations': recommendations,
                 'critical_days': self._find_critical_days(physical, emotional, intellectual, target_date),
                 'peak_days': self._find_peak_days(physical, emotional, intellectual, target_date)
             }
@@ -141,75 +136,13 @@ class BiorhythmCalculator:
         # Нормализуем до 0-100%
         energy_percentage = ((total_energy + 1) / 2) * 100
 
-        # Определяем уровень энергии
-        if energy_percentage >= 80:
-            level = "очень высокий"
-            description = "Отличный день для активных действий и важных решений"
-        elif energy_percentage >= 60:
-            level = "высокий"
-            description = "Хороший день для продуктивной работы"
-        elif energy_percentage >= 40:
-            level = "средний"
-            description = "Стабильный день, подходит для рутинных задач"
-        elif energy_percentage >= 20:
-            level = "низкий"
-            description = "День для отдыха и восстановления сил"
-        else:
-            level = "очень низкий"
-            description = "Рекомендуется беречь энергию, избегать нагрузок"
-
         return {
             'value': round(total_energy, 4),
-            'percentage': round(energy_percentage, 2),
-            'level': level,
-            'description': description
+            'percentage': round(energy_percentage, 2)
         }
 
-    def _generate_recommendations(self, physical: Dict, emotional: Dict, intellectual: Dict, intuitive: Dict,
-                                  overall: Dict) -> List[str]:
-        """Генерация рекомендаций на основе биоритмов"""
-        recommendations = []
-
-        # Физические рекомендации
-        if physical['value'] > 0.5:
-            recommendations.append("💪 Идеальный день для спорта и физической активности")
-        elif physical['value'] < -0.5:
-            recommendations.append("🛌 Избегайте тяжелых физических нагрузок")
-
-        # Эмоциональные рекомендации
-        if emotional['value'] > 0.6:
-            recommendations.append("😊 Отличное время для общения и новых знакомств")
-        elif emotional['value'] < -0.4:
-            recommendations.append("🧘 Контролируйте эмоции, избегайте конфликтов")
-
-        # Интеллектуальные рекомендации
-        if intellectual['value'] > 0.5:
-            recommendations.append("📚 Благоприятный период для обучения и анализа")
-        elif intellectual['value'] < -0.3:
-            recommendations.append("📝 Отложите сложные интеллектуальные задачи")
-
-        # Интуитивные рекомендации
-        if intuitive['value'] > 0.4:
-            recommendations.append("🔮 Доверяйте интуиции при принятии решений")
-
-        # Общие рекомендации по энергии
-        if overall['percentage'] > 70:
-            recommendations.append("🚀 Используйте высокую энергию для важных проектов")
-        elif overall['percentage'] < 30:
-            recommendations.append("⚡ Экономьте силы, планируйте короткие перерывы")
-
-        # Если рекомендаций мало, добавляем общие
-        if len(recommendations) < 3:
-            recommendations.extend([
-                "📅 Следуйте своему естественному ритму",
-                "⏰ Планируйте задачи в соответствии с энергетическими пиками",
-                "💧 Пейте足够 воды для поддержания энергии"
-            ])
-
-        return recommendations[:5]  # Не более 5 рекомендаций
-
     def _find_critical_days(self, physical: Dict, emotional: Dict, intellectual: Dict, target_date: date) -> List[Dict]:
-        """Определение критических дней (ближайшие 7 дней)"""
+        """Определение критических дней"""
         critical_days = []
 
         # Проверяем текущий день
@@ -218,14 +151,13 @@ class BiorhythmCalculator:
                 abs(intellectual['value']) > 0.9):
             critical_days.append({
                 'date': target_date.isoformat(),
-                'cycles': self._get_critical_cycles(physical, emotional, intellectual),
-                'description': 'Критический день - будьте осторожны'
+                'cycles': self._get_critical_cycles(physical, emotional, intellectual)
             })
 
         return critical_days
 
     def _find_peak_days(self, physical: Dict, emotional: Dict, intellectual: Dict, target_date: date) -> List[Dict]:
-        """Определение пиковых дней (ближайшие 7 дней)"""
+        """Определение пиковых дней"""
         peak_days = []
 
         # Проверяем текущий день
@@ -240,8 +172,7 @@ class BiorhythmCalculator:
 
             peak_days.append({
                 'date': target_date.isoformat(),
-                'cycles': peak_cycles,
-                'description': f'Пик энергии в циклах: {", ".join(peak_cycles)}'
+                'cycles': peak_cycles
             })
 
         return peak_days
