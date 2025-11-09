@@ -57,3 +57,6 @@ build/
 *.pem
 *.key
 
+
+backend/__pycache__/
+bot/__pycache__/
