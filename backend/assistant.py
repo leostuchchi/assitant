@@ -1,7 +1,7 @@
 from backend.user_services import create_or_update_user, get_user_profile, update_user_profession
 from backend.chart_services import create_and_save_natal_chart, get_user_natal_chart
 from backend.matrix_services import calculate_and_save_psyho_matrix, get_user_matrix
-from backend.prediction_services import generate_and_save_prediction, get_todays_prediction, \
+from backend.prediction_services import generate_and_save_prediction, get_user_predictions, \
     format_data_for_user, format_data_for_model
 from backend.biorhythm_services import calculate_and_save_biorhythms, get_user_biorhythms
 from backend.database import async_session
@@ -83,13 +83,19 @@ class PersonalAssistant:
                 'message': f"❌ Ошибка при сборе данных: {str(e)}"
             }
 
-    async def get_todays_recommendations(self, telegram_id: int):
-        """Получение данных на сегодня с раздельным выводом"""
+    async def get_recommendations(self, telegram_id: int, target_date: date):
+        """Получение данных на выбранную дату"""
         try:
-            target_date = date.today()
-            logger.info(f"📅 Формирование данных на сегодня для {telegram_id}")
+            logger.info(f"📅 Формирование данных на {target_date} для {telegram_id}")
 
-            # Получаем данные расчетов
+            # Проверяем что дата не в прошлом
+            if target_date < date.today():
+                return {
+                    'success': False,
+                    'message': "❌ Нельзя получить данные для прошедших дат"
+                }
+
+            # Генерируем и сохраняем данные для выбранной даты
             prediction = await generate_and_save_prediction(telegram_id, target_date)
 
             # Получаем профиль пользователя для модели
@@ -110,13 +116,57 @@ class PersonalAssistant:
             }
 
         except Exception as e:
-            logger.error(f"❌ Ошибка получения данных на сегодня для {telegram_id}: {e}")
+            logger.error(f"❌ Ошибка получения данных на {target_date} для {telegram_id}: {e}")
             return {
                 'success': False,
-                'message': f"❌ Не удалось получить данные на сегодня: {str(e)}"
+                'message': f"❌ Не удалось получить данные на выбранную дату: {str(e)}"
             }
 
-    # Остальные методы остаются без изменений...
+    async def get_todays_recommendations(self, telegram_id: int):
+        """Получение данных на сегодня (для обратной совместимости)"""
+        return await self.get_recommendations(telegram_id, date.today())
+
+    async def get_tomorrows_recommendations(self, telegram_id: int):
+        """Получение данных на завтра"""
+        tomorrow = date.today() + timedelta(days=1)
+        return await self.get_recommendations(telegram_id, tomorrow)
+
+    async def get_date_recommendations(self, telegram_id: int, target_date: date):
+        """Получение данных на выбранную дату (alias для единообразия)"""
+        return await self.get_recommendations(telegram_id, target_date)
+
+    async def update_professional_info(self, telegram_id: int, current_city: str, profession: str,
+                                       job_position: str = None):
+        """Обновление профессиональной информации"""
+        try:
+            await update_user_profession(telegram_id, profession, job_position)
+
+            # Обновляем город проживания
+            user_profile = await get_user_profile(telegram_id)
+            if user_profile:
+                await create_or_update_user(
+                    telegram_id=telegram_id,
+                    birth_date=user_profile['birth_date'],
+                    birth_time=user_profile['birth_time'],
+                    birth_city=user_profile['birth_city'],
+                    current_city=current_city,
+                    profession=profession,
+                    job_position=job_position
+                )
+
+            logger.info(f"✅ Профессиональные данные обновлены для {telegram_id}")
+            return {
+                'success': True,
+                'message': "✅ Профессиональная информация успешно обновлена!"
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка обновления профессии для {telegram_id}: {e}")
+            return {
+                'success': False,
+                'message': f"❌ Ошибка обновления данных: {str(e)}"
+            }
+
     async def get_user_data_status(self, telegram_id: int):
         """Проверка статуса собранных данных пользователя"""
         try:
@@ -147,6 +197,93 @@ class PersonalAssistant:
                 'has_psyho_matrix': False,
                 'has_biorhythms': False,
                 'is_complete': False
+            }
+
+    async def get_user_statistics(self, telegram_id: int):
+        """Получение статистики пользователя"""
+        try:
+            from backend.prediction_services import get_prediction_statistics
+            from backend.biorhythm_services import get_biorhythm_statistics
+
+            data_status = await self.get_user_data_status(telegram_id)
+            prediction_stats = await get_prediction_statistics(telegram_id)
+            biorhythm_stats = await get_biorhythm_statistics(telegram_id)
+
+            return {
+                'data_status': data_status,
+                'prediction_stats': prediction_stats,
+                'biorhythm_stats': biorhythm_stats,
+                'calculated_at': datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка получения статистики для {telegram_id}: {e}")
+            return {
+                'data_status': {},
+                'prediction_stats': {},
+                'biorhythm_stats': {},
+                'error': str(e)
+            }
+
+    async def cleanup_user_data(self, telegram_id: int):
+        """Очистка данных пользователя (для администрирования)"""
+        try:
+            from backend.biorhythm_services import cleanup_old_biorhythms
+            from backend.prediction_services import cleanup_old_predictions
+
+            biorhythm_cleaned = await cleanup_old_biorhythms()
+            prediction_cleaned = await cleanup_old_predictions()
+
+            logger.info(f"🧹 Очищены данные для пользователя {telegram_id}")
+            return {
+                'success': True,
+                'biorhythm_records_cleaned': biorhythm_cleaned,
+                'prediction_records_cleaned': prediction_cleaned,
+                'message': f"✅ Очищено {biorhythm_cleaned} записей биоритмов и {prediction_cleaned} предсказаний"
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка очистки данных для {telegram_id}: {e}")
+            return {
+                'success': False,
+                'message': f"❌ Ошибка при очистке данных: {str(e)}"
+            }
+
+    async def validate_user_data(self, telegram_id: int):
+        """Проверка корректности данных пользователя"""
+        try:
+            from backend.prediction_services import validate_prediction_data
+
+            data_status = await self.get_user_data_status(telegram_id)
+            prediction_valid = await validate_prediction_data(telegram_id)
+
+            issues = []
+
+            if not data_status['has_basic_data']:
+                issues.append("Отсутствуют основные данные пользователя")
+            if not data_status['has_natal_chart']:
+                issues.append("Отсутствует натальная карта")
+            if not data_status['has_psyho_matrix']:
+                issues.append("Отсутствует психоматрица")
+            if not data_status['has_biorhythms']:
+                issues.append("Отсутствуют данные биоритмов")
+            if not prediction_valid:
+                issues.append("Некорректные данные предсказаний")
+
+            return {
+                'is_valid': len(issues) == 0,
+                'issues': issues,
+                'data_status': data_status,
+                'prediction_valid': prediction_valid
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка валидации данных для {telegram_id}: {e}")
+            return {
+                'is_valid': False,
+                'issues': [f"Ошибка валидации: {str(e)}"],
+                'data_status': {},
+                'prediction_valid': False
             }
 
 

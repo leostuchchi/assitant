@@ -4,7 +4,7 @@ from backend.chart_services import get_user_natal_chart
 from backend.matrix_services import get_user_matrix
 from backend.biorhythm_services import calculate_and_save_biorhythms
 from sqlalchemy.future import select
-from sqlalchemy import func
+from sqlalchemy import func, and_
 import logging
 import json
 from datetime import datetime, date
@@ -23,6 +23,7 @@ class DataCombiner:
 
         return {
             'calculation_date': datetime.now().isoformat(),
+            'target_date': astro_prediction.get('prediction_date', datetime.now().date().isoformat()),
             'astro_data': {
                 'transits_count': len(astro_prediction.get('transits', {})),
                 'aspects_count': astro_prediction.get('aspects_count', 0),
@@ -47,7 +48,7 @@ class DataCombiner:
 
 
 async def generate_and_save_prediction(telegram_id: int, target_date: date):
-    """Генерация и сохранение данных для предсказания"""
+    """Генерация и сохранение данных для конкретной даты (перезапись существующих)"""
     try:
         logger.info(f"🔮 Генерация данных для пользователя {telegram_id} на {target_date}")
 
@@ -63,14 +64,14 @@ async def generate_and_save_prediction(telegram_id: int, target_date: date):
         matrix_data = await get_user_matrix(telegram_id)
         logger.info(f"✅ Психоматрица получена для {telegram_id}")
 
-        # Рассчитываем биоритмы
+        # Рассчитываем биоритмы на целевую дату
         biorhythm_data = await calculate_and_save_biorhythms(telegram_id, target_date)
-        logger.info(f"✅ Биоритмы рассчитаны для {telegram_id}")
+        logger.info(f"✅ Биоритмы рассчитаны для {telegram_id} на {target_date}")
 
-        # Генерируем астрологические данные
+        # Генерируем астрологические данные на целевую дату
         predictor = AstroPredictor(natal_data)
         astro_prediction = predictor.generate_prediction(target_date)
-        logger.info(f"✅ Астрологические данные сгенерированы для {telegram_id}")
+        logger.info(f"✅ Астрологические данные сгенерированы для {telegram_id} на {target_date}")
 
         # Объединяем данные
         combiner = DataCombiner()
@@ -78,36 +79,41 @@ async def generate_and_save_prediction(telegram_id: int, target_date: date):
 
         logger.info(f"✅ Комбинированные данные созданы для {telegram_id}")
 
-        # Сохраняем данные в БД
+        # Сохраняем данные в БД с ПЕРЕЗАПИСЬЮ
         async with async_session() as session:
             result = await session.execute(
                 select(NatalPredictions).where(NatalPredictions.telegram_id == telegram_id)
             )
             existing_record = result.scalar_one_or_none()
 
+            # Структура данных для сохранения
+            prediction_data = {
+                'calculation_date': datetime.now().isoformat(),
+                'target_date': target_date.isoformat(),
+                'natal_chart': natal_data,
+                'psyho_matrix': matrix_data,
+                'daily_calculations': combined_data
+            }
+
             if existing_record:
-                # Обновляем существующую запись
-                existing_record.predictions = combined_data
+                # ПЕРЕЗАПИСЫВАЕМ существующую запись
+                existing_record.predictions = prediction_data
                 existing_record.updated_at = func.now()
-                logger.info(f"📝 Обновлены данные для {telegram_id}")
+                logger.info(f"📝 Перезаписаны данные для {telegram_id} на {target_date}")
             else:
                 # Создаем новую запись
                 new_record = NatalPredictions(
                     telegram_id=telegram_id,
-                    predictions=combined_data,
+                    predictions=prediction_data,
                     assistant_data={},
                 )
                 session.add(new_record)
-                logger.info(f"🆕 Созданы новые данные для {telegram_id}")
+                logger.info(f"🆕 Созданы новые данные для {telegram_id} на {target_date}")
 
             await session.commit()
             logger.info(f"💾 Данные успешно сохранены в БД для {telegram_id}")
 
-        return {
-            'natal_chart': natal_data,
-            'psyho_matrix': matrix_data,
-            'daily_calculations': combined_data
-        }
+        return prediction_data
 
     except ValueError as e:
         logger.warning(f"❌ Ошибка валидации для {telegram_id}: {e}")
@@ -118,7 +124,7 @@ async def generate_and_save_prediction(telegram_id: int, target_date: date):
 
 
 async def get_user_predictions(telegram_id: int):
-    """Получение данных пользователя"""
+    """Получение последних данных пользователя"""
     try:
         async with async_session() as session:
             result = await session.execute(
@@ -136,23 +142,24 @@ async def get_user_predictions(telegram_id: int):
 
 
 async def get_todays_prediction(telegram_id: int):
-    """Получение данных на сегодня"""
+    """Получение данных на сегодня (для обратной совместимости)"""
     try:
         today = datetime.now().date()
-
-        # Получаем сохраненные данные
-        predictions = await get_user_predictions(telegram_id)
-
-        if predictions and predictions.get('calculation_date', '').startswith(today.isoformat()):
-            logger.info(f"✅ Использованы сохраненные данные для {telegram_id}")
-            return predictions
-
-        # Если данных на сегодня нет, генерируем новые
-        logger.info(f"🔄 Генерация новых данных для {telegram_id}")
         return await generate_and_save_prediction(telegram_id, today)
 
     except Exception as e:
         logger.error(f"❌ Ошибка при получении сегодняшних данных {telegram_id}: {e}")
+        return None
+
+
+async def get_date_prediction(telegram_id: int, target_date: date):
+    """Получение данных на конкретную дату"""
+    try:
+        # Всегда генерируем новые данные (перезапись)
+        return await generate_and_save_prediction(telegram_id, target_date)
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка при получении данных на {target_date} для {telegram_id}: {e}")
         return None
 
 
@@ -163,10 +170,17 @@ async def format_data_for_user(prediction: dict) -> str:
 
     try:
         daily_data = prediction.get('daily_calculations', {})
+        target_date_str = daily_data.get('target_date', 'сегодня')
+
+        # Преобразуем строку даты в читаемый формат
+        try:
+            target_date = datetime.fromisoformat(target_date_str).date()
+            formatted_date = target_date.strftime('%d.%m.%Y')
+        except:
+            formatted_date = target_date_str
 
         lines = []
-        calculation_date = daily_data.get('calculation_date', 'сегодня')
-        lines.append(f"📊 **Результаты расчетов на {calculation_date}**")
+        lines.append(f"📊 **Результаты расчетов на {formatted_date}**")
         lines.append("")
 
         # Биоритмы
@@ -227,6 +241,7 @@ async def format_data_for_model(telegram_id: int, user_profile: dict, prediction
             'natal_chart': prediction.get('natal_chart', {}),
             'psyho_matrix': prediction.get('psyho_matrix', {}),
             'daily_calculations': prediction.get('daily_calculations', {}),
+            'target_date': prediction.get('target_date'),
             'timestamp': datetime.now().isoformat()
         }
 
@@ -235,6 +250,7 @@ async def format_data_for_model(telegram_id: int, user_profile: dict, prediction
         print("🤖 DATA FOR AI MODEL:")
         print("=" * 80)
         print(f"👤 User ID: {telegram_id}")
+        print(f"📅 Target Date: {prediction.get('target_date', 'Unknown')}")
         print(f"💼 Profession: {user_profile.get('profession', 'Not specified')}")
         print(f"📋 Position: {user_profile.get('job_position', 'Not specified')}")
         print(f"🏙️ City: {user_profile.get('current_city', 'Not specified')}")
@@ -274,7 +290,6 @@ async def format_data_for_model(telegram_id: int, user_profile: dict, prediction
         return json.dumps({'error': str(e)})
 
 
-# Остальные функции остаются без изменений...
 async def get_prediction_statistics(telegram_id: int) -> dict:
     """Получение статистики данных пользователя"""
     try:
@@ -284,7 +299,8 @@ async def get_prediction_statistics(telegram_id: int) -> dict:
 
         daily_data = prediction.get('daily_calculations', {})
         return {
-            'last_calculation_date': daily_data.get('calculation_date'),
+            'last_calculation_date': prediction.get('calculation_date'),
+            'target_date': prediction.get('target_date'),
             'biorhythm_energy': daily_data.get('biorhythm_data', {}).get('overall_energy', {}).get('percentage', 0),
             'astro_aspects_count': daily_data.get('astro_data', {}).get('aspects_count', 0)
         }
@@ -302,7 +318,7 @@ async def validate_prediction_data(telegram_id: int) -> bool:
             return False
 
         # Проверяем наличие обязательных полей
-        required_fields = ['natal_chart', 'psyho_matrix', 'daily_calculations']
+        required_fields = ['natal_chart', 'psyho_matrix', 'daily_calculations', 'target_date']
         for field in required_fields:
             if field not in prediction:
                 return False

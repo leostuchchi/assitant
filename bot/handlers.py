@@ -3,7 +3,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import logging
 
 from backend.assistant import assistant
@@ -24,12 +24,29 @@ class DataCollectionStates(StatesGroup):
     waiting_for_job_position = State()
 
 
-# Создаем клавиатуру с двумя основными кнопками
+# Состояние для ввода даты
+class DateSelectionStates(StatesGroup):
+    waiting_for_custom_date = State()
+
+
+# Основная клавиатура
 def get_main_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="📊 Расчет натальной карты")],
-            [KeyboardButton(text="📅 Данные на сегодня")],
+            [KeyboardButton(text="📅 Получить данные")],
+        ],
+        resize_keyboard=True
+    )
+
+
+# Клавиатура для выбора даты
+def get_date_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📅 Сегодня"), KeyboardButton(text="📅 Завтра")],
+            [KeyboardButton(text="📅 Выбрать дату")],
+            [KeyboardButton(text="🔙 Назад")]
         ],
         resize_keyboard=True
     )
@@ -192,10 +209,9 @@ async def process_job_position(message: types.Message, state: FSMContext):
     await state.clear()
 
 
-@router.message(lambda message: message.text == "📅 Данные на сегодня")
-async def get_todays_data(message: types.Message):
-    """Получение данных на сегодня"""
-
+@router.message(lambda message: message.text == "📅 Получить данные")
+async def select_date_option(message: types.Message):
+    """Выбор даты для получения данных"""
     # Проверяем наличие данных
     status = await assistant.get_user_data_status(message.from_user.id)
     if not status['is_complete']:
@@ -206,10 +222,75 @@ async def get_todays_data(message: types.Message):
         )
         return
 
-    processing_msg = await message.answer("🔄 Формирую данные на сегодня...")
+    await message.answer(
+        "📅 Выберите дату для расчетов:",
+        reply_markup=get_date_keyboard()
+    )
+
+
+@router.message(lambda message: message.text == "📅 Сегодня")
+async def get_todays_data(message: types.Message):
+    """Получение данных на сегодня"""
+    await process_date_selection(message, date.today())
+
+
+@router.message(lambda message: message.text == "📅 Завтра")
+async def get_tomorrows_data(message: types.Message):
+    """Получение данных на завтра"""
+    tomorrow = date.today() + timedelta(days=1)
+    await process_date_selection(message, tomorrow)
+
+
+@router.message(lambda message: message.text == "📅 Выбрать дату")
+async def request_custom_date(message: types.Message, state: FSMContext):
+    """Запрос произвольной даты"""
+    await message.answer(
+        "Введите дату в формате ГГГГ-ММ-ДД:",
+        reply_markup=types.ReplyKeyboardRemove()
+    )
+    await state.set_state(DateSelectionStates.waiting_for_custom_date)
+
+
+@router.message(DateSelectionStates.waiting_for_custom_date)
+async def process_custom_date(message: types.Message, state: FSMContext):
+    """Обработка введенной пользователем даты"""
+    try:
+        target_date = datetime.strptime(message.text, "%Y-%m-%d").date()
+
+        # Проверяем что дата не в прошлом
+        if target_date < date.today():
+            await message.answer(
+                "❌ Можно получить данные только на сегодня или будущие даты",
+                reply_markup=get_date_keyboard()
+            )
+            return
+
+        await process_date_selection(message, target_date)
+
+    except ValueError:
+        await message.answer(
+            "❌ Неверный формат даты. Используйте ГГГГ-ММ-ДД",
+            reply_markup=get_date_keyboard()
+        )
+
+    await state.clear()
+
+
+@router.message(lambda message: message.text == "🔙 Назад")
+async def go_back_to_main(message: types.Message):
+    """Возврат в главное меню"""
+    await message.answer(
+        "Возвращаемся в главное меню:",
+        reply_markup=get_main_keyboard()
+    )
+
+
+async def process_date_selection(message: types.Message, target_date: date):
+    """Общая обработка выбранной даты"""
+    processing_msg = await message.answer(f"🔄 Формирую данные на {target_date.strftime('%d.%m.%Y')}...")
 
     try:
-        result = await assistant.get_todays_recommendations(message.from_user.id)
+        result = await assistant.get_recommendations(message.from_user.id, target_date)
 
         if result['success']:
             # Отправляем пользователю форматированные данные
@@ -217,18 +298,23 @@ async def get_todays_data(message: types.Message):
 
             # Данные для модели уже выводятся через print в assistant.py
             await message.answer(
-                "🤖 *Данные для AI модели сформированы и отправлены на обработку*\n"
+                f"🤖 *Данные на {target_date.strftime('%d.%m.%Y')} отправлены в AI модель*\n"
                 "Результаты будут доступны в ближайшее время!",
-                parse_mode="Markdown"
+                parse_mode="Markdown",
+                reply_markup=get_main_keyboard()
             )
         else:
-            await message.answer(result['message'])
+            await message.answer(
+                result['message'],
+                reply_markup=get_main_keyboard()
+            )
 
     except Exception as e:
         logger.error(f"Ошибка получения данных на сегодня: {e}")
         await message.answer(
             "❌ Произошла ошибка при формировании данных\n"
-            "Попробуйте позже или обратитесь в поддержку."
+            "Попробуйте позже или обратитесь в поддержку.",
+            reply_markup=get_main_keyboard()
         )
 
     await processing_msg.delete()
@@ -275,7 +361,12 @@ async def cmd_help(message: types.Message):
 **Основные действия:**
 
 📊 Расчет натальной карты - Собрать или обновить ваши данные
-📅 Данные на сегодня - Получить расчеты на текущий день
+📅 Получить данные - Получить расчеты на выбранную дату
+
+**Выбор даты:**
+• 📅 Сегодня - данные на текущий день
+• 📅 Завтра - данные на следующий день  
+• 📅 Выбрать дату - произвольная дата (ГГГГ-ММ-ДД)
 
 **Что рассчитывается:**
 • Астрологические транзиты и аспекты
