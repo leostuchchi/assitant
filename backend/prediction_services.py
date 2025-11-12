@@ -232,6 +232,7 @@ async def format_data_for_model(telegram_id: int, user_profile: dict, prediction
         model_data = {
             'user_profile': {
                 'telegram_id': telegram_id,
+                'gender': user_profile.get('gender'),
                 'profession': user_profile.get('profession'),
                 'job_position': user_profile.get('job_position'),
                 'current_city': user_profile.get('current_city'),

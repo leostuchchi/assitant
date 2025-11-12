@@ -47,7 +47,8 @@ data_base p_assistant_bd: postges
 
 
 -- Таблица пользователей
-CREATE TABLE users (
+-- Создание обновленной таблицы users с обратной совместимостью
+CREATE TABLE IF NOT EXISTS users (
     telegram_id BIGINT PRIMARY KEY,
     birth_date DATE NOT NULL,
     birth_time TIME NOT NULL,
@@ -55,9 +56,7 @@ CREATE TABLE users (
     profession VARCHAR(100),
     job_position VARCHAR(100),
     current_city VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+    -- Новые поля с значениями по умолчанию для обратной совместимости
 
 -- Обновляем таблицу натальных карт
 CREATE TABLE user_natal_charts (
@@ -174,6 +173,7 @@ class DataCollectionStates(StatesGroup):
     waiting_for_current_city = State()
     waiting_for_profession = State()
     waiting_for_job_position = State()
+    waiting_for_gender = State()  # НОВОЕ СОСТОЯНИЕ
 
 
 # Состояние для ввода даты
@@ -199,6 +199,17 @@ def get_date_keyboard():
             [KeyboardButton(text="📅 Сегодня"), KeyboardButton(text="📅 Завтра")],
             [KeyboardButton(text="📅 Выбрать дату")],
             [KeyboardButton(text="🔙 Назад")]
+        ],
+        resize_keyboard=True
+    )
+
+
+# Клавиатура для выбора пола
+def get_gender_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="👨 Мужской"), KeyboardButton(text="👩 Женский")],
+            [KeyboardButton(text="🤷 Не указывать")]
         ],
         resize_keyboard=True
     )
@@ -319,11 +330,49 @@ async def process_profession(message: types.Message, state: FSMContext):
 
 @router.message(DataCollectionStates.waiting_for_job_position)
 async def process_job_position(message: types.Message, state: FSMContext):
-    """Обработка должности и завершение сбора данных"""
+    """Обработка должности и переход к выбору пола"""
     job_position = message.text.strip()
     if job_position.lower() == 'нет':
         job_position = None
 
+    await state.update_data(job_position=job_position)
+
+    await message.answer(
+        "✅ Должность сохранена!\n\n"
+        "Укажите ваш пол:",
+        reply_markup=get_gender_keyboard()
+    )
+    await state.set_state(DataCollectionStates.waiting_for_gender)
+
+
+@router.message(DataCollectionStates.waiting_for_gender)
+async def process_gender(message: types.Message, state: FSMContext):
+    """Обработка пола и завершение сбора данных"""
+    gender_map = {
+        "👨 мужской": "male",
+        "👩 женский": "female",
+        "🤷 не указывать": None
+    }
+
+    gender_text = message.text.lower()
+    gender = None
+
+    # Определяем пол по тексту
+    for key, value in gender_map.items():
+        if key in gender_text:
+            gender = value
+            break
+
+    # Если пол не распознан, используем текст как есть
+    if gender is None:
+        if any(word in gender_text for word in ["муж", "male", "м"]):
+            gender = "male"
+        elif any(word in gender_text for word in ["жен", "female", "ж"]):
+            gender = "female"
+        else:
+            gender = None
+
+    await state.update_data(gender=gender)
     user_data = await state.get_data()
 
     try:
@@ -335,7 +384,8 @@ async def process_job_position(message: types.Message, state: FSMContext):
             birth_city=user_data['birth_city'],
             current_city=user_data['current_city'],
             profession=user_data['profession'],
-            job_position=job_position
+            job_position=user_data.get('job_position'),
+            gender=gender  # ПЕРЕДАЕМ ПОЛ
         )
 
         if result['success']:
@@ -352,6 +402,7 @@ async def process_job_position(message: types.Message, state: FSMContext):
             )
 
     except Exception as e:
+        logger.error(f"Ошибка при сохранении данных: {e}")
         await message.answer(
             f"❌ Произошла ошибка при сохранении данных: {str(e)}\n\n"
             "Попробуйте начать сбор данных заново.",
@@ -537,6 +588,7 @@ async def handle_other_messages(message: types.Message):
         "Выберите действие из меню ниже:",
         reply_markup=get_main_keyboard()
     )
+
 
 __init__.py
 
@@ -877,7 +929,7 @@ __init__.py
 
 assistant.py:
 
-from backend.user_services import create_or_update_user, get_user_profile, update_user_profession
+from backend.user_services import create_or_update_user, get_user_profile, update_user_profession, increment_request_count
 from backend.chart_services import create_and_save_natal_chart, get_user_natal_chart
 from backend.matrix_services import calculate_and_save_psyho_matrix, get_user_matrix
 from backend.prediction_services import generate_and_save_prediction, get_user_predictions, \
@@ -899,7 +951,7 @@ class PersonalAssistant:
 
     async def collect_user_data(self, telegram_id: int, birth_date: date, birth_time: datetime.time,
                                 birth_city: str, current_city: str = None, profession: str = None,
-                                job_position: str = None):
+                                job_position: str = None, gender: str = None):  # НОВЫЙ ПАРАМЕТР
         """Сбор и сохранение всех данных пользователя"""
         try:
             logger.info(f"🔄 Начало сбора данных для пользователя {telegram_id}")
@@ -915,7 +967,8 @@ class PersonalAssistant:
                         birth_city=birth_city,
                         current_city=current_city,
                         profession=profession,
-                        job_position=job_position
+                        job_position=job_position,
+                        gender=gender  # ПЕРЕДАЕМ ПОЛ
                     )
                     logger.info(f"✅ Данные пользователя сохранены")
 
@@ -967,6 +1020,10 @@ class PersonalAssistant:
         try:
             logger.info(f"📅 Формирование данных на {target_date} для {telegram_id}")
 
+            # Увеличиваем счетчик обращений
+            await increment_request_count(telegram_id)
+            logger.info(f"📈 Счетчик обращений увеличен для {telegram_id}")
+
             # Проверяем что дата не в прошлом
             if target_date < date.today():
                 return {
@@ -1015,12 +1072,12 @@ class PersonalAssistant:
         return await self.get_recommendations(telegram_id, target_date)
 
     async def update_professional_info(self, telegram_id: int, current_city: str, profession: str,
-                                       job_position: str = None):
+                                       job_position: str = None, gender: str = None):  # НОВЫЙ ПАРАМЕТР
         """Обновление профессиональной информации"""
         try:
             await update_user_profession(telegram_id, profession, job_position)
 
-            # Обновляем город проживания
+            # Обновляем город проживания и пол
             user_profile = await get_user_profile(telegram_id)
             if user_profile:
                 await create_or_update_user(
@@ -1030,7 +1087,8 @@ class PersonalAssistant:
                     birth_city=user_profile['birth_city'],
                     current_city=current_city,
                     profession=profession,
-                    job_position=job_position
+                    job_position=job_position,
+                    gender=gender  # ПЕРЕДАЕМ ПОЛ
                 )
 
             logger.info(f"✅ Профессиональные данные обновлены для {telegram_id}")
@@ -1083,15 +1141,18 @@ class PersonalAssistant:
         try:
             from backend.prediction_services import get_prediction_statistics
             from backend.biorhythm_services import get_biorhythm_statistics
+            from backend.user_services import get_user_request_count
 
             data_status = await self.get_user_data_status(telegram_id)
             prediction_stats = await get_prediction_statistics(telegram_id)
             biorhythm_stats = await get_biorhythm_statistics(telegram_id)
+            request_count = await get_user_request_count(telegram_id)
 
             return {
                 'data_status': data_status,
                 'prediction_stats': prediction_stats,
                 'biorhythm_stats': biorhythm_stats,
+                'request_count': request_count,
                 'calculated_at': datetime.now().isoformat()
             }
 
@@ -1101,6 +1162,7 @@ class PersonalAssistant:
                 'data_status': {},
                 'prediction_stats': {},
                 'biorhythm_stats': {},
+                'request_count': 0,
                 'error': str(e)
             }
 
@@ -1672,7 +1734,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy import Column, BigInteger, JSON, TIMESTAMP, String, Date, Time, Text
 from sqlalchemy.sql import func
 from sqlalchemy import ForeignKey
-from sqlalchemy import Column, BigInteger, JSON, TIMESTAMP, String, Date, Time, Text, ForeignKey
+from sqlalchemy import Column, BigInteger, JSON, TIMESTAMP, String, Date, Time, Text, ForeignKey, Integer
 from sqlalchemy.sql import func
 import logging
 
@@ -1712,6 +1774,8 @@ class User(Base):
     current_city = Column(String(100), nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    gender = Column(String(10), nullable=True)  # 'male', 'female', None
+    request_count = Column(Integer, default=0)
 
     def __repr__(self):
         return f"<User(telegram_id={self.telegram_id}, birth_date={self.birth_date})>"
@@ -1771,6 +1835,7 @@ async def get_db():
             yield session
         finally:
             await session.close()
+
 
 
 
@@ -2667,6 +2732,7 @@ async def format_data_for_model(telegram_id: int, user_profile: dict, prediction
         model_data = {
             'user_profile': {
                 'telegram_id': telegram_id,
+                'gender': user_profile.get('gender'),
                 'profession': user_profile.get('profession'),
                 'job_position': user_profile.get('job_position'),
                 'current_city': user_profile.get('current_city'),
@@ -2854,6 +2920,8 @@ user_services.py:
 
 from backend.database import async_session, User
 from sqlalchemy.future import select
+from sqlalchemy import func  # ← ДОБАВИТЬ ЭТОТ ИМПОРТ
+from datetime import datetime  # ← ДОБАВИТЬ ДЛЯ calculated_at
 import logging
 
 logger = logging.getLogger(__name__)
@@ -2866,7 +2934,8 @@ async def create_or_update_user(
         birth_city: str,
         profession: str = None,
         job_position: str = None,
-        current_city: str = None
+        current_city: str = None,
+        gender: str = None
 ):
     """Создание или обновление пользователя"""
     try:
@@ -2881,9 +2950,14 @@ async def create_or_update_user(
                 user.birth_date = birth_date
                 user.birth_time = birth_time
                 user.birth_city = birth_city
-                if profession: user.profession = profession
-                if job_position: user.job_position = job_position
-                if current_city: user.current_city = current_city
+                if profession:
+                    user.profession = profession
+                if job_position:
+                    user.job_position = job_position
+                if current_city:
+                    user.current_city = current_city
+                if gender is not None:
+                    user.gender = gender
                 logger.info(f"📝 Обновлен пользователь {telegram_id}")
             else:
                 # Создаем нового пользователя
@@ -2894,7 +2968,9 @@ async def create_or_update_user(
                     birth_city=birth_city,
                     profession=profession,
                     job_position=job_position,
-                    current_city=current_city
+                    current_city=current_city,
+                    gender=gender,
+                    request_count=0
                 )
                 session.add(user)
                 logger.info(f"🆕 Создан новый пользователь {telegram_id}")
@@ -2925,6 +3001,8 @@ async def get_user_profile(telegram_id: int):
                     'profession': user.profession,
                     'job_position': user.job_position,
                     'current_city': user.current_city,
+                    'gender': user.gender,
+                    'request_count': user.request_count or 0,
                     'created_at': user.created_at
                 }
             return None
@@ -2957,31 +3035,104 @@ async def update_user_profession(telegram_id: int, profession: str, job_position
         logger.error(f"❌ Ошибка при обновлении профессии {telegram_id}: {e}")
         raise
 
-moon.py
 
-from datetime import date
+async def increment_request_count(telegram_id: int):
+    """Увеличивает счетчик обращений пользователя"""
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                select(User).where(User.telegram_id == telegram_id)
+            )
+            user = result.scalar_one_or_none()
 
-def calculate_lunar_phase(target_date: date = None) -> str:
-    if target_date is None:
-        target_date = date.today()
-    diff = (target_date - date(2001, 1, 1)).days
-    lunations = 0.20439731 + (diff * 0.03386319269)
-    lunation = lunations % 1
-    index = int((lunation * 8) + 0.5) & 7
-    phases = [
-        "New Moon",
-        "Waxing Crescent",
-        "First Quarter",
-        "Waxing Gibbous",
-        "Full Moon",
-        "Waning Gibbous",
-        "Last Quarter",
-        "Waning Crescent",
-    ]
-    return phases[index]
+            if user:
+                current_count = user.request_count or 0
+                user.request_count = current_count + 1
+                await session.commit()
+                logger.info(f"📈 Увеличен счетчик обращений для {telegram_id}: {current_count} -> {user.request_count}")
+                return user.request_count
+            else:
+                logger.warning(f"⚠️ Пользователь {telegram_id} не найден при увеличении счетчика")
+                return None
 
-
-
+    except Exception as e:
+        logger.error(f"❌ Ошибка при увеличении счетчика обращений {telegram_id}: {e}")
+        return None
 
 
+async def get_user_request_count(telegram_id: int):
+    """Получение текущего количества обращений пользователя"""
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                select(User.request_count).where(User.telegram_id == telegram_id)
+            )
+            count = result.scalar_one_or_none()
+            return count or 0
 
+    except Exception as e:
+        logger.error(f"❌ Ошибка при получении счетчика обращений {telegram_id}: {e}")
+        return 0
+
+
+async def update_user_gender(telegram_id: int, gender: str):
+    """Обновление пола пользователя"""
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                select(User).where(User.telegram_id == telegram_id)
+            )
+            user = result.scalar_one_or_none()
+
+            if user:
+                user.gender = gender
+                await session.commit()
+                logger.info(f"📝 Обновлен пол пользователя {telegram_id}: {gender}")
+                return user
+            else:
+                raise ValueError("Пользователь не найден")
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка при обновлении пола {telegram_id}: {e}")
+        raise
+
+
+async def get_users_statistics():
+    """Получение общей статистики пользователей"""
+    try:
+        async with async_session() as session:
+            # Общее количество пользователей
+            total_users_result = await session.execute(
+                select(User).where(User.telegram_id.isnot(None))
+            )
+            total_users = len(total_users_result.scalars().all())
+
+            # Пользователи с заполненным полом
+            users_with_gender_result = await session.execute(
+                select(User).where(User.gender.isnot(None))
+            )
+            users_with_gender = len(users_with_gender_result.scalars().all())
+
+            # Среднее количество обращений
+            avg_requests_result = await session.execute(
+                select(func.avg(User.request_count)).where(User.request_count > 0)
+            )
+            avg_requests = avg_requests_result.scalar() or 0
+
+            return {
+                'total_users': total_users,
+                'users_with_gender': users_with_gender,
+                'gender_fill_rate': round((users_with_gender / total_users * 100) if total_users > 0 else 0, 2),
+                'average_requests': round(avg_requests, 2),
+                'calculated_at': datetime.now().isoformat()
+            }
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка при получении статистики пользователей: {e}")
+        return {
+            'total_users': 0,
+            'users_with_gender': 0,
+            'gender_fill_rate': 0,
+            'average_requests': 0,
+            'error': str(e)
+        }

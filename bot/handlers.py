@@ -22,6 +22,7 @@ class DataCollectionStates(StatesGroup):
     waiting_for_current_city = State()
     waiting_for_profession = State()
     waiting_for_job_position = State()
+    waiting_for_gender = State()  # НОВОЕ СОСТОЯНИЕ
 
 
 # Состояние для ввода даты
@@ -47,6 +48,17 @@ def get_date_keyboard():
             [KeyboardButton(text="📅 Сегодня"), KeyboardButton(text="📅 Завтра")],
             [KeyboardButton(text="📅 Выбрать дату")],
             [KeyboardButton(text="🔙 Назад")]
+        ],
+        resize_keyboard=True
+    )
+
+
+# Клавиатура для выбора пола
+def get_gender_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="👨 Мужской"), KeyboardButton(text="👩 Женский")],
+            [KeyboardButton(text="🤷 Не указывать")]
         ],
         resize_keyboard=True
     )
@@ -167,11 +179,49 @@ async def process_profession(message: types.Message, state: FSMContext):
 
 @router.message(DataCollectionStates.waiting_for_job_position)
 async def process_job_position(message: types.Message, state: FSMContext):
-    """Обработка должности и завершение сбора данных"""
+    """Обработка должности и переход к выбору пола"""
     job_position = message.text.strip()
     if job_position.lower() == 'нет':
         job_position = None
 
+    await state.update_data(job_position=job_position)
+
+    await message.answer(
+        "✅ Должность сохранена!\n\n"
+        "Укажите ваш пол:",
+        reply_markup=get_gender_keyboard()
+    )
+    await state.set_state(DataCollectionStates.waiting_for_gender)
+
+
+@router.message(DataCollectionStates.waiting_for_gender)
+async def process_gender(message: types.Message, state: FSMContext):
+    """Обработка пола и завершение сбора данных"""
+    gender_map = {
+        "👨 мужской": "male",
+        "👩 женский": "female",
+        "🤷 не указывать": None
+    }
+
+    gender_text = message.text.lower()
+    gender = None
+
+    # Определяем пол по тексту
+    for key, value in gender_map.items():
+        if key in gender_text:
+            gender = value
+            break
+
+    # Если пол не распознан, используем текст как есть
+    if gender is None:
+        if any(word in gender_text for word in ["муж", "male", "м"]):
+            gender = "male"
+        elif any(word in gender_text for word in ["жен", "female", "ж"]):
+            gender = "female"
+        else:
+            gender = None
+
+    await state.update_data(gender=gender)
     user_data = await state.get_data()
 
     try:
@@ -183,7 +233,8 @@ async def process_job_position(message: types.Message, state: FSMContext):
             birth_city=user_data['birth_city'],
             current_city=user_data['current_city'],
             profession=user_data['profession'],
-            job_position=job_position
+            job_position=user_data.get('job_position'),
+            gender=gender  # ПЕРЕДАЕМ ПОЛ
         )
 
         if result['success']:
@@ -200,6 +251,7 @@ async def process_job_position(message: types.Message, state: FSMContext):
             )
 
     except Exception as e:
+        logger.error(f"Ошибка при сохранении данных: {e}")
         await message.answer(
             f"❌ Произошла ошибка при сохранении данных: {str(e)}\n\n"
             "Попробуйте начать сбор данных заново.",
