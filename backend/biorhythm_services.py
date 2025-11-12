@@ -3,7 +3,7 @@ from backend.biorhythm_calculator import BiorhythmCalculator
 from backend.user_services import get_user_profile
 from sqlalchemy.future import select
 from sqlalchemy import func, and_
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import logging
 import asyncio
 
@@ -191,3 +191,30 @@ async def get_biorhythm_statistics(telegram_id: int):
             'last_calculation': None,
             'calculation_range_days': 0
         }
+
+
+async def cleanup_old_biorhythms(days_old: int = 30):
+    """Очистка старых записей биоритмов"""
+    try:
+        cutoff_date = date.today() - timedelta(days=days_old)
+
+        async with async_session() as session:
+            result = await session.execute(
+                Biorhythms.__table__.delete().where(
+                    Biorhythms.calculation_date < cutoff_date
+                )
+            )
+            deleted_count = result.rowcount
+
+            await session.commit()
+
+            if deleted_count > 0:
+                logger.info(f"🗑️ Удалено {deleted_count} старых записей биоритмов (старше {days_old} дней)")
+            else:
+                logger.info("✅ Старых записей биоритмов для удаления не найдено")
+
+            return deleted_count
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка при очистке старых биоритмов: {e}")
+        return 0

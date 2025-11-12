@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy import Column, BigInteger, JSON, TIMESTAMP, String, Date, Time, Text
 from sqlalchemy.sql import func
 from sqlalchemy import ForeignKey
-from sqlalchemy import Column, BigInteger, JSON, TIMESTAMP, String, Date, Time, Text, ForeignKey
+from sqlalchemy import Column, BigInteger, JSON, TIMESTAMP, String, Date, Time, Text, ForeignKey, Integer
 from sqlalchemy.sql import func
 import logging
 
@@ -44,6 +44,8 @@ class User(Base):
     current_city = Column(String(100), nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    gender = Column(String(10), nullable=True)  # 'male', 'female', None
+    request_count = Column(Integer, default=0)
 
     def __repr__(self):
         return f"<User(telegram_id={self.telegram_id}, birth_date={self.birth_date})>"

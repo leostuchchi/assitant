@@ -60,3 +60,10 @@ build/
 
 backend/__pycache__/
 bot/__pycache__/
+
+
+backend.pycache
+bot.pycache
+
+.pycache
+
