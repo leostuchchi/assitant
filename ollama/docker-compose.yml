@@ -1,0 +1,36 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_assistant
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_NUM_GPU=0                    # Отключаем GPU
+      - OLLAMA_CPU_COUNT=4                  # Используем 4 CPU ядра
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 8G                        # 8GB для CPU-режима
+          cpus: "4.0"                       # 4 CPU ядра
+        reservations:
+          memory: 6G
+          cpus: "3.0"
+
+volumes:
+  ollama_data:
+    driver: local
+
+networks:
+  assistant_net:
+    name: personal_assistant_network
+    external: true

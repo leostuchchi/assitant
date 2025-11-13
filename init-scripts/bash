@@ -1,0 +1,49 @@
+# Создать папку для скриптов инициализации
+#mkdir -p init-scripts
+
+# Запуск всех сервисов
+docker-compose up -d
+
+# Просмотр логов
+docker-compose logs -f postgres
+
+# Проверка здоровья сервисов
+docker-compose ps
+
+# Остановка сервисов
+docker-compose down
+
+# Остановка с удалением volumes (ВНИМАТЕЛЬНО - удалит данные)
+docker-compose down -v
+
+
+# Создаем сеть если её нет
+docker network create personal_assistant_network
+
+# Запускаем БД
+docker-compose -f docker-compose.yml up -d
+
+# Запускаем Ollama
+docker-compose -f ollama/docker-compose.yml up -d
+
+# Проверяем статус
+docker-compose -f docker-compose.yml ps
+docker-compose -f ollama/docker-compose.yml ps
+
+# 1. Удалить существующую сеть (если она создана неправильно)
+docker network rm personal_assistant_network
+
+# 2. Создать сеть с правильными лейблами
+docker network create --label com.docker.compose.network=assistant_net personal_assistant_network
+
+# 3. Запустить сервисы
+docker compose -f docker-compose.yml up -d
+docker compose -f ollama/docker-compose.yml up -d
+
+docker exec ollama_assistant ollama pull llama3.1:8b-instruct-q4_0
+
+
+
+
+
+

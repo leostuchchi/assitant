@@ -1,0 +1,15 @@
+# Основные зависимости
+aiogram>=3.0.0
+sqlalchemy>=2.0.0
+asyncpg>=0.27.0
+python-dotenv>=1.0.0
+pytz>=2023.0
+pyswisseph>=2.10.0
+requests>=2.28.0
+
+# ТОЛЬКО необходимые новые зависимости:
+aiohttp>=3.8.0
+ujson>=5.0.0
+cachetools>=5.0.0
+async-timeout>=4.0.0 
+# async-timeout НЕ нужен - используем встроенный asyncio

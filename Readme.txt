@@ -3,8 +3,7 @@
 итоговая задача проекта: 
 персонализированные основанные на расчетах и данных, рекоммендации человеку на один день. для развития, самореализации человека на базе модели ИИ.
 
-текущая задача проекта: 
-сбор, подготовка данных, произведение всех возможных, обоснованных, и необходимых расчетов. которые потребуются для наиболее полных, полезных, строго персонализированных рекоммендаций. итоговые рекоммендации впоследствии будут готовится моделью. 
+
 
 логика проекта:
 сбор данных пользователя (tegram bot)
@@ -12,10 +11,78 @@
 подготовка психоматрицы
 расчет биоритмов
 подготовка рекоммендаций на один день, на основе: натальной карты, психоматрицы, биоритмов
- позже будут добавлены расчеты и добавление к рекоммендациям лунных фаз
-передача всех необходимых для ИИ данных в модуль assistant (все собранные и расчитаные данные)
- позже будет подключена модель для оптимизации рекоммендаций
 вывод рекоммендаций на один день пользователю (telegram bot)
+
+текущая задача проекта: 
+## 🔧 **3. МОДУЛИ, ЗАТРОНУТЫЕ ИЗМЕНЕНИЯМИ**
+
+### **🔴 ТРЕБУЮТ ИЗМЕНЕНИЙ:**
+
+1. **`backend/database.py`** - новые модели и связи
+2. **`backend/assistant.py`** - интеграция AI движка
+3. **`backend/prediction_services.py`** - подготовка данных для AI
+4. **`bot/handlers.py`** - вывод AI рекомендаций
+5. **`docker-compose.yml`** - добавление Ollama сервиса
+
+### **🟢 НОВЫЕ МОДУЛИ:**
+
+1. **`backend/ai_engine.py`** - работа с Ollama API
+2. **`backend/astro_interpreter.py`** - пре-обработка астроданных
+3. **`backend/prompt_builder.py`** - построение оптимизированных промптов
+4. **`backend/recommendation_cache.py`** - управление кэшем рекомендаций
+5. **`backend/data_optimizer.py`** - сжатие и оптимизация данных
+
+## ⚖️ **4. ВЛИЯНИЕ НА СЛОЖНОСТЬ ПРОЕКТА**
+
+### **🟢 УПРОЩЕНИЕ:**
+- **Более чистые интерфейсы** - модули общаются через стандартизированные форматы
+- **Улучшенная обработка ошибок** - изоляция AI компонентов
+- **Легче тестировать** - моки для AI вызовов
+- **Предсказуемая производительность** - кэширование стабилизирует отклик
+
+### **🔴 УСЛОЖНЕНИЕ:**
+- **Увеличивается количество модулей** +5 новых файлов
+- **Новые зависимости** - асинхронные HTTP запросы, хэширование
+- **Сложнее дебажить** - распределенная логика между модулями
+- **Требует мониторинга** - здоровье Ollama, использование памяти
+
+### **⚖️ БАЛАНС:**
+**ЧИСТЫЙ ВЫИГРЫШ** - архитектура становится более масштабируемой и поддерживаемой, несмотря на увеличение количества компонентов.
+
+## 🏗️ **5. ИТОГОВАЯ СТРУКТУРА ПРОЕКТА**
+
+```
+personal_assistant/
+├── 📁 bot/
+│   ├── config.py                          # ✅ БЕЗ ИЗМЕНЕНИЙ
+│   ├── handlers.py                        # 🔴 ИЗМЕНИТЬ - вывод AI рекомендаций
+│   ├── main.py                            # ✅ БЕЗ ИЗМЕНЕНИЙ  
+│   └── __init__.py
+├── 📁 backend/
+│   ├── 🆕 ai_engine.py                    # 🟢 НОВЫЙ - работа с Ollama API
+│   ├── 🆕 astro_interpreter.py            # 🟢 НОВЫЙ - пре-обработка астроданных
+│   ├── 🆕 prompt_builder.py               # 🟢 НОВЫЙ - построение промптов
+│   ├── 🆕 recommendation_cache.py         # 🟢 НОВЫЙ - управление кэшем
+│   ├── 🆕 data_optimizer.py               # 🟢 НОВЫЙ - сжатие данных для AI
+│   ├── assistant.py                       # 🔴 ИЗМЕНИТЬ - интеграция AI движка
+│   ├── prediction_services.py             # 🔴 ИЗМЕНИТЬ - подготовка для AI
+│   ├── database.py                        # 🔴 ИЗМЕНИТЬ - новые модели БД
+│   ├── biorhythm_calculator.py            # ✅ БЕЗ ИЗМЕНЕНИЙ
+│   ├── biorhythm_services.py              # ✅ БЕЗ ИЗМЕНЕНИЙ
+│   ├── chart_services.py                  # ✅ БЕЗ ИЗМЕНЕНИЙ
+│   ├── matrix_services.py                 # ✅ БЕЗ ИЗМЕНЕНИЙ
+│   ├── natal_chart.py                     # ✅ БЕЗ ИЗМЕНЕНИЙ
+│   ├── predictions.py                     # ✅ БЕЗ ИЗМЕНЕНИЙ
+│   ├── psyho_matrix.py                    # ✅ БЕЗ ИЗМЕНЕНИЙ
+│   ├── user_services.py                   # ✅ БЕЗ ИЗМЕНЕНИЙ
+│   ├── db_connection.py                   # ✅ БЕЗ ИЗМЕНЕНИЙ
+│   └── __init__.py
+├── 📁 ollama/
+│   └── docker-compose.yml                 # 🔴 ИЗМЕНИТЬ - добавить сети
+├── docker-compose.yml                     # 🔴 ИЗМЕНИТЬ - добавить Ollama
+└── requirements.txt                       # 🔴 ИЗМЕНИТЬ - новые зависимости
+```
+
 
 структура проекта personal_assistant:
 
@@ -43,11 +110,50 @@ prediction_services.py
 psyho_matrix.py
 user_services.py
 
-data_base p_assistant_bd: postges
+ollama:
+docker-compose.yml:
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_assistant
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_NUM_GPU=0                    # Отключаем GPU
+      - OLLAMA_CPU_COUNT=4                  # Используем 4 CPU ядра
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 8G                        # 8GB для CPU-режима
+          cpus: "4.0"                       # 4 CPU ядра
+        reservations:
+          memory: 6G
+          cpus: "3.0"
 
+volumes:
+  ollama_data:
+    driver: local
+
+networks:
+  assistant_net:
+    name: personal_assistant_network
+    external: true
+
+init-scripts.01-init-tables.sql
+
+-- Инициализация таблиц при первом запуске контейнера
 
 -- Таблица пользователей
--- Создание обновленной таблицы users с обратной совместимостью
 CREATE TABLE IF NOT EXISTS users (
     telegram_id BIGINT PRIMARY KEY,
     birth_date DATE NOT NULL,
@@ -56,62 +162,122 @@ CREATE TABLE IF NOT EXISTS users (
     profession VARCHAR(100),
     job_position VARCHAR(100),
     current_city VARCHAR(100),
-    -- Новые поля с значениями по умолчанию для обратной совместимости
+    gender VARCHAR(10),
+    request_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
--- Обновляем таблицу натальных карт
-CREATE TABLE user_natal_charts (
+-- Таблица натальных карт
+CREATE TABLE IF NOT EXISTS user_natal_charts (
     telegram_id BIGINT PRIMARY KEY REFERENCES users(telegram_id) ON DELETE CASCADE,
     natal_data JSONB NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Таблица психоматриц (нумерология)
-CREATE TABLE psyho_matrix (
+-- Таблица психоматриц
+CREATE TABLE IF NOT EXISTS psyho_matrix (
     telegram_id BIGINT PRIMARY KEY REFERENCES users(telegram_id) ON DELETE CASCADE,
     matrix_data JSONB NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Таблица предсказаний (оставляем как есть)
-CREATE TABLE natal_predictions (
+-- Таблица предсказаний
+CREATE TABLE IF NOT EXISTS natal_predictions (
     telegram_id BIGINT PRIMARY KEY REFERENCES users(telegram_id) ON DELETE CASCADE,
     predictions JSONB NOT NULL,
     assistant_data JSONB NOT NULL DEFAULT '{}',
+    data_hash VARCHAR(64),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Создаем индексы
-CREATE INDEX idx_users_telegram_id ON users(telegram_id);
-CREATE INDEX idx_users_birth_date ON users(birth_date);
-CREATE INDEX idx_user_natal_charts_telegram_id ON user_natal_charts(telegram_id);
-CREATE INDEX idx_psyho_matrix_telegram_id ON psyho_matrix(telegram_id);
-CREATE INDEX idx_natal_predictions_telegram_id ON natal_predictions(telegram_id);
-
--- Даем права пользователю
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO pers_assist;
-
-select * from psyho_matrix
-
-
--- Таблица для биоритмов
-CREATE TABLE biorhythms (
-    telegram_id BIGINT PRIMARY KEY REFERENCES users(telegram_id) ON DELETE CASCADE,
+-- Таблица биоритмов
+CREATE TABLE IF NOT EXISTS biorhythms (
+    telegram_id BIGINT REFERENCES users(telegram_id) ON DELETE CASCADE,
     biorhythm_data JSONB NOT NULL,
     calculation_date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (telegram_id, calculation_date)
+);
+
+-- НОВЫЕ ТАБЛИЦЫ ДЛЯ AI РЕКОМЕНДАЦИЙ:
+
+-- Таблица для кэширования AI рекомендаций
+CREATE TABLE IF NOT EXISTS ai_recommendations (
+    telegram_id BIGINT REFERENCES users(telegram_id) ON DELETE CASCADE,
+    target_date DATE NOT NULL,
+    data_hash VARCHAR(64) NOT NULL,
+    recommendations TEXT NOT NULL,
+    model_version VARCHAR(20) DEFAULT 'llama3.1:8b',
+    prompt_tokens INTEGER,
+    completion_tokens INTEGER,
+    response_time_ms INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (telegram_id, target_date)
+);
+
+-- Таблица для пре-обработанных астрологических инсайтов
+CREATE TABLE IF NOT EXISTS astro_insights (
+    telegram_id BIGINT PRIMARY KEY REFERENCES users(telegram_id) ON DELETE CASCADE,
+    dominant_energy JSONB NOT NULL,
+    personality_traits JSONB NOT NULL,
+    planetary_strengths JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Индекс для быстрого поиска
-CREATE INDEX idx_biorhythms_telegram_id ON biorhythms(telegram_id);
-CREATE INDEX idx_biorhythms_calculation_date ON biorhythms(calculation_date);
+-- СОЗДАНИЕ ИНДЕКСОВ ДЛЯ ПРОИЗВОДИТЕЛЬНОСТИ:
+
+-- Индексы для users
+CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id);
+CREATE INDEX IF NOT EXISTS idx_users_birth_date ON users(birth_date);
+CREATE INDEX IF NOT EXISTS idx_users_profession ON users(profession);
+
+-- Индексы для натальных карт
+CREATE INDEX IF NOT EXISTS idx_user_natal_charts_telegram_id ON user_natal_charts(telegram_id);
+
+-- Индексы для психоматриц
+CREATE INDEX IF NOT EXISTS idx_psyho_matrix_telegram_id ON psyho_matrix(telegram_id);
+
+-- Индексы для предсказаний
+CREATE INDEX IF NOT EXISTS idx_natal_predictions_telegram_id ON natal_predictions(telegram_id);
+CREATE INDEX IF NOT EXISTS idx_natal_predictions_hash ON natal_predictions(data_hash);
+
+-- Индексы для биоритмов
+CREATE INDEX IF NOT EXISTS idx_biorhythms_telegram_id ON biorhythms(telegram_id);
+CREATE INDEX IF NOT EXISTS idx_biorhythms_calculation_date ON biorhythms(calculation_date);
+
+-- Индексы для AI рекомендаций
+CREATE INDEX IF NOT EXISTS idx_ai_recommendations_hash ON ai_recommendations(data_hash);
+CREATE INDEX IF NOT EXISTS idx_ai_recommendations_date ON ai_recommendations(target_date);
+CREATE INDEX IF NOT EXISTS idx_ai_recommendations_created ON ai_recommendations(created_at);
+
+-- Права для пользователя
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO pers_assist;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO pers_assist;
+
+-- Комментарии к таблицам
+COMMENT ON TABLE users IS 'Основная таблица пользователей персонального ассистента';
+COMMENT ON TABLE ai_recommendations IS 'Кэш AI рекомендаций от модели Llama';
+COMMENT ON TABLE astro_insights IS 'Пре-обработанные астрологические инсайты для AI';
+
+-- Логирование успешной инициализации
+DO $$ 
+BEGIN
+    RAISE NOTICE '✅ База данных personal_assistant успешно инициализирована';
+END $$;
+
+
+
+
+   
 
 docker-compose.yml:
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16
@@ -119,20 +285,55 @@ services:
     environment:
       POSTGRES_DB: p_assistant_bd
       POSTGRES_USER: pers_assist
-      POSTGRES_PASSWORD: astra123  # Простой пароль без специальных символов
+      POSTGRES_PASSWORD: astra123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pers_assist -d p_assistant_bd"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # ОПЦИОНАЛЬНО: pgAdmin для управления БД
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_astrology
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@astrology.local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - admin-tools
 
 volumes:
   postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  assistant_net:
+    driver: bridge
   
 модули проекта:
 
@@ -3136,3 +3337,345 @@ async def get_users_statistics():
             'average_requests': 0,
             'error': str(e)
         }
+        
+ai_engine.py:
+
+import aiohttp
+import asyncio
+import logging
+import os
+from typing import Dict, Any
+import time
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+
+class AIPredictionEngine:
+    """
+    Оптимизированный движок для работы с Ollama API с одной моделью (gemma:2b)
+    """
+
+    def __init__(self, base_url: str = None):
+        self.base_url = base_url or os.getenv('OLLAMA_URL', 'http://localhost:11435')
+
+        # Фиксированная модель - gemma:2b
+        self.model = "gemma:2b"
+
+        # Оптимизированные таймауты
+        self.timeout = aiohttp.ClientTimeout(total=180)  # 120 секунд
+        self.max_retries = 2
+        self.retry_delay = 2
+
+        # Статистика использования
+        self.stats = {
+            "total_requests": 0,
+            "successful_requests": 0,
+            "failed_requests": 0,
+            "average_response_time": 0,
+            "current_model": self.model
+        }
+
+        logger.info(f"🤖 AI движок инициализирован: {self.base_url}, модель: {self.model}")
+
+    async def test_connection(self) -> Dict[str, Any]:
+        """
+        Быстрая проверка подключения и доступности модели
+        """
+        test_result = {
+            "ollama_available": False,
+            "model_loaded": False,
+            "test_passed": False,
+            "response_time": None,
+            "error": None,
+            "details": {  # ✅ ДОБАВЛЯЕМ КЛЮЧ details
+                "available_models": [],
+                "test_response": None
+            }
+        }
+
+        try:
+            # Проверяем доступность Ollama
+            test_result["ollama_available"] = await self.check_health()
+
+            if test_result["ollama_available"]:
+                # Проверяем наличие конкретной модели
+                available_models = await self.get_available_models()
+                test_result["model_loaded"] = self.model in available_models
+                test_result["details"]["available_models"] = available_models  # ✅ ЗАПОЛНЯЕМ
+
+                # Быстрый тестовый запрос
+                if test_result["model_loaded"]:
+                    start_time = time.time()
+                    test_data = {
+                        "user_context": {"profession": "тест"},
+                        "energy_state": {"overall_energy": {"percentage": 75}}
+                    }
+
+                    test_response = await self.generate_recommendations(test_data)
+                    test_result["test_passed"] = test_response["success"]
+                    test_result["response_time"] = test_response.get("response_time_seconds")
+                    test_result["details"]["test_response"] = test_response  # ✅ ЗАПОЛНЯЕМ
+
+        except Exception as e:
+            test_result["error"] = str(e)
+            logger.error(f"❌ Ошибка тестирования подключения: {e}")
+
+        return test_result
+
+    async def get_available_models(self) -> list:
+        """Получение списка доступных моделей"""
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+                async with session.get(f"{self.base_url}/api/tags") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return [model["name"] for model in data.get("models", [])]
+                    return []
+        except Exception as e:
+            logger.debug(f"Не удалось получить список моделей: {e}")
+            return []
+
+    async def check_health(self) -> bool:
+        """Проверка доступности Ollama сервиса"""
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+                async with session.get(f"{self.base_url}/api/tags") as response:
+                    if response.status == 200:
+                        return True
+        except Exception:
+            pass
+        return False
+
+    async def generate_recommendations(self, prepared_data: Dict) -> Dict[str, Any]:
+        """
+        Основной метод генерации рекомендаций
+        """
+        start_time = time.time()
+        self.stats["total_requests"] += 1
+
+        # Проверяем доступность сервиса
+        if not await self.check_health():
+            return self._get_fallback_response(prepared_data, "Сервис AI недоступен")
+
+        try:
+            # Формируем промпт и выполняем запрос
+            prompt = self._build_prompt(prepared_data)
+            response_text = await self._make_ollama_request(prompt)
+            recommendations = self._parse_response(response_text)
+
+            # Обновляем статистику
+            response_time = time.time() - start_time
+            self.stats["successful_requests"] += 1
+
+            # Обновляем среднее время ответа
+            prev_avg = self.stats["average_response_time"]
+            prev_count = self.stats["successful_requests"] - 1
+            self.stats["average_response_time"] = (prev_avg * prev_count + response_time) / self.stats[
+                "successful_requests"]
+
+            logger.info(f"✅ Рекомендации сгенерированы за {response_time:.2f}с")
+
+            return {
+                "success": True,
+                "recommendations": recommendations,
+                "response_text": response_text,
+                "model_used": self.model,
+                "response_time_seconds": round(response_time, 2),
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            self.stats["failed_requests"] += 1
+            logger.error(f"❌ Ошибка генерации рекомендаций: {e}")
+            return self._get_fallback_response(prepared_data, str(e))
+
+    async def _make_ollama_request(self, prompt: str) -> str:
+        """Оптимизированный запрос к Ollama API"""
+        last_exception = None
+
+        for attempt in range(self.max_retries):
+            try:
+                async with aiohttp.ClientSession(timeout=self.timeout) as session:
+                    # Оптимальные настройки для gemma:2b
+                    options = {
+                        "temperature": 0.7,
+                        "top_p": 0.9,
+                        "num_predict": 250,  # Оптимальная длина ответа
+                        "num_thread": 2,  # 2 потока для баланса производительности
+                        "repeat_penalty": 1.1,
+                        "top_k": 40
+                    }
+
+                    request_data = {
+                        "model": self.model,
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": options
+                    }
+
+                    logger.info(f"🔄 Запрос к {self.model} (попытка {attempt + 1}/{self.max_retries})")
+
+                    async with session.post(f"{self.base_url}/api/generate", json=request_data) as response:
+                        if response.status == 200:
+                            result = await response.json()
+                            response_text = result.get("response", "").strip()
+
+                            # Логируем производительность
+                            if "eval_duration" in result:
+                                eval_time = result["eval_duration"] / 1_000_000_000
+                                logger.debug(f"⏱️ Время генерации модели: {eval_time:.2f}с")
+
+                            return response_text
+                        else:
+                            error_text = await response.text()
+                            raise Exception(f"Ollama API error {response.status}: {error_text}")
+
+            except asyncio.TimeoutError:
+                last_exception = Exception(f"Таймаут запроса (попытка {attempt + 1})")
+                logger.warning(f"⏰ Таймаут запроса, попытка {attempt + 1}")
+
+            except Exception as e:
+                last_exception = e
+                logger.warning(f"⚠️ Ошибка запроса (попытка {attempt + 1}): {e}")
+
+            # Задержка перед повторной попыткой
+            if attempt < self.max_retries - 1:
+                await asyncio.sleep(self.retry_delay * (attempt + 1))
+
+        raise last_exception or Exception("Не удалось выполнить запрос к AI")
+
+    def _build_prompt(self, data: Dict) -> str:
+        """Построение оптимального промпта для рекомендаций"""
+        user_context = data.get("user_context", {})
+        energy_state = data.get("energy_state", {})
+        astro_highlights = data.get("astro_highlights", {})
+
+        prompt = f"""На основе индивидуальных данных предоставь краткие практические рекомендации на день.
+
+ПРОФИЛЬ:
+• Профессия: {user_context.get('profession', 'не указана')}
+• Должность: {user_context.get('position', 'не указана')}
+
+СОСТОЯНИЕ:
+• Общая энергия: {energy_state.get('overall_energy', {}).get('percentage', 0)}%
+• Физический цикл: {energy_state.get('physical_cycle', {}).get('phase', 'нейтральный')}
+• Эмоциональный цикл: {energy_state.get('emotional_cycle', {}).get('phase', 'нейтральный')}
+
+СФОРМУЛИРУЙ КРАТКИЕ РЕКОМЕНДАЦИИ:
+1. 💼 Профессиональная деятельность
+2. 🏃 Личная эффективность  
+3. ❤️ Эмоциональное состояние
+
+ОТВЕТ:"""
+
+        return prompt
+
+    def _parse_response(self, response_text: str) -> Dict[str, Any]:
+        """Упрощенный парсинг ответа модели"""
+        try:
+            # Базовая структура для категорий
+            categories = {
+                "professional": [],
+                "personal_effectiveness": [],
+                "emotional": [],
+                "daily_focus": []
+            }
+
+            lines = [line.strip() for line in response_text.split('\n') if line.strip()]
+            current_category = None
+
+            for line in lines:
+                # Определяем категорию по маркерам
+                if any(marker in line for marker in ['💼', 'работа', 'професси']):
+                    current_category = "professional"
+                elif any(marker in line for marker in ['🏃', 'личн', 'эффектив']):
+                    current_category = "personal_effectiveness"
+                elif any(marker in line for marker in ['❤️', 'эмоц', 'настроен']):
+                    current_category = "emotional"
+                elif any(marker in line for marker in ['🎯', 'акцент', 'фокус']):
+                    current_category = "daily_focus"
+
+                # Добавляем пункты в текущую категорию
+                elif current_category and line.startswith(('•', '-', '—', '1.', '2.', '3.')):
+                    clean_line = line.lstrip('•-—123456789. ').strip()
+                    if clean_line and len(clean_line) > 5:  # Минимальная длина
+                        categories[current_category].append(clean_line)
+
+            # Если не удалось выделить структурированные данные, возвращаем как есть
+            if not any(categories.values()):
+                return {"raw_recommendations": response_text}
+
+            return categories
+
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка парсинга ответа: {e}")
+            return {"raw_recommendations": response_text}
+
+    def _get_fallback_response(self, data: Dict, error: str) -> Dict[str, Any]:
+        """Резервный ответ при недоступности AI"""
+        return {
+            "success": False,
+            "error": error,
+            "is_fallback": True,
+            "recommendations": self._get_fallback_recommendations(data),
+            "timestamp": datetime.now().isoformat(),
+            "model_used": self.model
+        }
+
+    def _get_fallback_recommendations(self, data: Dict) -> Dict[str, Any]:
+        """Умные резервные рекомендации на основе данных"""
+        energy_state = data.get("energy_state", {})
+        overall_energy = energy_state.get("overall_energy", {}).get("percentage", 50)
+        user_context = data.get("user_context", {})
+
+        # Персонализированные рекомендации на основе энергии
+        if overall_energy > 75:
+            energy_advice = "Идеальный день для сложных задач и важных решений."
+            professional_tip = "Беритесь за амбициозные проекты"
+        elif overall_energy > 50:
+            energy_advice = "Хороший уровень энергии для продуктивной работы."
+            professional_tip = "Сфокусируйтесь на текущих задачах"
+        elif overall_energy > 25:
+            energy_advice = "Энергии достаточно для рутинных задач."
+            professional_tip = "Планируйте работу небольшими блоками"
+        else:
+            energy_advice = "Рекомендуется беречь силы и делать перерывы."
+            professional_tip = "Отложите сложные задачи на другой день"
+
+        # Учитываем профессию пользователя
+        profession = user_context.get('profession', '').lower()
+        if any(word in profession for word in ['разработ', 'программ', 'техн']):
+            professional_tip += ", уделите время техническим задачам"
+        elif any(word in profession for word in ['управл', 'менедж', 'руковод']):
+            professional_tip += ", проведите планерки и встречи"
+
+        return {
+            "professional": [
+                professional_tip,
+                "Расставьте приоритеты в задачах"
+            ],
+            "personal_effectiveness": [
+                energy_advice,
+                "Соблюдайте баланс работы и отдыха",
+                "Делайте регулярные перерывы"
+            ],
+            "emotional": [
+                "Сохраняйте эмоциональное равновесие",
+                "Избегайте импульсивных решений"
+            ],
+            "daily_focus": [
+                "Баланс между продуктивностью и восстановлением"
+            ]
+        }
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Получение текущей статистики использования"""
+        return self.stats.copy()
+
+
+# Глобальный экземпляр движка
+ai_engine = AIPredictionEngine()        
+        
+        
+
