@@ -3,11 +3,13 @@ from backend.predictions import AstroPredictor
 from backend.chart_services import get_user_natal_chart
 from backend.matrix_services import get_user_matrix
 from backend.biorhythm_services import calculate_and_save_biorhythms
+from backend.aspect_recommendations import aspect_recommendations
 from sqlalchemy.future import select
 from sqlalchemy import func, and_
 import logging
 import json
 from datetime import datetime, date
+from typing import List, Dict, Any  # ✅ ДОБАВЛЕННЫЙ ИМПОРТ
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,7 @@ class DataCombiner:
                 'aspects_count': astro_prediction.get('aspects_count', 0),
                 'strong_aspects_count': astro_prediction.get('strong_aspects_count', 0),
                 'retrograde_planets': astro_prediction.get('retrograde_planets', []),
-                'key_aspects': astro_prediction.get('aspects', [])[:5]
+                'key_aspects': astro_prediction.get('aspects', [])[:5]  # ✅ ТЕПЕРЬ СОДЕРЖИТ ДАННЫЕ ДЛЯ СИЛЬНЫХ АСПЕКТОВ
             },
             'biorhythm_data': {
                 'overall_energy': biorhythm_data.get('overall_energy', {}),
@@ -47,6 +49,146 @@ class DataCombiner:
         }
 
 
+def _extract_strong_aspects(astro_data: dict) -> List[str]:
+    """Извлечение и форматирование сильных аспектов"""
+    strong_aspects = []
+
+    try:
+        key_aspects = astro_data.get('key_aspects', [])
+
+        # Сортируем аспекты по силе (от самых сильных)
+        sorted_aspects = sorted(key_aspects, key=lambda x: x.get('strength', 0), reverse=True)
+
+        for aspect in sorted_aspects:
+            # Фильтруем только сильные аспекты (strength > 0.7)
+            if aspect.get('strength', 0) > 0.7:
+                transit_planet = aspect.get('transit_planet', '')
+                natal_planet = aspect.get('natal_planet', '')
+                aspect_type = aspect.get('aspect', '')
+                strength = aspect.get('strength', 0)
+
+                # Форматируем для пользователя
+                if transit_planet and natal_planet and aspect_type:
+                    # Переводим названия планет на русский
+                    planet_names = {
+                        'Sun': 'Солнце', 'Moon': 'Луна', 'Mercury': 'Меркурий',
+                        'Venus': 'Венера', 'Mars': 'Марс', 'Jupiter': 'Юпитер',
+                        'Saturn': 'Сатурн', 'Uranus': 'Уран', 'Neptune': 'Нептун',
+                        'Pluto': 'Плутон', 'North_Node': 'Северный узел',
+                        'Ascendant': 'Асцендент', 'Midheaven': 'МС'
+                    }
+
+                    aspect_names = {
+                        'conjunction': 'соединение', 'opposition': 'оппозиция',
+                        'square': 'квадрат', 'trine': 'трин', 'sextile': 'секстиль'
+                    }
+
+                    transit_ru = planet_names.get(transit_planet, transit_planet)
+                    natal_ru = planet_names.get(natal_planet, natal_planet)
+                    aspect_ru = aspect_names.get(aspect_type, aspect_type)
+
+                    # Добавляем силу аспекта (★ за каждые 0.2 силы)
+                    strength_stars = "★" * int(strength * 5)
+
+                    strong_aspects.append(f"{transit_ru} → {natal_ru} ({aspect_ru}) {strength_stars}")
+
+        return strong_aspects
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка извлечения сильных аспектов: {e}")
+        return []
+
+
+# Добавить в начало файла:
+from backend.aspect_recommendations import aspect_recommendations
+
+
+# Обновить функцию format_data_for_user:
+async def format_data_for_user(prediction: dict) -> str:
+    """Форматирование данных для отображения пользователю"""
+    if not prediction:
+        return "❌ Не удалось получить данные расчетов"
+
+    try:
+        daily_data = prediction.get('daily_calculations', {})
+        target_date_str = daily_data.get('target_date', 'сегодня')
+
+        # Преобразуем строку даты в читаемый формат
+        try:
+            target_date = datetime.fromisoformat(target_date_str).date()
+            formatted_date = target_date.strftime('%d.%m.%Y')
+        except:
+            formatted_date = target_date_str
+
+        lines = []
+        lines.append(f"📊 **Результаты расчетов на {formatted_date}**")
+        lines.append("")
+
+        # Биоритмы
+        biorhythms = daily_data.get('biorhythm_data', {})
+        if biorhythms:
+            overall_energy = biorhythms.get('overall_energy', {})
+            lines.append(
+                f"⚡ **Общая энергия:** {overall_energy.get('percentage', 0):.1f}%")
+
+            physical = biorhythms.get('physical_cycle', {})
+            emotional = biorhythms.get('emotional_cycle', {})
+            intellectual = biorhythms.get('intellectual_cycle', {})
+
+            lines.append(
+                f"💪 **Физический цикл:** {physical.get('percentage', 0):.1f}% ({physical.get('phase', 'нейтральная')})")
+            lines.append(
+                f"😊 **Эмоциональный цикл:** {emotional.get('percentage', 0):.1f}% ({emotional.get('phase', 'нейтральная')})")
+            lines.append(
+                f"🧠 **Интеллектуальный цикл:** {intellectual.get('percentage', 0):.1f}% ({intellectual.get('phase', 'нейтральная')})")
+            lines.append("")
+
+        # Астрологические данные
+        astro_data = daily_data.get('astro_data', {})
+        if astro_data:
+            lines.append(
+                f"🌟 **Астрология:** {astro_data.get('aspects_count', 0)} аспектов, {astro_data.get('strong_aspects_count', 0)} сильных")
+
+            # ✅ ДОБАВЛЕНО: ПРОСТЫЕ РЕКОМЕНДАЦИИ ПО АСПЕКТАМ
+            key_aspects = astro_data.get('key_aspects', [])
+            aspect_recommendations_list = aspect_recommendations.generate_aspect_recommendations(key_aspects)
+
+            if aspect_recommendations_list:
+                lines.append("🔮 **Астрологические рекомендации:**")
+                for rec in aspect_recommendations_list[:3]:  # Максимум 3 рекомендации
+                    lines.append(f"   • {rec}")
+                lines.append("")
+
+            # Сильные аспекты (детальные)
+            strong_aspects = _extract_strong_aspects(astro_data)
+            if strong_aspects:
+                lines.append("📈 **Сильные аспекты:**")
+                for aspect in strong_aspects[:2]:  # Только 2 самых сильных
+                    lines.append(f"   • {aspect}")
+                lines.append("")
+
+            retrograde_planets = astro_data.get('retrograde_planets', [])
+            if retrograde_planets:
+                planet_names = {
+                    'Sun': 'Солнце', 'Moon': 'Луна', 'Mercury': 'Меркурий',
+                    'Venus': 'Венера', 'Mars': 'Марс', 'Jupiter': 'Юпитер',
+                    'Saturn': 'Сатурн', 'Uranus': 'Уран', 'Neptune': 'Нептун',
+                    'Pluto': 'Плутон'
+                }
+                retrograde_ru = [planet_names.get(p, p) for p in retrograde_planets]
+                lines.append(f"🔄 **Ретроградные планеты:** {', '.join(retrograde_ru)}")
+
+        lines.append("")
+        lines.append("🎯 *Используйте эти данные для планирования своего дня*")
+
+        return "\n".join(lines)
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка форматирования данных: {e}")
+        return "❌ Произошла ошибка при формировании данных расчетов"
+
+
+# ОСТАЛЬНЫЕ ФУНКЦИИ ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ
 async def generate_and_save_prediction(telegram_id: int, target_date: date):
     """Генерация и сохранение данных для конкретной даты (перезапись существующих)"""
     try:
@@ -123,105 +265,6 @@ async def generate_and_save_prediction(telegram_id: int, target_date: date):
         raise Exception(f"Не удалось сгенерировать данные на основе расчетов: {str(e)}")
 
 
-async def get_user_predictions(telegram_id: int):
-    """Получение последних данных пользователя"""
-    try:
-        async with async_session() as session:
-            result = await session.execute(
-                select(NatalPredictions).where(NatalPredictions.telegram_id == telegram_id)
-            )
-            predictions = result.scalar_one_or_none()
-
-            if predictions:
-                return predictions.predictions
-            return None
-
-    except Exception as e:
-        logger.error(f"❌ Ошибка при получении данных {telegram_id}: {e}")
-        return None
-
-
-async def get_todays_prediction(telegram_id: int):
-    """Получение данных на сегодня (для обратной совместимости)"""
-    try:
-        today = datetime.now().date()
-        return await generate_and_save_prediction(telegram_id, today)
-
-    except Exception as e:
-        logger.error(f"❌ Ошибка при получении сегодняшних данных {telegram_id}: {e}")
-        return None
-
-
-async def get_date_prediction(telegram_id: int, target_date: date):
-    """Получение данных на конкретную дату"""
-    try:
-        # Всегда генерируем новые данные (перезапись)
-        return await generate_and_save_prediction(telegram_id, target_date)
-
-    except Exception as e:
-        logger.error(f"❌ Ошибка при получении данных на {target_date} для {telegram_id}: {e}")
-        return None
-
-
-async def format_data_for_user(prediction: dict) -> str:
-    """Форматирование данных для отображения пользователю"""
-    if not prediction:
-        return "❌ Не удалось получить данные расчетов"
-
-    try:
-        daily_data = prediction.get('daily_calculations', {})
-        target_date_str = daily_data.get('target_date', 'сегодня')
-
-        # Преобразуем строку даты в читаемый формат
-        try:
-            target_date = datetime.fromisoformat(target_date_str).date()
-            formatted_date = target_date.strftime('%d.%m.%Y')
-        except:
-            formatted_date = target_date_str
-
-        lines = []
-        lines.append(f"📊 **Результаты расчетов на {formatted_date}**")
-        lines.append("")
-
-        # Биоритмы
-        biorhythms = daily_data.get('biorhythm_data', {})
-        if biorhythms:
-            overall_energy = biorhythms.get('overall_energy', {})
-            lines.append(
-                f"⚡ **Общая энергия:** {overall_energy.get('percentage', 0):.1f}%")
-
-            physical = biorhythms.get('physical_cycle', {})
-            emotional = biorhythms.get('emotional_cycle', {})
-            intellectual = biorhythms.get('intellectual_cycle', {})
-
-            lines.append(
-                f"💪 **Физический цикл:** {physical.get('percentage', 0):.1f}% ({physical.get('phase', 'нейтральная')})")
-            lines.append(
-                f"😊 **Эмоциональный цикл:** {emotional.get('percentage', 0):.1f}% ({emotional.get('phase', 'нейтральная')})")
-            lines.append(
-                f"🧠 **Интеллектуальный цикл:** {intellectual.get('percentage', 0):.1f}% ({intellectual.get('phase', 'нейтральная')})")
-            lines.append("")
-
-        # Астрологические данные
-        astro_data = daily_data.get('astro_data', {})
-        if astro_data:
-            lines.append(
-                f"🌟 **Астрология:** {astro_data.get('aspects_count', 0)} аспектов, {astro_data.get('strong_aspects_count', 0)} сильных")
-
-            retrograde_planets = astro_data.get('retrograde_planets', [])
-            if retrograde_planets:
-                lines.append(f"🔄 **Ретроградные планеты:** {', '.join(retrograde_planets)}")
-
-            lines.append("")
-
-        lines.append("📈 *Все данные готовы для формирования персонализированных рекомендаций*")
-
-        return "\n".join(lines)
-
-    except Exception as e:
-        logger.error(f"❌ Ошибка форматирования данных: {e}")
-        return "❌ Произошла ошибка при формировании данных расчетов"
-
 
 async def format_data_for_model(telegram_id: int, user_profile: dict, prediction: dict) -> str:
     """Форматирование данных для модели ИИ"""
@@ -289,6 +332,26 @@ async def format_data_for_model(telegram_id: int, user_profile: dict, prediction
     except Exception as e:
         logger.error(f"❌ Error formatting data for model: {e}")
         return json.dumps({'error': str(e)})
+
+
+
+async def get_user_predictions(telegram_id: int):
+    """Получение последних данных пользователя"""
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                select(NatalPredictions).where(NatalPredictions.telegram_id == telegram_id)
+            )
+            predictions = result.scalar_one_or_none()
+
+            if predictions:
+                return predictions.predictions
+            return None
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка при получении данных {telegram_id}: {e}")
+        return None
+
 
 
 async def get_prediction_statistics(telegram_id: int) -> dict:

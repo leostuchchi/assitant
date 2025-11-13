@@ -99,6 +99,24 @@ class Biorhythms(Base):
 
 
 
+# Добавить недостающие модели для AI рекомендаций:
+class AIRecommendations(Base):
+    __tablename__ = 'ai_recommendations'
+    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id'), primary_key=True)
+    target_date = Column(Date, primary_key=True)
+    data_hash = Column(String(64), nullable=False)
+    recommendations = Column(Text, nullable=False)
+    model_version = Column(String(20), default='gemma:2b')
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+class AstroInsights(Base):
+    __tablename__ = 'astro_insights'
+    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id'), primary_key=True)
+    dominant_energy = Column(JSON, nullable=False)
+    personality_traits = Column(JSON, nullable=False)
+    planetary_strengths = Column(JSON, nullable=False)
+
+
 async def get_db():
     async with async_session() as session:
         try:

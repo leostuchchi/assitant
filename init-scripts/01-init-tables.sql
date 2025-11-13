@@ -54,19 +54,17 @@ CREATE TABLE IF NOT EXISTS biorhythms (
 -- НОВЫЕ ТАБЛИЦЫ ДЛЯ AI РЕКОМЕНДАЦИЙ:
 
 -- Таблица для кэширования AI рекомендаций
+-- ИСПРАВИТЬ ТАБЛИЦУ ai_recommendations:
 CREATE TABLE IF NOT EXISTS ai_recommendations (
     telegram_id BIGINT REFERENCES users(telegram_id) ON DELETE CASCADE,
     target_date DATE NOT NULL,
     data_hash VARCHAR(64) NOT NULL,
     recommendations TEXT NOT NULL,
-    model_version VARCHAR(20) DEFAULT 'llama3.1:8b',
-    prompt_tokens INTEGER,
-    completion_tokens INTEGER,
-    response_time_ms INTEGER,
+    model_version VARCHAR(20) DEFAULT 'gemma:2b',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (telegram_id, target_date)
 );
+
 
 -- Таблица для пре-обработанных астрологических инсайтов
 CREATE TABLE IF NOT EXISTS astro_insights (

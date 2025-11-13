@@ -38,6 +38,7 @@ class AstroPredictor:
         return signs[floor(longitude / 30)]
 
     def analyze_aspects(self, transits, natal_positions):
+        """Анализ аспектов с определением силы"""
         aspects = []
         for t_planet, t_data in transits.items():
             for n_planet, n_data in natal_positions.items():
@@ -49,15 +50,22 @@ class AstroPredictor:
                 angle = min(distance, 360 - distance)
                 aspect_info = self.check_aspect(angle)
                 if aspect_info:
-                    aspects.append({
+                    aspect_data = {
                         'transit_planet': t_planet,
                         'natal_planet': n_planet,
                         'aspect': aspect_info[0],
                         'exact_angle': aspect_info[1],
-                        'actual_angle': angle,
-                        'orb': abs(angle - aspect_info[1]),
-                        'strength': 1.0 - (abs(angle - aspect_info[1]) / aspect_info[2])
-                    })
+                        'actual_angle': round(angle, 2),
+                        'orb': round(abs(angle - aspect_info[1]), 2),
+                        'strength': round(1.0 - (abs(angle - aspect_info[1]) / aspect_info[2]), 2)
+                    }
+
+                    # ✅ ДОБАВЛЕНО: ФЛАГ СИЛЬНОГО АСПЕКТА
+                    aspect_data['is_strong'] = aspect_data['strength'] > 0.7
+
+                    aspects.append(aspect_data)
+
+        # Сортируем по силе аспектов
         aspects.sort(key=lambda x: x['strength'], reverse=True)
         return aspects
 
@@ -101,12 +109,15 @@ class AstroPredictor:
             # Анализируем аспекты
             aspects = self.analyze_aspects(transits, natal_positions)
 
+            # ✅ ДОБАВЛЕНО: Подсчет сильных аспектов
+            strong_aspects_count = len([a for a in aspects if a.get('is_strong', False)])
+
             return {
                 'prediction_date': target_date.strftime('%Y-%m-%d'),
                 'transits': transits,
                 'aspects': aspects,
                 'aspects_count': len(aspects),
-                'strong_aspects_count': len([a for a in aspects if a['strength'] > 0.7]),
+                'strong_aspects_count': strong_aspects_count,  # ✅ ДОБАВЛЕНО
                 'retrograde_planets': [p for p, data in transits.items() if data.get('retrograde')]
             }
 

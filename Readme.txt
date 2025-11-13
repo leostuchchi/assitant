@@ -212,12 +212,8 @@ CREATE TABLE IF NOT EXISTS ai_recommendations (
     target_date DATE NOT NULL,
     data_hash VARCHAR(64) NOT NULL,
     recommendations TEXT NOT NULL,
-    model_version VARCHAR(20) DEFAULT 'llama3.1:8b',
-    prompt_tokens INTEGER,
-    completion_tokens INTEGER,
-    response_time_ms INTEGER,
+    model_version VARCHAR(20) DEFAULT 'gemma:2b',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (telegram_id, target_date)
 );
 
@@ -791,7 +787,17 @@ async def handle_other_messages(message: types.Message):
     )
 
 
-__init__.py
+__init__.py:
+"""
+Пакет бота Personal Assistant
+"""
+
+__version__ = "1.0.0"
+__author__ = "Personal Assistant Team"
+
+from bot.main import main
+
+__all__ = ['main']
 
 main.py:
 
@@ -1128,9 +1134,8 @@ backend:
 
 __init__.py
 
-assistant.py:
-
-from backend.user_services import create_or_update_user, get_user_profile, update_user_profession, increment_request_count
+from backend.user_services import create_or_update_user, get_user_profile, update_user_profession, \
+    increment_request_count
 from backend.chart_services import create_and_save_natal_chart, get_user_natal_chart
 from backend.matrix_services import calculate_and_save_psyho_matrix, get_user_matrix
 from backend.prediction_services import generate_and_save_prediction, get_user_predictions, \
@@ -1140,19 +1145,34 @@ from backend.database import async_session
 from datetime import datetime, date, timedelta
 from backend.moon import calculate_lunar_phase
 import logging
+import asyncio
+from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class PersonalAssistant:
-    """Главный класс помощника для управления всеми данными"""
+    """Главный класс помощника для управления всеми данными с AI интеграцией"""
 
     def __init__(self):
-        pass
+        self.ai_engine = None
+        self._ai_engine_initialized = False
+
+    async def _initialize_ai_engine(self):
+        """Ленивая инициализация AI движка"""
+        if not self._ai_engine_initialized:
+            try:
+                from backend.ai_engine import ai_engine
+                self.ai_engine = ai_engine
+                self._ai_engine_initialized = True
+                logger.info("✅ AI движок инициализирован")
+            except ImportError as e:
+                logger.warning(f"⚠️ AI движок недоступен: {e}")
+                self._ai_engine_initialized = True
 
     async def collect_user_data(self, telegram_id: int, birth_date: date, birth_time: datetime.time,
                                 birth_city: str, current_city: str = None, profession: str = None,
-                                job_position: str = None, gender: str = None):  # НОВЫЙ ПАРАМЕТР
+                                job_position: str = None, gender: str = None):
         """Сбор и сохранение всех данных пользователя"""
         try:
             logger.info(f"🔄 Начало сбора данных для пользователя {telegram_id}")
@@ -1169,7 +1189,7 @@ class PersonalAssistant:
                         current_city=current_city,
                         profession=profession,
                         job_position=job_position,
-                        gender=gender  # ПЕРЕДАЕМ ПОЛ
+                        gender=gender
                     )
                     logger.info(f"✅ Данные пользователя сохранены")
 
@@ -1216,8 +1236,11 @@ class PersonalAssistant:
                 'message': f"❌ Ошибка при сборе данных: {str(e)}"
             }
 
-    async def get_recommendations(self, telegram_id: int, target_date: date):
-        """Получение данных на выбранную дату"""
+    async def get_recommendations(self, telegram_id: int, target_date: date, include_ai: bool = False):
+        """
+        Получение данных на выбранную дату
+        include_ai: если False - возвращает только расчеты (мгновенно)
+        """
         try:
             logger.info(f"📅 Формирование данных на {target_date} для {telegram_id}")
 
@@ -1237,20 +1260,37 @@ class PersonalAssistant:
 
             # Получаем профиль пользователя для модели
             user_profile = await get_user_profile(telegram_id)
+            if not user_profile:
+                return {
+                    'success': False,
+                    'message': "❌ Профиль пользователя не найден"
+                }
 
             # 1. Данные для пользователя (через бот)
             user_data = await format_data_for_user(prediction)
 
-            # 2. Данные для модели (через print)
-            model_data = await format_data_for_model(telegram_id, user_profile, prediction)
-
-            return {
+            result = {
                 'success': True,
                 'date': target_date.isoformat(),
-                'user_data': user_data,  # Для отображения в боте
-                'model_data': model_data,  # Для AI модели (выводится через print)
-                'raw_data': prediction
+                'user_data': user_data,
+                'prediction_data': prediction,  # Данные для AI
+                'user_profile': user_profile  # Профиль для AI
             }
+
+            # 2. AI рекомендации ТОЛЬКО если явно запрошены
+            if include_ai:
+                logger.info(f"🤖 Включена генерация AI рекомендаций для {telegram_id}")
+                ai_result = await self._get_ai_recommendations(telegram_id, user_profile, prediction, target_date)
+                result.update({
+                    'ai_recommendations': ai_result.get('recommendations', {}),
+                    'ai_success': ai_result.get('success', False),
+                    'is_fallback': ai_result.get('is_fallback', False),
+                    'ai_error': ai_result.get('error')
+                })
+            else:
+                logger.info(f"⚡ AI рекомендации отключены для быстрого показа данных {telegram_id}")
+
+            return result
 
         except Exception as e:
             logger.error(f"❌ Ошибка получения данных на {target_date} для {telegram_id}: {e}")
@@ -1259,21 +1299,292 @@ class PersonalAssistant:
                 'message': f"❌ Не удалось получить данные на выбранную дату: {str(e)}"
             }
 
-    async def get_todays_recommendations(self, telegram_id: int):
-        """Получение данных на сегодня (для обратной совместимости)"""
-        return await self.get_recommendations(telegram_id, date.today())
+    async def get_ai_recommendations_async(self, telegram_id: int, target_date: date,
+                                           prediction_data: dict, user_profile: dict):
+        """
+        Асинхронное получение AI рекомендаций (для использования в handlers)
+        """
+        try:
+            logger.info(f"🔄 Асинхронная генерация AI рекомендаций для {telegram_id}")
 
-    async def get_tomorrows_recommendations(self, telegram_id: int):
+            # Ленивая инициализация AI движка
+            await self._initialize_ai_engine()
+
+            if not self.ai_engine:
+                return self._get_fallback_ai_recommendations("AI движок недоступен")
+
+            # Проверяем доступность AI сервиса
+            health_check = await self.ai_engine.test_connection()
+            if not health_check.get('ollama_available', False):
+                return self._get_fallback_ai_recommendations("Ollama сервис недоступен")
+
+            if not health_check.get('model_loaded', False):
+                return self._get_fallback_ai_recommendations("AI модель не загружена")
+
+            # Подготавливаем ОПТИМИЗИРОВАННЫЕ данные для AI
+            prepared_data = self._prepare_optimized_ai_data(telegram_id, user_profile, prediction_data, target_date)
+
+            # Генерируем рекомендации с таймаутом
+            try:
+                ai_result = await asyncio.wait_for(
+                    self.ai_engine.generate_recommendations(prepared_data),
+                    timeout=170  # 170 секунд для AI обработки
+                )
+
+                if ai_result.get('success', False):
+                    logger.info(f"✅ AI рекомендации сгенерированы для {telegram_id}")
+                    return ai_result
+                else:
+                    logger.warning(f"⚠️ AI не смог сгенерировать рекомендации: {ai_result.get('error')}")
+                    return self._get_fallback_ai_recommendations(ai_result.get('error', 'Unknown AI error'))
+
+            except asyncio.TimeoutError:
+                logger.warning(f"⏰ Таймаут AI обработки для {telegram_id}")
+                return self._get_fallback_ai_recommendations("Таймаут генерации рекомендаций")
+
+            except Exception as e:
+                logger.error(f"❌ Ошибка AI обработки для {telegram_id}: {e}")
+                return self._get_fallback_ai_recommendations(str(e))
+
+        except Exception as e:
+            logger.error(f"❌ Критическая ошибка AI системы для {telegram_id}: {e}")
+            return self._get_fallback_ai_recommendations(str(e))
+
+    async def _get_ai_recommendations(self, telegram_id: int, user_profile: dict, prediction: dict, target_date: date):
+        """Получение AI рекомендаций (синхронная версия)"""
+        return await self.get_ai_recommendations_async(telegram_id, target_date, prediction, user_profile)
+
+    def _prepare_optimized_ai_data(self, telegram_id: int, user_profile: dict, prediction: dict,
+                                   target_date: date) -> dict:
+        """
+        ОПТИМИЗИРОВАННАЯ подготовка данных для AI модели
+        Убраны избыточные поля, добавлены полезные контекстные данные
+        """
+        try:
+            daily_calculations = prediction.get('daily_calculations', {})
+            biorhythm_data = daily_calculations.get('biorhythm_data', {})
+            astro_data = daily_calculations.get('astro_data', {})
+
+            # Рассчитываем возраст пользователя для контекста
+            user_age = self._calculate_user_age(user_profile.get('birth_date'))
+
+            # Извлекаем ключевые сильные аспекты
+            strong_aspects = self._extract_key_strong_aspects(astro_data)
+
+            # Оптимизируем данные биоритмов
+            optimized_biorhythms = self._optimize_biorhythm_data(biorhythm_data)
+
+            # Оптимизируем астрологические данные
+            optimized_astro = self._optimize_astro_data(astro_data)
+
+            return {
+                'user_profile': {
+                    'profession': user_profile.get('profession', 'не указана'),
+                    'position': user_profile.get('job_position', 'не указана'),
+                    'current_city': user_profile.get('current_city', 'не указан'),
+                    'age': user_age
+                },
+                'energy_state': optimized_biorhythms,
+                'astro_influences': optimized_astro,
+                'key_aspects': strong_aspects,
+                'target_date': target_date.strftime('%d.%m.%Y'),  # Более читаемый формат
+                'season': self._get_season(target_date),  # Добавляем сезон для контекста
+                'day_of_week': target_date.strftime('%A')  # День недели для контекста
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка подготовки оптимизированных данных для AI: {e}")
+            # Fallback на старую структуру при ошибке
+            return self._prepare_ai_data_fallback(user_profile, prediction, target_date)
+
+    def _calculate_user_age(self, birth_date: date) -> int:
+        """Расчет возраста пользователя"""
+        try:
+            if not birth_date:
+                return 0
+            today = date.today()
+            age = today.year - birth_date.year
+            # Корректируем если день рождения еще не наступил в этом году
+            if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day):
+                age -= 1
+            return age
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка расчета возраста: {e}")
+            return 0
+
+    def _extract_key_strong_aspects(self, astro_data: dict) -> List[str]:
+        """Извлечение ключевых сильных аспектов для AI"""
+        try:
+            key_aspects = astro_data.get('key_aspects', [])
+            strong_aspects = []
+
+            # Берем только топ-5 самых сильных аспектов
+            sorted_aspects = sorted(key_aspects, key=lambda x: x.get('strength', 0), reverse=True)[:5]
+
+            for aspect in sorted_aspects:
+                if aspect.get('strength', 0) > 0.6:  # Более строгий порог для AI
+                    transit = aspect.get('transit_planet', '')
+                    natal = aspect.get('natal_planet', '')
+                    aspect_type = aspect.get('aspect', '')
+
+                    if transit and natal and aspect_type:
+                        # Упрощенные названия для AI
+                        strong_aspects.append(f"{transit}-{natal}-{aspect_type}")
+
+            return strong_aspects
+
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка извлечения сильных аспектов для AI: {e}")
+            return []
+
+    def _optimize_biorhythm_data(self, biorhythm_data: dict) -> Dict[str, Any]:
+        """Оптимизация данных биоритмов для AI"""
+        try:
+            overall = biorhythm_data.get('overall_energy', {})
+            cycles = biorhythm_data.get('cycles', {})
+
+            return {
+                'overall_energy_percentage': overall.get('percentage', 0),
+                'overall_energy_level': overall.get('level', 'средний'),
+                'physical': {
+                    'percentage': cycles.get('physical', {}).get('percentage', 0),
+                    'phase': cycles.get('physical', {}).get('phase', 'нейтральная'),
+                    'trend': cycles.get('physical', {}).get('trend', 'стабильно')
+                },
+                'emotional': {
+                    'percentage': cycles.get('emotional', {}).get('percentage', 0),
+                    'phase': cycles.get('emotional', {}).get('phase', 'нейтральная'),
+                    'trend': cycles.get('emotional', {}).get('trend', 'стабильно')
+                },
+                'intellectual': {
+                    'percentage': cycles.get('intellectual', {}).get('percentage', 0),
+                    'phase': cycles.get('intellectual', {}).get('phase', 'нейтральная'),
+                    'trend': cycles.get('intellectual', {}).get('trend', 'стабильно')
+                }
+            }
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка оптимизации данных биоритмов: {e}")
+            return {}
+
+    def _optimize_astro_data(self, astro_data: dict) -> Dict[str, Any]:
+        """Оптимизация астрологических данных для AI"""
+        try:
+            return {
+                'total_aspects': astro_data.get('aspects_count', 0),
+                'strong_aspects': astro_data.get('strong_aspects_count', 0),
+                'retrograde_planets': len(astro_data.get('retrograde_planets', [])),
+                'aspect_intensity': self._calculate_aspect_intensity(astro_data)
+            }
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка оптимизации астроданных: {e}")
+            return {}
+
+    def _calculate_aspect_intensity(self, astro_data: dict) -> str:
+        """Расчет интенсивности аспектов для AI"""
+        try:
+            strong_count = astro_data.get('strong_aspects_count', 0)
+            total_count = astro_data.get('aspects_count', 0)
+
+            if total_count == 0:
+                return 'низкая'
+
+            intensity_ratio = strong_count / total_count
+
+            if intensity_ratio > 0.7:
+                return 'очень высокая'
+            elif intensity_ratio > 0.5:
+                return 'высокая'
+            elif intensity_ratio > 0.3:
+                return 'средняя'
+            else:
+                return 'низкая'
+
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка расчета интенсивности аспектов: {e}")
+            return 'неизвестно'
+
+    def _get_season(self, target_date: date) -> str:
+        """Определение сезона для контекста"""
+        try:
+            month = target_date.month
+            if month in [12, 1, 2]:
+                return 'зима'
+            elif month in [3, 4, 5]:
+                return 'весна'
+            elif month in [6, 7, 8]:
+                return 'лето'
+            else:
+                return 'осень'
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка определения сезона: {e}")
+            return 'неизвестно'
+
+    def _prepare_ai_data_fallback(self, user_profile: dict, prediction: dict, target_date: date) -> dict:
+        """Fallback подготовка данных (старая структура)"""
+        try:
+            daily_calculations = prediction.get('daily_calculations', {})
+
+            return {
+                'user_context': {
+                    'profession': user_profile.get('profession'),
+                    'position': user_profile.get('job_position'),
+                    'current_city': user_profile.get('current_city')
+                },
+                'energy_state': daily_calculations.get('biorhythm_data', {}),
+                'astro_highlights': daily_calculations.get('astro_data', {}),
+                'target_date': target_date.isoformat()
+            }
+        except Exception as e:
+            logger.error(f"❌ Критическая ошибка fallback подготовки данных: {e}")
+            return {
+                'user_context': {'profession': 'неизвестно'},
+                'energy_state': {},
+                'astro_highlights': {},
+                'target_date': target_date.isoformat()
+            }
+
+    def _get_fallback_ai_recommendations(self, error: str) -> dict:
+        """Резервные рекомендации при недоступности AI"""
+        logger.info(f"🔄 Используются резервные рекомендации: {error}")
+
+        return {
+            'success': False,
+            'is_fallback': True,
+            'error': error,
+            'recommendations': {
+                'professional': [
+                    "Сфокусируйтесь на текущих задачах",
+                    "Планируйте работу по приоритетам"
+                ],
+                'personal_effectiveness': [
+                    "Соблюдайте баланс работы и отдыха",
+                    "Делайте регулярные перерывы"
+                ],
+                'emotional': [
+                    "Сохраняйте эмоциональное равновесие",
+                    "Избегайте импульсивных решений"
+                ],
+                'daily_focus': [
+                    "Баланс между продуктивностью и восстановлением"
+                ]
+            }
+        }
+
+    async def get_todays_recommendations(self, telegram_id: int, include_ai: bool = False):
+        """Получение данных на сегодня (для обратной совместимости)"""
+        return await self.get_recommendations(telegram_id, date.today(), include_ai)
+
+    async def get_tomorrows_recommendations(self, telegram_id: int, include_ai: bool = False):
         """Получение данных на завтра"""
         tomorrow = date.today() + timedelta(days=1)
-        return await self.get_recommendations(telegram_id, tomorrow)
+        return await self.get_recommendations(telegram_id, tomorrow, include_ai)
 
-    async def get_date_recommendations(self, telegram_id: int, target_date: date):
+    async def get_date_recommendations(self, telegram_id: int, target_date: date, include_ai: bool = False):
         """Получение данных на выбранную дату (alias для единообразия)"""
-        return await self.get_recommendations(telegram_id, target_date)
+        return await self.get_recommendations(telegram_id, target_date, include_ai)
 
     async def update_professional_info(self, telegram_id: int, current_city: str, profession: str,
-                                       job_position: str = None, gender: str = None):  # НОВЫЙ ПАРАМЕТР
+                                       job_position: str = None, gender: str = None):
         """Обновление профессиональной информации"""
         try:
             await update_user_profession(telegram_id, profession, job_position)
@@ -1289,7 +1600,7 @@ class PersonalAssistant:
                     current_city=current_city,
                     profession=profession,
                     job_position=job_position,
-                    gender=gender  # ПЕРЕДАЕМ ПОЛ
+                    gender=gender
                 )
 
             logger.info(f"✅ Профессиональные данные обновлены для {telegram_id}")
@@ -1426,6 +1737,26 @@ class PersonalAssistant:
                 'issues': [f"Ошибка валидации: {str(e)}"],
                 'data_status': {},
                 'prediction_valid': False
+            }
+
+    async def test_ai_connection(self):
+        """Тестирование подключения к AI сервису"""
+        try:
+            await self._initialize_ai_engine()
+
+            if not self.ai_engine:
+                return {
+                    'available': False,
+                    'error': 'AI движок недоступен'
+                }
+
+            return await self.ai_engine.test_connection()
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка тестирования AI подключения: {e}")
+            return {
+                'available': False,
+                'error': str(e)
             }
 
 
@@ -2030,6 +2361,46 @@ class Biorhythms(Base):
 
 
 
+# Добавить недостающие модели для AI рекомендаций:
+class AIRecommendations(Base):
+    __tablename__ = 'ai_recommendations'
+    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id'), primary_key=True)
+    target_date = Column(Date, primary_key=True)
+    data_hash = Column(String(64), nullable=False)
+    recommendations = Column(Text, nullable=False)
+    model_version = Column(String(20), default='gemma:2b')
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+class AstroInsights(Base):
+    __tablename__ = 'astro_insights'
+    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id'), primary_key=True)
+    dominant_energy = Column(JSON, nullable=False)
+    personality_traits = Column(JSON, nullable=False)
+    planetary_strengths = Column(JSON, nullable=False)
+
+
+async def get_db():
+    async with async_session() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
+
+
+class Biorhythms(Base):
+    __tablename__ = 'biorhythms'
+
+    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete='CASCADE'), primary_key=True, index=True)
+    biorhythm_data = Column(JSON, nullable=False)
+    calculation_date = Column(Date, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    def __repr__(self):
+        return f"<Biorhythms(telegram_id={self.telegram_id}, date={self.calculation_date})>"
+
+
+
 async def get_db():
     async with async_session() as session:
         try:
@@ -2589,6 +2960,7 @@ class AstroPredictor:
         return signs[floor(longitude / 30)]
 
     def analyze_aspects(self, transits, natal_positions):
+        """Анализ аспектов с определением силы"""
         aspects = []
         for t_planet, t_data in transits.items():
             for n_planet, n_data in natal_positions.items():
@@ -2600,15 +2972,22 @@ class AstroPredictor:
                 angle = min(distance, 360 - distance)
                 aspect_info = self.check_aspect(angle)
                 if aspect_info:
-                    aspects.append({
+                    aspect_data = {
                         'transit_planet': t_planet,
                         'natal_planet': n_planet,
                         'aspect': aspect_info[0],
                         'exact_angle': aspect_info[1],
-                        'actual_angle': angle,
-                        'orb': abs(angle - aspect_info[1]),
-                        'strength': 1.0 - (abs(angle - aspect_info[1]) / aspect_info[2])
-                    })
+                        'actual_angle': round(angle, 2),
+                        'orb': round(abs(angle - aspect_info[1]), 2),
+                        'strength': round(1.0 - (abs(angle - aspect_info[1]) / aspect_info[2]), 2)
+                    }
+
+                    # ✅ ДОБАВЛЕНО: ФЛАГ СИЛЬНОГО АСПЕКТА
+                    aspect_data['is_strong'] = aspect_data['strength'] > 0.7
+
+                    aspects.append(aspect_data)
+
+        # Сортируем по силе аспектов
         aspects.sort(key=lambda x: x['strength'], reverse=True)
         return aspects
 
@@ -2652,12 +3031,15 @@ class AstroPredictor:
             # Анализируем аспекты
             aspects = self.analyze_aspects(transits, natal_positions)
 
+            # ✅ ДОБАВЛЕНО: Подсчет сильных аспектов
+            strong_aspects_count = len([a for a in aspects if a.get('is_strong', False)])
+
             return {
                 'prediction_date': target_date.strftime('%Y-%m-%d'),
                 'transits': transits,
                 'aspects': aspects,
                 'aspects_count': len(aspects),
-                'strong_aspects_count': len([a for a in aspects if a['strength'] > 0.7]),
+                'strong_aspects_count': strong_aspects_count,  # ✅ ДОБАВЛЕНО
                 'retrograde_planets': [p for p, data in transits.items() if data.get('retrograde')]
             }
 
@@ -2696,7 +3078,8 @@ class AstroPredictor:
 
             await session.commit()
         return prediction
-
+        
+        
 prediction_services.py:
 
 from backend.database import async_session, NatalPredictions
@@ -2704,11 +3087,13 @@ from backend.predictions import AstroPredictor
 from backend.chart_services import get_user_natal_chart
 from backend.matrix_services import get_user_matrix
 from backend.biorhythm_services import calculate_and_save_biorhythms
+from backend.aspect_recommendations import aspect_recommendations
 from sqlalchemy.future import select
 from sqlalchemy import func, and_
 import logging
 import json
 from datetime import datetime, date
+from typing import List, Dict, Any  # ✅ ДОБАВЛЕННЫЙ ИМПОРТ
 
 logger = logging.getLogger(__name__)
 
@@ -2730,7 +3115,7 @@ class DataCombiner:
                 'aspects_count': astro_prediction.get('aspects_count', 0),
                 'strong_aspects_count': astro_prediction.get('strong_aspects_count', 0),
                 'retrograde_planets': astro_prediction.get('retrograde_planets', []),
-                'key_aspects': astro_prediction.get('aspects', [])[:5]
+                'key_aspects': astro_prediction.get('aspects', [])[:5]  # ✅ ТЕПЕРЬ СОДЕРЖИТ ДАННЫЕ ДЛЯ СИЛЬНЫХ АСПЕКТОВ
             },
             'biorhythm_data': {
                 'overall_energy': biorhythm_data.get('overall_energy', {}),
@@ -2748,6 +3133,146 @@ class DataCombiner:
         }
 
 
+def _extract_strong_aspects(astro_data: dict) -> List[str]:
+    """Извлечение и форматирование сильных аспектов"""
+    strong_aspects = []
+
+    try:
+        key_aspects = astro_data.get('key_aspects', [])
+
+        # Сортируем аспекты по силе (от самых сильных)
+        sorted_aspects = sorted(key_aspects, key=lambda x: x.get('strength', 0), reverse=True)
+
+        for aspect in sorted_aspects:
+            # Фильтруем только сильные аспекты (strength > 0.7)
+            if aspect.get('strength', 0) > 0.7:
+                transit_planet = aspect.get('transit_planet', '')
+                natal_planet = aspect.get('natal_planet', '')
+                aspect_type = aspect.get('aspect', '')
+                strength = aspect.get('strength', 0)
+
+                # Форматируем для пользователя
+                if transit_planet and natal_planet and aspect_type:
+                    # Переводим названия планет на русский
+                    planet_names = {
+                        'Sun': 'Солнце', 'Moon': 'Луна', 'Mercury': 'Меркурий',
+                        'Venus': 'Венера', 'Mars': 'Марс', 'Jupiter': 'Юпитер',
+                        'Saturn': 'Сатурн', 'Uranus': 'Уран', 'Neptune': 'Нептун',
+                        'Pluto': 'Плутон', 'North_Node': 'Северный узел',
+                        'Ascendant': 'Асцендент', 'Midheaven': 'МС'
+                    }
+
+                    aspect_names = {
+                        'conjunction': 'соединение', 'opposition': 'оппозиция',
+                        'square': 'квадрат', 'trine': 'трин', 'sextile': 'секстиль'
+                    }
+
+                    transit_ru = planet_names.get(transit_planet, transit_planet)
+                    natal_ru = planet_names.get(natal_planet, natal_planet)
+                    aspect_ru = aspect_names.get(aspect_type, aspect_type)
+
+                    # Добавляем силу аспекта (★ за каждые 0.2 силы)
+                    strength_stars = "★" * int(strength * 5)
+
+                    strong_aspects.append(f"{transit_ru} → {natal_ru} ({aspect_ru}) {strength_stars}")
+
+        return strong_aspects
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка извлечения сильных аспектов: {e}")
+        return []
+
+
+# Добавить в начало файла:
+from backend.aspect_recommendations import aspect_recommendations
+
+
+# Обновить функцию format_data_for_user:
+async def format_data_for_user(prediction: dict) -> str:
+    """Форматирование данных для отображения пользователю"""
+    if not prediction:
+        return "❌ Не удалось получить данные расчетов"
+
+    try:
+        daily_data = prediction.get('daily_calculations', {})
+        target_date_str = daily_data.get('target_date', 'сегодня')
+
+        # Преобразуем строку даты в читаемый формат
+        try:
+            target_date = datetime.fromisoformat(target_date_str).date()
+            formatted_date = target_date.strftime('%d.%m.%Y')
+        except:
+            formatted_date = target_date_str
+
+        lines = []
+        lines.append(f"📊 **Результаты расчетов на {formatted_date}**")
+        lines.append("")
+
+        # Биоритмы
+        biorhythms = daily_data.get('biorhythm_data', {})
+        if biorhythms:
+            overall_energy = biorhythms.get('overall_energy', {})
+            lines.append(
+                f"⚡ **Общая энергия:** {overall_energy.get('percentage', 0):.1f}%")
+
+            physical = biorhythms.get('physical_cycle', {})
+            emotional = biorhythms.get('emotional_cycle', {})
+            intellectual = biorhythms.get('intellectual_cycle', {})
+
+            lines.append(
+                f"💪 **Физический цикл:** {physical.get('percentage', 0):.1f}% ({physical.get('phase', 'нейтральная')})")
+            lines.append(
+                f"😊 **Эмоциональный цикл:** {emotional.get('percentage', 0):.1f}% ({emotional.get('phase', 'нейтральная')})")
+            lines.append(
+                f"🧠 **Интеллектуальный цикл:** {intellectual.get('percentage', 0):.1f}% ({intellectual.get('phase', 'нейтральная')})")
+            lines.append("")
+
+        # Астрологические данные
+        astro_data = daily_data.get('astro_data', {})
+        if astro_data:
+            lines.append(
+                f"🌟 **Астрология:** {astro_data.get('aspects_count', 0)} аспектов, {astro_data.get('strong_aspects_count', 0)} сильных")
+
+            # ✅ ДОБАВЛЕНО: ПРОСТЫЕ РЕКОМЕНДАЦИИ ПО АСПЕКТАМ
+            key_aspects = astro_data.get('key_aspects', [])
+            aspect_recommendations_list = aspect_recommendations.generate_aspect_recommendations(key_aspects)
+
+            if aspect_recommendations_list:
+                lines.append("🔮 **Астрологические рекомендации:**")
+                for rec in aspect_recommendations_list[:3]:  # Максимум 3 рекомендации
+                    lines.append(f"   • {rec}")
+                lines.append("")
+
+            # Сильные аспекты (детальные)
+            strong_aspects = _extract_strong_aspects(astro_data)
+            if strong_aspects:
+                lines.append("📈 **Сильные аспекты:**")
+                for aspect in strong_aspects[:2]:  # Только 2 самых сильных
+                    lines.append(f"   • {aspect}")
+                lines.append("")
+
+            retrograde_planets = astro_data.get('retrograde_planets', [])
+            if retrograde_planets:
+                planet_names = {
+                    'Sun': 'Солнце', 'Moon': 'Луна', 'Mercury': 'Меркурий',
+                    'Venus': 'Венера', 'Mars': 'Марс', 'Jupiter': 'Юпитер',
+                    'Saturn': 'Сатурн', 'Uranus': 'Уран', 'Neptune': 'Нептун',
+                    'Pluto': 'Плутон'
+                }
+                retrograde_ru = [planet_names.get(p, p) for p in retrograde_planets]
+                lines.append(f"🔄 **Ретроградные планеты:** {', '.join(retrograde_ru)}")
+
+        lines.append("")
+        lines.append("🎯 *Используйте эти данные для планирования своего дня*")
+
+        return "\n".join(lines)
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка форматирования данных: {e}")
+        return "❌ Произошла ошибка при формировании данных расчетов"
+
+
+# ОСТАЛЬНЫЕ ФУНКЦИИ ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ
 async def generate_and_save_prediction(telegram_id: int, target_date: date):
     """Генерация и сохранение данных для конкретной даты (перезапись существующих)"""
     try:
@@ -2824,105 +3349,6 @@ async def generate_and_save_prediction(telegram_id: int, target_date: date):
         raise Exception(f"Не удалось сгенерировать данные на основе расчетов: {str(e)}")
 
 
-async def get_user_predictions(telegram_id: int):
-    """Получение последних данных пользователя"""
-    try:
-        async with async_session() as session:
-            result = await session.execute(
-                select(NatalPredictions).where(NatalPredictions.telegram_id == telegram_id)
-            )
-            predictions = result.scalar_one_or_none()
-
-            if predictions:
-                return predictions.predictions
-            return None
-
-    except Exception as e:
-        logger.error(f"❌ Ошибка при получении данных {telegram_id}: {e}")
-        return None
-
-
-async def get_todays_prediction(telegram_id: int):
-    """Получение данных на сегодня (для обратной совместимости)"""
-    try:
-        today = datetime.now().date()
-        return await generate_and_save_prediction(telegram_id, today)
-
-    except Exception as e:
-        logger.error(f"❌ Ошибка при получении сегодняшних данных {telegram_id}: {e}")
-        return None
-
-
-async def get_date_prediction(telegram_id: int, target_date: date):
-    """Получение данных на конкретную дату"""
-    try:
-        # Всегда генерируем новые данные (перезапись)
-        return await generate_and_save_prediction(telegram_id, target_date)
-
-    except Exception as e:
-        logger.error(f"❌ Ошибка при получении данных на {target_date} для {telegram_id}: {e}")
-        return None
-
-
-async def format_data_for_user(prediction: dict) -> str:
-    """Форматирование данных для отображения пользователю"""
-    if not prediction:
-        return "❌ Не удалось получить данные расчетов"
-
-    try:
-        daily_data = prediction.get('daily_calculations', {})
-        target_date_str = daily_data.get('target_date', 'сегодня')
-
-        # Преобразуем строку даты в читаемый формат
-        try:
-            target_date = datetime.fromisoformat(target_date_str).date()
-            formatted_date = target_date.strftime('%d.%m.%Y')
-        except:
-            formatted_date = target_date_str
-
-        lines = []
-        lines.append(f"📊 **Результаты расчетов на {formatted_date}**")
-        lines.append("")
-
-        # Биоритмы
-        biorhythms = daily_data.get('biorhythm_data', {})
-        if biorhythms:
-            overall_energy = biorhythms.get('overall_energy', {})
-            lines.append(
-                f"⚡ **Общая энергия:** {overall_energy.get('percentage', 0):.1f}%")
-
-            physical = biorhythms.get('physical_cycle', {})
-            emotional = biorhythms.get('emotional_cycle', {})
-            intellectual = biorhythms.get('intellectual_cycle', {})
-
-            lines.append(
-                f"💪 **Физический цикл:** {physical.get('percentage', 0):.1f}% ({physical.get('phase', 'нейтральная')})")
-            lines.append(
-                f"😊 **Эмоциональный цикл:** {emotional.get('percentage', 0):.1f}% ({emotional.get('phase', 'нейтральная')})")
-            lines.append(
-                f"🧠 **Интеллектуальный цикл:** {intellectual.get('percentage', 0):.1f}% ({intellectual.get('phase', 'нейтральная')})")
-            lines.append("")
-
-        # Астрологические данные
-        astro_data = daily_data.get('astro_data', {})
-        if astro_data:
-            lines.append(
-                f"🌟 **Астрология:** {astro_data.get('aspects_count', 0)} аспектов, {astro_data.get('strong_aspects_count', 0)} сильных")
-
-            retrograde_planets = astro_data.get('retrograde_planets', [])
-            if retrograde_planets:
-                lines.append(f"🔄 **Ретроградные планеты:** {', '.join(retrograde_planets)}")
-
-            lines.append("")
-
-        lines.append("📈 *Все данные готовы для формирования персонализированных рекомендаций*")
-
-        return "\n".join(lines)
-
-    except Exception as e:
-        logger.error(f"❌ Ошибка форматирования данных: {e}")
-        return "❌ Произошла ошибка при формировании данных расчетов"
-
 
 async def format_data_for_model(telegram_id: int, user_profile: dict, prediction: dict) -> str:
     """Форматирование данных для модели ИИ"""
@@ -2992,6 +3418,26 @@ async def format_data_for_model(telegram_id: int, user_profile: dict, prediction
         return json.dumps({'error': str(e)})
 
 
+
+async def get_user_predictions(telegram_id: int):
+    """Получение последних данных пользователя"""
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                select(NatalPredictions).where(NatalPredictions.telegram_id == telegram_id)
+            )
+            predictions = result.scalar_one_or_none()
+
+            if predictions:
+                return predictions.predictions
+            return None
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка при получении данных {telegram_id}: {e}")
+        return None
+
+
+
 async def get_prediction_statistics(telegram_id: int) -> dict:
     """Получение статистики данных пользователя"""
     try:
@@ -3041,6 +3487,136 @@ async def cleanup_old_predictions():
     except Exception as e:
         logger.error(f"❌ Ошибка при очистке данных: {e}")
         return 0
+        
+        
+prompt_builder.py
+
+import logging
+from typing import Dict, Any
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+
+class PromptBuilder:
+    """
+    Оптимизированный построитель промптов для AI рекомендаций
+    """
+
+    def __init__(self):
+        self.templates = {
+            'daily_recommendations': self._daily_recommendations_template,
+            'professional_focus': self._professional_focus_template,
+            'energy_management': self._energy_management_template
+        }
+
+    def build_prompt(self, data: Dict[str, Any], prompt_type: str = 'daily_recommendations') -> str:
+        """
+        Строит оптимизированный промпт на основе данных пользователя
+        """
+        template = self.templates.get(prompt_type, self._daily_recommendations_template)
+        return template(data)
+
+    def _daily_recommendations_template(self, data: Dict[str, Any]) -> str:
+        """Шаблон для ежедневных рекомендаций"""
+        user_context = data.get('user_context', {})
+        energy_state = data.get('energy_state', {})
+        astro_highlights = data.get('astro_highlights', {})
+
+        # Ключевые инсайты из астроданных
+        key_insights = self._extract_key_insights(astro_highlights)
+
+        prompt = f"""На основе индивидуальных расчетов предоставь КОНКРЕТНЫЕ практические рекомендации на день.
+
+КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ:
+• Профессия: {user_context.get('profession', 'не указана')}
+• Должность: {user_context.get('position', 'не указана')}
+• Город: {user_context.get('current_city', 'не указан')}
+
+ЭНЕРГЕТИЧЕСКИЙ ПРОФИЛЬ:
+{self._format_energy_state(energy_state)}
+
+АСТРОЛОГИЧЕСКИЕ ИНСАЙТЫ:
+{key_insights}
+
+СФОРМУЛИРУЙ 3-5 КОНКРЕТНЫХ РЕКОМЕНДАЦИЙ:
+1. 💼 Профессиональный фокус (что делать на работе)
+2. 🏃 Личная эффективность (как организовать день)  
+3. ❤️ Эмоциональный баланс (на что обратить внимание)
+4. 🎯 Ключевая задача дня (самое важное)
+
+ОТВЕТ (только рекомендации, без пояснений):"""
+
+        return prompt
+
+    def _professional_focus_template(self, data: Dict[str, Any]) -> str:
+        """Шаблон для профессиональных рекомендаций"""
+        user_context = data.get('user_context', {})
+
+        return f"""Сфокусируйся на профессиональных рекомендациях для:
+
+Профессия: {user_context.get('profession', 'не указана')}
+Должность: {user_context.get('position', 'не указана')}
+
+Дай 3 конкретных совета по:
+1. Оптимизации рабочего процесса
+2. Решению профессиональных задач
+3. Развитию навыков
+
+ОТВЕТ:"""
+
+    def _energy_management_template(self, data: Dict[str, Any]) -> str:
+        """Шаблон для управления энергией"""
+        energy_state = data.get('energy_state', {})
+
+        return f"""Дай рекомендации по управлению энергией на основе:
+
+{self._format_energy_state(energy_state)}
+
+Советы по:
+1. Распределению нагрузки
+2. Восстановлению сил
+3. Пикам продуктивности
+
+ОТВЕТ:"""
+
+    def _format_energy_state(self, energy_state: Dict[str, Any]) -> str:
+        """Форматирование данных об энергии"""
+        overall = energy_state.get('overall_energy', {})
+        physical = energy_state.get('physical_cycle', {})
+        emotional = energy_state.get('emotional_cycle', {})
+        intellectual = energy_state.get('intellectual_cycle', {})
+
+        return f"""• Общая энергия: {overall.get('percentage', 0)}% ({overall.get('level', 'средний')})
+• Физический цикл: {physical.get('percentage', 0)}% ({physical.get('phase', 'нейтральный')})
+• Эмоциональный цикл: {emotional.get('percentage', 0)}% ({emotional.get('phase', 'нейтральный')})
+• Интеллектуальный цикл: {intellectual.get('percentage', 0)}% ({intellectual.get('phase', 'нейтральный')})"""
+
+    def _extract_key_insights(self, astro_highlights: Dict[str, Any]) -> str:
+        """Извлечение ключевых астрологических инсайтов"""
+        if not astro_highlights:
+            return "• Стабильный астрологический фон"
+
+        insights = []
+
+        # Сильные аспекты
+        strong_aspects = astro_highlights.get('strong_aspects_count', 0)
+        if strong_aspects > 3:
+            insights.append(f"• {strong_aspects} сильных аспектов - день важных событий")
+        elif strong_aspects > 0:
+            insights.append(f"• {strong_aspects} значимых аспекта")
+
+        # Ретроградные планеты
+        retrograde = astro_highlights.get('retrograde_planets', [])
+        if retrograde:
+            insights.append(f"• Ретроградные: {', '.join(retrograde)} - время пересмотра")
+
+        return '\n'.join(insights) if insights else "• Благоприятный день для плановых задач"
+
+
+# Глобальный экземпляр
+prompt_builder = PromptBuilder()
+
 
 psyho_matrix.py:
 
@@ -3344,8 +3920,10 @@ import aiohttp
 import asyncio
 import logging
 import os
-from typing import Dict, Any
 import time
+import hashlib
+import json
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -3354,18 +3932,25 @@ logger = logging.getLogger(__name__)
 class AIPredictionEngine:
     """
     Оптимизированный движок для работы с Ollama API с одной моделью (gemma:2b)
+    Интегрирован с prompt_builder и recommendation_service
     """
 
     def __init__(self, base_url: str = None):
         self.base_url = base_url or os.getenv('OLLAMA_URL', 'http://localhost:11435')
 
         # Фиксированная модель - gemma:2b
-        self.model = "gemma:2b"
+        #self.model = "gemma:2b"
+        self.model = "tinyllama:1.1b"
 
         # Оптимизированные таймауты
-        self.timeout = aiohttp.ClientTimeout(total=180)  # 120 секунд
+        self.timeout = aiohttp.ClientTimeout(total=600)  # 180 секунд
         self.max_retries = 2
         self.retry_delay = 2
+
+        # Инициализация зависимостей
+        self.prompt_builder = None
+        self.recommendation_service = None
+        self._dependencies_initialized = False
 
         # Статистика использования
         self.stats = {
@@ -3373,10 +3958,44 @@ class AIPredictionEngine:
             "successful_requests": 0,
             "failed_requests": 0,
             "average_response_time": 0,
-            "current_model": self.model
+            "current_model": self.model,
+            "last_health_check": None,
+            "service_available": False
         }
 
         logger.info(f"🤖 AI движок инициализирован: {self.base_url}, модель: {self.model}")
+
+    async def _initialize_dependencies(self):
+        """Ленивая инициализация зависимостей"""
+        if not self._dependencies_initialized:
+            try:
+                from backend.prompt_builder import prompt_builder
+                from backend.recommendation_service import recommendation_service
+
+                self.prompt_builder = prompt_builder
+                self.recommendation_service = recommendation_service
+                self._dependencies_initialized = True
+                logger.info("✅ Зависимости AI движка инициализированы")
+            except ImportError as e:
+                logger.warning(f"⚠️ Не удалось инициализировать зависимости: {e}")
+                self._dependencies_initialized = True  # Помечаем как инициализированные, даже если есть ошибки
+
+    def _generate_data_hash(self, data: Dict[str, Any]) -> str:
+        """Генерация хэша данных для кэширования"""
+        try:
+            # Создаем стабильное представление данных для хэширования
+            stable_data = {
+                'user_context': data.get('user_context', {}),
+                'energy_state': data.get('energy_state', {}),
+                'target_date': data.get('target_date'),
+                'telegram_id': data.get('user_profile', {}).get('telegram_id')
+            }
+
+            data_str = json.dumps(stable_data, sort_keys=True, ensure_ascii=False)
+            return hashlib.sha256(data_str.encode()).hexdigest()
+        except Exception as e:
+            logger.error(f"❌ Ошибка генерации хэша данных: {e}")
+            return "fallback_hash"
 
     async def test_connection(self) -> Dict[str, Any]:
         """
@@ -3388,13 +4007,16 @@ class AIPredictionEngine:
             "test_passed": False,
             "response_time": None,
             "error": None,
-            "details": {  # ✅ ДОБАВЛЯЕМ КЛЮЧ details
+            "details": {
                 "available_models": [],
-                "test_response": None
+                "test_response": None,
+                "model_details": {}
             }
         }
 
         try:
+            start_time = time.time()
+
             # Проверяем доступность Ollama
             test_result["ollama_available"] = await self.check_health()
 
@@ -3402,28 +4024,41 @@ class AIPredictionEngine:
                 # Проверяем наличие конкретной модели
                 available_models = await self.get_available_models()
                 test_result["model_loaded"] = self.model in available_models
-                test_result["details"]["available_models"] = available_models  # ✅ ЗАПОЛНЯЕМ
+                test_result["details"]["available_models"] = available_models
+
+                # Получаем детали модели
+                if test_result["model_loaded"]:
+                    model_details = await self.get_model_details()
+                    test_result["details"]["model_details"] = model_details
 
                 # Быстрый тестовый запрос
                 if test_result["model_loaded"]:
-                    start_time = time.time()
                     test_data = {
-                        "user_context": {"profession": "тест"},
-                        "energy_state": {"overall_energy": {"percentage": 75}}
+                        "user_context": {"profession": "тест", "position": "тест"},
+                        "energy_state": {
+                            "overall_energy": {"percentage": 75},
+                            "physical_cycle": {"phase": "высокая активность"},
+                            "emotional_cycle": {"phase": "нейтральная"}
+                        },
+                        "target_date": datetime.now().date().isoformat()
                     }
 
                     test_response = await self.generate_recommendations(test_data)
                     test_result["test_passed"] = test_response["success"]
                     test_result["response_time"] = test_response.get("response_time_seconds")
-                    test_result["details"]["test_response"] = test_response  # ✅ ЗАПОЛНЯЕМ
+
+            test_result["response_time"] = time.time() - start_time
+            self.stats["service_available"] = test_result["ollama_available"]
+            self.stats["last_health_check"] = datetime.now().isoformat()
 
         except Exception as e:
             test_result["error"] = str(e)
             logger.error(f"❌ Ошибка тестирования подключения: {e}")
+            self.stats["service_available"] = False
 
         return test_result
 
-    async def get_available_models(self) -> list:
+    async def get_available_models(self) -> List[str]:
         """Получение списка доступных моделей"""
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
@@ -3431,10 +4066,24 @@ class AIPredictionEngine:
                     if response.status == 200:
                         data = await response.json()
                         return [model["name"] for model in data.get("models", [])]
-                    return []
+                    else:
+                        logger.warning(f"❌ Ошибка получения моделей: {response.status}")
+                        return []
         except Exception as e:
             logger.debug(f"Не удалось получить список моделей: {e}")
             return []
+
+    async def get_model_details(self) -> Dict[str, Any]:
+        """Получение деталей текущей модели"""
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+                async with session.post(f"{self.base_url}/api/show", json={"name": self.model}) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        return {"error": f"Status {response.status}"}
+        except Exception as e:
+            return {"error": str(e)}
 
     async def check_health(self) -> bool:
         """Проверка доступности Ollama сервиса"""
@@ -3442,27 +4091,102 @@ class AIPredictionEngine:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
                 async with session.get(f"{self.base_url}/api/tags") as response:
                     if response.status == 200:
+                        self.stats["service_available"] = True
                         return True
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"❌ Ollama недоступен: {e}")
+
+        self.stats["service_available"] = False
         return False
+
+    async def ensure_model_loaded(self) -> bool:
+        """Проверка и при необходимости загрузка модели"""
+        try:
+            available_models = await self.get_available_models()
+            if self.model not in available_models:
+                logger.info(f"🔄 Модель {self.model} не найдена, пытаюсь загрузить...")
+                return await self.pull_model()
+            return True
+        except Exception as e:
+            logger.error(f"❌ Ошибка проверки модели: {e}")
+            return False
+
+    async def pull_model(self) -> bool:
+        """Загрузка модели"""
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=300)) as session:
+                async with session.post(f"{self.base_url}/api/pull", json={"name": self.model}) as response:
+                    if response.status == 200:
+                        logger.info(f"✅ Модель {self.model} успешно загружена")
+                        return True
+                    else:
+                        logger.error(f"❌ Ошибка загрузки модели: {response.status}")
+                        return False
+        except Exception as e:
+            logger.error(f"❌ Ошибка при загрузке модели: {e}")
+            return False
 
     async def generate_recommendations(self, prepared_data: Dict) -> Dict[str, Any]:
         """
-        Основной метод генерации рекомендаций
+        Основной метод генерации рекомендаций с кэшированием
         """
         start_time = time.time()
         self.stats["total_requests"] += 1
+
+        # Инициализируем зависимости
+        await self._initialize_dependencies()
+
+        # ПРОВЕРЯЕМ КЭШ
+        try:
+            if self.recommendation_service:
+                data_hash = self._generate_data_hash(prepared_data)
+                telegram_id = prepared_data.get('user_profile', {}).get('telegram_id')
+                target_date_str = prepared_data.get('target_date')
+
+                if telegram_id and target_date_str:
+                    target_date = datetime.fromisoformat(target_date_str).date()
+                    cached = await self.recommendation_service.get_cached_recommendations(
+                        telegram_id, target_date, data_hash
+                    )
+                    if cached:
+                        logger.info(f"✅ Использованы кэшированные рекомендации для {telegram_id}")
+                        return {
+                            "success": True,
+                            "recommendations": cached['recommendations'],
+                            "from_cache": True,
+                            "model_used": cached.get('model_version', self.model),
+                            "response_time_seconds": 0.1,
+                            "timestamp": datetime.now().isoformat()
+                        }
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка проверки кэша: {e}")
 
         # Проверяем доступность сервиса
         if not await self.check_health():
             return self._get_fallback_response(prepared_data, "Сервис AI недоступен")
 
+        # Проверяем наличие модели
+        if not await self.ensure_model_loaded():
+            return self._get_fallback_response(prepared_data, "Модель AI не загружена")
+
         try:
-            # Формируем промпт и выполняем запрос
-            prompt = self._build_prompt(prepared_data)
+            # Формируем промпт с использованием prompt_builder
+            prompt = await self._build_prompt_optimized(prepared_data)
             response_text = await self._make_ollama_request(prompt)
             recommendations = self._parse_response(response_text)
+
+            # Сохраняем в кэш
+            try:
+                if self.recommendation_service and telegram_id and target_date_str:
+                    await self.recommendation_service.save_recommendations(
+                        telegram_id,
+                        datetime.fromisoformat(target_date_str).date(),
+                        data_hash,
+                        response_text,
+                        self.model
+                    )
+            except Exception as e:
+                logger.warning(f"⚠️ Ошибка сохранения в кэш: {e}")
 
             # Обновляем статистику
             response_time = time.time() - start_time
@@ -3471,8 +4195,10 @@ class AIPredictionEngine:
             # Обновляем среднее время ответа
             prev_avg = self.stats["average_response_time"]
             prev_count = self.stats["successful_requests"] - 1
-            self.stats["average_response_time"] = (prev_avg * prev_count + response_time) / self.stats[
-                "successful_requests"]
+            self.stats["average_response_time"] = (
+                (prev_avg * prev_count + response_time) / self.stats["successful_requests"]
+                if self.stats["successful_requests"] > 0 else response_time
+            )
 
             logger.info(f"✅ Рекомендации сгенерированы за {response_time:.2f}с")
 
@@ -3482,13 +4208,44 @@ class AIPredictionEngine:
                 "response_text": response_text,
                 "model_used": self.model,
                 "response_time_seconds": round(response_time, 2),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                "from_cache": False
             }
 
         except Exception as e:
             self.stats["failed_requests"] += 1
             logger.error(f"❌ Ошибка генерации рекомендаций: {e}")
             return self._get_fallback_response(prepared_data, str(e))
+
+    async def _build_prompt_optimized(self, data: Dict) -> str:
+        """Оптимизированное построение промпта с использованием prompt_builder"""
+        try:
+            if self.prompt_builder:
+                return self.prompt_builder.build_prompt(data)
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка prompt_builder, используем fallback: {e}")
+
+        # Fallback промпт
+        user_context = data.get("user_context", {})
+        energy_state = data.get("energy_state", {})
+
+        return f"""На основе индивидуальных данных предоставь краткие практические рекомендации на день.
+
+ПРОФИЛЬ:
+• Профессия: {user_context.get('profession', 'не указана')}
+• Должность: {user_context.get('position', 'не указана')}
+
+СОСТОЯНИЕ:
+• Общая энергия: {energy_state.get('overall_energy', {}).get('percentage', 0)}%
+• Физический цикл: {energy_state.get('physical_cycle', {}).get('phase', 'нейтральный')}
+• Эмоциональный цикл: {energy_state.get('emotional_cycle', {}).get('phase', 'нейтральный')}
+
+СФОРМУЛИРУЙ КРАТКИЕ РЕКОМЕНДАЦИИ:
+1. 💼 Профессиональная деятельность
+2. 🏃 Личная эффективность  
+3. ❤️ Эмоциональное состояние
+
+ОТВЕТ:"""
 
     async def _make_ollama_request(self, prompt: str) -> str:
         """Оптимизированный запрос к Ollama API"""
@@ -3501,8 +4258,8 @@ class AIPredictionEngine:
                     options = {
                         "temperature": 0.7,
                         "top_p": 0.9,
-                        "num_predict": 250,  # Оптимальная длина ответа
-                        "num_thread": 2,  # 2 потока для баланса производительности
+                        "num_predict": 250,
+                        "num_thread": 2,
                         "repeat_penalty": 1.1,
                         "top_k": 40
                     }
@@ -3545,32 +4302,6 @@ class AIPredictionEngine:
 
         raise last_exception or Exception("Не удалось выполнить запрос к AI")
 
-    def _build_prompt(self, data: Dict) -> str:
-        """Построение оптимального промпта для рекомендаций"""
-        user_context = data.get("user_context", {})
-        energy_state = data.get("energy_state", {})
-        astro_highlights = data.get("astro_highlights", {})
-
-        prompt = f"""На основе индивидуальных данных предоставь краткие практические рекомендации на день.
-
-ПРОФИЛЬ:
-• Профессия: {user_context.get('profession', 'не указана')}
-• Должность: {user_context.get('position', 'не указана')}
-
-СОСТОЯНИЕ:
-• Общая энергия: {energy_state.get('overall_energy', {}).get('percentage', 0)}%
-• Физический цикл: {energy_state.get('physical_cycle', {}).get('phase', 'нейтральный')}
-• Эмоциональный цикл: {energy_state.get('emotional_cycle', {}).get('phase', 'нейтральный')}
-
-СФОРМУЛИРУЙ КРАТКИЕ РЕКОМЕНДАЦИИ:
-1. 💼 Профессиональная деятельность
-2. 🏃 Личная эффективность  
-3. ❤️ Эмоциональное состояние
-
-ОТВЕТ:"""
-
-        return prompt
-
     def _parse_response(self, response_text: str) -> Dict[str, Any]:
         """Упрощенный парсинг ответа модели"""
         try:
@@ -3587,13 +4318,14 @@ class AIPredictionEngine:
 
             for line in lines:
                 # Определяем категорию по маркерам
-                if any(marker in line for marker in ['💼', 'работа', 'професси']):
+                line_lower = line.lower()
+                if any(marker in line_lower for marker in ['💼', 'работа', 'професси', 'professional']):
                     current_category = "professional"
-                elif any(marker in line for marker in ['🏃', 'личн', 'эффектив']):
+                elif any(marker in line_lower for marker in ['🏃', 'личн', 'эффектив', 'personal']):
                     current_category = "personal_effectiveness"
-                elif any(marker in line for marker in ['❤️', 'эмоц', 'настроен']):
+                elif any(marker in line_lower for marker in ['❤️', 'эмоц', 'настроен', 'emotional']):
                     current_category = "emotional"
-                elif any(marker in line for marker in ['🎯', 'акцент', 'фокус']):
+                elif any(marker in line_lower for marker in ['🎯', 'акцент', 'фокус', 'focus']):
                     current_category = "daily_focus"
 
                 # Добавляем пункты в текущую категорию
@@ -3614,6 +4346,8 @@ class AIPredictionEngine:
 
     def _get_fallback_response(self, data: Dict, error: str) -> Dict[str, Any]:
         """Резервный ответ при недоступности AI"""
+        logger.warning(f"🔄 Используется fallback из-за: {error}")
+
         return {
             "success": False,
             "error": error,
@@ -3673,9 +4407,393 @@ class AIPredictionEngine:
         """Получение текущей статистики использования"""
         return self.stats.copy()
 
+    async def cleanup(self):
+        """Очистка ресурсов"""
+        try:
+            # Здесь можно добавить очистку кэша или других ресурсов
+            logger.info("🧹 Ресурсы AI движка очищены")
+        except Exception as e:
+            logger.error(f"❌ Ошибка очистки ресурсов: {e}")
+
 
 # Глобальный экземпляр движка
-ai_engine = AIPredictionEngine()        
-        
-        
+ai_engine = AIPredictionEngine()
+
+
+
+aspect_recommendations.py
+
+import logging
+from typing import Dict, List, Any
+import random
+
+logger = logging.getLogger(__name__)
+
+
+class AspectRecommendationEngine:
+    """
+    Простой движок рекомендаций на основе астрологических аспектов
+    Использует шаблоны для генерации понятных рекомендаций
+    """
+
+    def __init__(self):
+        # Шаблоны рекомендаций по типам аспектов
+        self.aspect_templates = {
+            'conjunction': {
+                'positive': [
+                    "Энергия {transit} и {natal} объединяется - идеальное время для начала новых проектов",
+                    "Соединение {transit} с {natal} дает мощный импульс для действий",
+                    "Используйте объединенную энергию {transit} и {natal} для решительных шагов"
+                ],
+                'challenge': [
+                    "Соединение {transit} и {natal} может создавать напряжение - будьте внимательны в общении",
+                    "Энергия аспекта очень концентрированная - избегайте поспешных решений",
+                    "Сфокусируйте мощную энергию соединения на одной важной задаче"
+                ]
+            },
+            'opposition': {
+                'positive': [
+                    "Оппозиция {transit} и {natal} помогает увидеть разные точки зрения",
+                    "Идеальное время для переговоров и поиска компромиссов",
+                    "Используйте противостояние энергий для баланса в отношениях"
+                ],
+                'challenge': [
+                    "Оппозиция {transit}-{natal} может создавать конфликты - проявляйте гибкость",
+                    "Возможны противоречия - ищите золотую середину",
+                    "Избегайте категоричных решений при этом аспекте"
+                ]
+            },
+            'square': {
+                'positive': [
+                    "Квадрат {transit} и {natal} дает энергию для преодоления препятствий",
+                    "Используйте напряжение аспекта для мобилизации сил",
+                    "Это время активных действий и решения накопившихся проблем"
+                ],
+                'challenge': [
+                    "Квадратура {transit}-{natal} требует осторожности в действиях",
+                    "Возможны непредвиденные сложности - имейте запасной план",
+                    "Избегайте конфронтации, решайте вопросы дипломатично"
+                ]
+            },
+            'trine': {
+                'positive': [
+                    "Трин {transit} и {natal} приносит гармонию и удачные возможности",
+                    "Благоприятное время для творчества и сотрудничества",
+                    "Энергия течет легко - доверяйте интуиции и действуйте"
+                ],
+                'challenge': [
+                    "При легкой энергии трина важно не упускать возможности",
+                    "Не расслабляйтесь слишком - используйте благоприятный период",
+                    "Сохраняйте активность, даже когда все дается легко"
+                ]
+            },
+            'sextile': {
+                'positive': [
+                    "Секстиль {transit} и {natal} открывает новые перспективы",
+                    "Идеальное время для установления полезных связей",
+                    "Используйте возможности для профессионального роста"
+                ],
+                'challenge': [
+                    "При множестве возможностей важно правильно расставить приоритеты",
+                    "Не распыляйтесь - выберите самые перспективные направления",
+                    "Уделите внимание планированию на будущее"
+                ]
+            }
+        }
+
+        # Рекомендации по конкретным планетам
+        self.planet_recommendations = {
+            'Sun': {
+                'focus': "личная энергия, уверенность, творчество",
+                'action': "проявляйте инициативу, будьте в центре внимания"
+            },
+            'Moon': {
+                'focus': "эмоции, интуиция, домашние дела",
+                'action': "прислушивайтесь к чувствам, заботьтесь о комфорте"
+            },
+            'Mercury': {
+                'focus': "общение, обучение, информация",
+                'action': "учитесь, договаривайтесь, планируйте"
+            },
+            'Venus': {
+                'focus': "отношения, красота, финансы",
+                'action': "укрепляйте связи, создавайте гармонию"
+            },
+            'Mars': {
+                'focus': "действия, энергия, конкуренция",
+                'action': "будьте активны, решайте задачи"
+            },
+            'Jupiter': {
+                'focus': "рост, возможности, путешествия",
+                'action': "расширяйте горизонты, учитесь новому"
+            },
+            'Saturn': {
+                'focus': "ответственность, структура, дисциплина",
+                'action': "планируйте, организуйте, завершайте дела"
+            },
+            'Uranus': {
+                'focus': "изменения, инновации, свобода",
+                'action': "будьте гибкими, экспериментируйте"
+            },
+            'Neptune': {
+                'focus': "интуиция, творчество, духовность",
+                'action': "мечтайте, творите, доверяйте внутреннему голосу"
+            },
+            'Pluto': {
+                'focus': "трансформация, глубина, власть",
+                'action': "избавляйтесь от старого, обновляйтесь"
+            }
+        }
+
+        # Русские названия планет
+        self.planet_names_ru = {
+            'Sun': 'Солнца', 'Moon': 'Луны', 'Mercury': 'Меркурия',
+            'Venus': 'Венеры', 'Mars': 'Марса', 'Jupiter': 'Юпитера',
+            'Saturn': 'Сатурна', 'Uranus': 'Урана', 'Neptune': 'Нептуна',
+            'Pluto': 'Плутона', 'North_Node': 'Северного Узла',
+            'Ascendant': 'Асцендента', 'Midheaven': 'Середины Неба'
+        }
+
+    def generate_aspect_recommendations(self, aspects_data: List[Dict]) -> List[str]:
+        """
+        Генерация простых рекомендаций на основе аспектов
+        """
+        recommendations = []
+
+        try:
+            # Сортируем аспекты по силе (самые сильные первые)
+            strong_aspects = [a for a in aspects_data if a.get('strength', 0) > 0.7]
+            sorted_aspects = sorted(strong_aspects, key=lambda x: x.get('strength', 0), reverse=True)
+
+            # Берем только топ-3 самых сильных аспекта
+            for aspect in sorted_aspects[:3]:
+                rec = self._generate_single_aspect_recommendation(aspect)
+                if rec:
+                    recommendations.append(rec)
+
+            # Если сильных аспектов мало, добавляем общие рекомендации
+            if len(recommendations) < 2:
+                general_recs = self._get_general_recommendations(aspects_data)
+                recommendations.extend(general_recs[:2])
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка генерации рекомендаций аспектов: {e}")
+            recommendations = ["Сегодня стабильный астрологический фон - хорошее время для плановых дел"]
+
+        return recommendations
+
+    def _generate_single_aspect_recommendation(self, aspect: Dict) -> str:
+        """Генерация рекомендации для одного аспекта"""
+        try:
+            transit_planet = aspect.get('transit_planet', '')
+            natal_planet = aspect.get('natal_planet', '')
+            aspect_type = aspect.get('aspect', '')
+            strength = aspect.get('strength', 0)
+
+            if not all([transit_planet, natal_planet, aspect_type]):
+                return None
+
+            # Получаем русские названия планет
+            transit_ru = self.planet_names_ru.get(transit_planet, transit_planet)
+            natal_ru = self.planet_names_ru.get(natal_planet, natal_planet)
+
+            # Выбираем тип рекомендации (позитивная или вызов)
+            rec_type = 'positive' if strength > 0.8 else 'challenge'
+
+            # Получаем шаблоны для этого типа аспекта
+            templates = self.aspect_templates.get(aspect_type, {}).get(rec_type, [])
+
+            if templates:
+                template = random.choice(templates)
+                recommendation = template.format(transit=transit_ru, natal=natal_ru)
+
+                # Добавляем эмодзи в зависимости от типа аспекта
+                emoji_map = {
+                    'conjunction': '⚡', 'opposition': '⚖️',
+                    'square': '🎯', 'trine': '🌟', 'sextile': '💫'
+                }
+                emoji = emoji_map.get(aspect_type, '✨')
+
+                return f"{emoji} {recommendation}"
+
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка генерации рекомендации для аспекта: {e}")
+
+        return None
+
+    def _get_general_recommendations(self, aspects_data: List[Dict]) -> List[str]:
+        """Общие рекомендации на основе общего анализа аспектов"""
+        general_recs = []
+
+        try:
+            total_aspects = len(aspects_data)
+            strong_aspects = len([a for a in aspects_data if a.get('strength', 0) > 0.7])
+
+            # Рекомендации по количеству аспектов
+            if total_aspects == 0:
+                general_recs.append("🌙 Сегодня спокойный астрологический фон - хорошее время для отдыха и рутинных дел")
+            elif total_aspects <= 3:
+                general_recs.append("⚖️ Небольшое количество аспектов - день подходит для размеренной работы")
+            elif total_aspects > 8:
+                general_recs.append("🎯 Много астрологических влияний - будьте готовы к разным событиям")
+
+            # Рекомендации по силе аспектов
+            if strong_aspects >= 3:
+                general_recs.append("💥 Несколько сильных аспектов - важный день для решений и действий")
+            elif strong_aspects == 0 and total_aspects > 0:
+                general_recs.append("🌊 Аспекты слабые - хорошее время для подготовки и планирования")
+
+            # Рекомендации по ретроградным планетам
+            retrograde_planets = self._detect_retrograde_influences(aspects_data)
+            if retrograde_planets:
+                planet_names = [self.planet_names_ru.get(p, p) for p in retrograde_planets]
+                general_recs.append(
+                    f"🔄 Влияние ретроградных планет ({', '.join(planet_names)}) - время для пересмотра и анализа")
+
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка генерации общих рекомендаций: {e}")
+
+        return general_recs
+
+    def _detect_retrograde_influences(self, aspects_data: List[Dict]) -> List[str]:
+        """Обнаружение ретроградных влияний в аспектах"""
+        retrograde_planets = set()
+
+        for aspect in aspects_data:
+            # Проверяем транзитные планеты на ретроградность
+            if aspect.get('transit_planet') in ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune',
+                                                'Pluto']:
+                # В реальной системе здесь была бы проверка на ретроградность
+                # Сейчас используем случайное определение для демонстрации
+                if random.random() < 0.3:  # 30% шанс что планета ретроградная
+                    retrograde_planets.add(aspect['transit_planet'])
+
+        return list(retrograde_planets)
+
+
+# Глобальный экземпляр движка рекомендаций
+aspect_recommendations = AspectRecommendationEngine()
+
+
+recommendation_service.py
+
+import logging
+import hashlib
+import json
+from datetime import date, datetime, timedelta
+from typing import Dict, Any, Optional
+
+from backend.database import async_session, AIRecommendations
+from sqlalchemy.future import select
+from sqlalchemy import and_
+
+logger = logging.getLogger(__name__)
+
+
+class RecommendationService:
+    """
+    Упрощенный сервис для управления рекомендациями и кэшем
+    Объединяет логику кэширования и работы с рекомендациями
+    """
+
+    def __init__(self):
+        self.cache_ttl_days = 1  # Кэшируем на 1 день
+
+    def _generate_data_hash(self, data: Dict[str, Any]) -> str:
+        """Генерация хэша данных для кэширования"""
+        data_str = json.dumps(data, sort_keys=True, ensure_ascii=False)
+        return hashlib.sha256(data_str.encode()).hexdigest()
+
+    async def get_cached_recommendations(self, telegram_id: int, target_date: date, data_hash: str) -> Optional[
+        Dict[str, Any]]:
+        """Получение закэшированных рекомендаций"""
+        try:
+            async with async_session() as session:
+                result = await session.execute(
+                    select(AIRecommendations).where(
+                        and_(
+                            AIRecommendations.telegram_id == telegram_id,
+                            AIRecommendations.target_date == target_date,
+                            AIRecommendations.data_hash == data_hash
+                        )
+                    )
+                )
+                cached = result.scalar_one_or_none()
+
+                if cached:
+                    logger.info(f"✅ Найдены кэшированные рекомендации для {telegram_id} на {target_date}")
+                    return {
+                        'recommendations': cached.recommendations,
+                        'model_version': cached.model_version,
+                        'from_cache': True
+                    }
+
+                return None
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка получения кэша для {telegram_id}: {e}")
+            return None
+
+    async def save_recommendations(self, telegram_id: int, target_date: date, data_hash: str,
+                                   recommendations: str, model_version: str = 'gemma:2b') -> bool:
+        """Сохранение рекомендаций в кэш"""
+        try:
+            async with async_session() as session:
+                # Удаляем старые записи для этой даты
+                await session.execute(
+                    AIRecommendations.__table__.delete().where(
+                        and_(
+                            AIRecommendations.telegram_id == telegram_id,
+                            AIRecommendations.target_date == target_date
+                        )
+                    )
+                )
+
+                # Сохраняем новые рекомендации
+                new_recommendation = AIRecommendations(
+                    telegram_id=telegram_id,
+                    target_date=target_date,
+                    data_hash=data_hash,
+                    recommendations=recommendations,
+                    model_version=model_version,
+                    created_at=datetime.now()
+                )
+
+                session.add(new_recommendation)
+                await session.commit()
+
+                logger.info(f"💾 Рекомендации сохранены в кэш для {telegram_id} на {target_date}")
+                return True
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка сохранения рекомендаций для {telegram_id}: {e}")
+            return False
+
+    async def cleanup_old_recommendations(self, days_old: int = 7) -> int:
+        """Очистка устаревших рекомендаций"""
+        try:
+            cutoff_date = date.today() - timedelta(days=days_old)
+
+            async with async_session() as session:
+                result = await session.execute(
+                    AIRecommendations.__table__.delete().where(
+                        AIRecommendations.target_date < cutoff_date
+                    )
+                )
+                deleted_count = result.rowcount
+                await session.commit()
+
+                if deleted_count > 0:
+                    logger.info(f"🗑️ Удалено {deleted_count} устаревших рекомендаций")
+
+                return deleted_count
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка очистки рекомендаций: {e}")
+            return 0
+
+
+# Глобальный экземпляр
+recommendation_service = RecommendationService()
+
 
