@@ -22,7 +22,8 @@ class AIPredictionEngine:
 
         # Фиксированная модель - gemma:2b
         #self.model = "gemma:2b"
-        self.model = "tinyllama:1.1b"
+        #self.model = "tinyllama:1.1b"
+        self.model = "llama3.1:8b-instruct-q2_K"
 
         # Оптимизированные таймауты
         self.timeout = aiohttp.ClientTimeout(total=600)  # 180 секунд
