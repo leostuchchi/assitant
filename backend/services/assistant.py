@@ -1,16 +1,16 @@
-from backend.user_services import create_or_update_user, get_user_profile, update_user_profession, \
+from backend.services.user_services import create_or_update_user, get_user_profile, update_user_profession, \
     increment_request_count
-from backend.chart_services import create_and_save_natal_chart, get_user_natal_chart
-from backend.matrix_services import calculate_and_save_psyho_matrix, get_user_matrix
-from backend.prediction_services import generate_and_save_prediction, get_user_predictions, \
+from backend.astrological.chart_services import create_and_save_natal_chart, get_user_natal_chart
+from backend.psychology.matrix_services import calculate_and_save_psyho_matrix, get_user_matrix
+from backend.astrological.prediction_services import generate_and_save_prediction, get_user_predictions, \
     format_data_for_user, format_data_for_model
-from backend.biorhythm_services import calculate_and_save_biorhythms, get_user_biorhythms
+from backend.biorhythms.biorhythm_services import calculate_and_save_biorhythms, get_user_biorhythms
 from backend.database import async_session
 from datetime import datetime, date, timedelta
-from backend.moon import calculate_lunar_phase
 import logging
 import asyncio
 from typing import Dict, Any, List, Optional
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +26,219 @@ class PersonalAssistant:
         """Ленивая инициализация AI движка"""
         if not self._ai_engine_initialized:
             try:
-                from backend.ai_engine import ai_engine
+                from backend.models.ai_engine import ai_engine
                 self.ai_engine = ai_engine
                 self._ai_engine_initialized = True
                 logger.info("✅ AI движок инициализирован")
             except ImportError as e:
                 logger.warning(f"⚠️ AI движок недоступен: {e}")
                 self._ai_engine_initialized = True
+
+    def _debug_print_complete_ai_data(self, telegram_id: int, user_profile: dict, prediction: dict,
+                                      target_date: date, prepared_data: dict):
+        """
+        ПОЛНЫЙ вывод всех данных, отправляемых в AI модель
+        """
+        print("\n" + "🎯" * 50)
+        print("🤖 ПОЛНЫЕ ДАННЫЕ ДЛЯ AI МОДЕЛИ")
+        print("🎯" * 50)
+
+        # 1. ОСНОВНАЯ ИНФОРМАЦИЯ О ПОЛЬЗОВАТЕЛЕ
+        print(f"\n📋 ОСНОВНАЯ ИНФОРМАЦИЯ:")
+        print(f"   👤 ID: {telegram_id}")
+        print(f"   📅 Дата расчета: {target_date.strftime('%d.%m.%Y')}")
+        print(f"   🎯 Возраст: {self._calculate_user_age(user_profile.get('birth_date'))} лет")
+        print(f"   👨‍💼 Профессия: {user_profile.get('profession', 'не указана')}")
+        print(f"   💼 Должность: {user_profile.get('job_position', 'не указана')}")
+        print(f"   🏙️ Город: {user_profile.get('current_city', 'не указан')}")
+        print(f"   🏠 Родной город: {user_profile.get('birth_city', 'не указан')}")
+        print(f"   ⚧ Пол: {user_profile.get('gender', 'не указан')}")
+        print(f"   📊 Запросов: {user_profile.get('request_count', 0)}")
+
+        # 2. ДАННЫЕ ИЗ НАТАЛЬНОЙ КАРТЫ
+        natal_chart = prediction.get('natal_chart', {})
+        if natal_chart:
+            print(f"\n🌟 НАТАЛЬНАЯ КАРТА:")
+            metadata = natal_chart.get('metadata', {})
+            location = metadata.get('location', {})
+            print(f"   📍 Место рождения: {location.get('city', 'неизвестно')}")
+            print(f"   📅 Дата рождения: {user_profile.get('birth_date')}")
+            print(f"   ⏰ Время рождения: {user_profile.get('birth_time')}")
+
+            # Планеты
+            planets = natal_chart.get('planets', {})
+            print(f"   🪐 Планет рассчитано: {len(planets)}")
+
+            # Покажем основные планеты
+            main_planets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']
+            for planet in main_planets:
+                if planet in planets:
+                    planet_data = planets[planet]
+                    print(
+                        f"     {planet}: {planet_data.get('sign', 'N/A')} ({planet_data.get('position_in_sign', 0):.1f}°)")
+
+            # Дома
+            houses = natal_chart.get('houses', {})
+            print(f"   🏠 Домов рассчитано: {len(houses)}")
+
+            # Аспекты
+            aspects = natal_chart.get('aspects', [])
+            print(f"   🔗 Аспектов в натале: {len(aspects)}")
+
+            # ML фичи
+            ml_features = natal_chart.get('ml_features', {})
+            if ml_features:
+                element_balance = ml_features.get('element_balance', {})
+                print(f"   ⚖️ Баланс стихий: {element_balance}")
+
+        # 3. ПСИХОМАТРИЦА
+        psyho_matrix = prediction.get('psyho_matrix', {})
+        if psyho_matrix:
+            print(f"\n🔢 ПСИХОМАТРИЦА:")
+            basic_numbers = psyho_matrix.get('basic_numbers', {})
+            print(f"   🔸 Первое число: {basic_numbers.get('first', 'N/A')}")
+            print(f"   🔸 Второе число: {basic_numbers.get('second', 'N/A')}")
+            print(f"   🔸 Третье число: {basic_numbers.get('third', 'N/A')}")
+            print(f"   🔸 Четвертое число: {basic_numbers.get('fourth', 'N/A')}")
+
+            matrix_numbers = psyho_matrix.get('pythagoras_matrix', {})
+            print(f"   🧮 Матрица Пифагора: {dict(list(matrix_numbers.items())[:5])}...")
+
+        # 4. ЕЖЕДНЕВНЫЕ РАСЧЕТЫ
+        daily_calculations = prediction.get('daily_calculations', {})
+        if daily_calculations:
+            print(f"\n📊 ЕЖЕДНЕВНЫЕ РАСЧЕТЫ:")
+
+            # Биоритмы
+            biorhythm_data = daily_calculations.get('biorhythm_data', {})
+            if biorhythm_data:
+                overall_energy = biorhythm_data.get('overall_energy', {})
+                cycles = biorhythm_data.get('cycles', {})
+
+                print(f"   ⚡ Общая энергия: {overall_energy.get('percentage', 0):.1f}%")
+                print(f"   💪 Физический: {cycles.get('physical', {}).get('percentage', 0):.1f}%")
+                print(f"   😊 Эмоциональный: {cycles.get('emotional', {}).get('percentage', 0):.1f}%")
+                print(f"   🧠 Интеллектуальный: {cycles.get('intellectual', {}).get('percentage', 0):.1f}%")
+                print(f"   🔮 Интуитивный: {cycles.get('intuitive', {}).get('percentage', 0):.1f}%")
+
+                critical_days = biorhythm_data.get('critical_days', [])
+                peak_days = biorhythm_data.get('peak_days', [])
+                print(f"   ⚠️ Критических дней: {len(critical_days)}")
+                print(f"   🚀 Пиковых дней: {len(peak_days)}")
+
+            # Астрологические данные
+            astro_data = daily_calculations.get('astro_data', {})
+            if astro_data:
+                print(f"   🌟 Аспектов сегодня: {astro_data.get('aspects_count', 0)}")
+                print(f"   💥 Сильных аспектов: {astro_data.get('strong_aspects_count', 0)}")
+
+                retrograde_planets = astro_data.get('retrograde_planets', [])
+                print(f"   🔄 Ретроградных планет: {len(retrograde_planets)}")
+                if retrograde_planets:
+                    print(f"     📍 {', '.join(retrograde_planets)}")
+
+                key_aspects = astro_data.get('key_aspects', [])
+                print(f"   📈 Ключевых аспектов: {len(key_aspects)}")
+
+                # Покажем топ-3 самых сильных аспекта
+                strong_aspects = sorted(key_aspects, key=lambda x: x.get('strength', 0), reverse=True)[:3]
+                for i, aspect in enumerate(strong_aspects, 1):
+                    transit = aspect.get('transit_planet', '')
+                    natal = aspect.get('natal_planet', '')
+                    aspect_type = aspect.get('aspect', '')
+                    strength = aspect.get('strength', 0)
+                    orb = aspect.get('orb', 0)
+                    print(f"     {i}. {transit}→{natal} ({aspect_type}) - сила: {strength:.2f}, орб: {orb:.2f}°")
+
+        # 5. ОПТИМИЗИРОВАННЫЕ ДАННЫЕ ДЛЯ AI
+        print(f"\n🎯 ОПТИМИЗИРОВАННЫЕ ДАННЫЕ ДЛЯ AI:")
+        print(f"   🎯 Сезон: {prepared_data.get('season', 'неизвестно')}")
+        print(f"   📅 День недели: {prepared_data.get('day_of_week', 'неизвестно')}")
+
+        # Энергетическое состояние
+        energy_state = prepared_data.get('energy_state', {})
+        print(f"   ⚡ Общая энергия: {energy_state.get('overall_energy_percentage', 0)}%")
+        print(f"   📊 Уровень энергии: {energy_state.get('overall_energy_level', 'неизвестно')}")
+
+        # Детали биоритмов
+        physical = energy_state.get('physical', {})
+        emotional = energy_state.get('emotional', {})
+        intellectual = energy_state.get('intellectual', {})
+
+        print(
+            f"   💪 Физический: {physical.get('percentage', 0)}% ({physical.get('phase', 'нейтральная')}) - {physical.get('trend', 'стабильно')}")
+        print(
+            f"   😊 Эмоциональный: {emotional.get('percentage', 0)}% ({emotional.get('phase', 'нейтральная')}) - {emotional.get('trend', 'стабильно')}")
+        print(
+            f"   🧠 Интеллектуальный: {intellectual.get('percentage', 0)}% ({intellectual.get('phase', 'нейтральная')}) - {intellectual.get('trend', 'стабильно')}")
+
+        # Астрологические влияния
+        astro_influences = prepared_data.get('astro_influences', {})
+        print(f"   🌟 Всего аспектов: {astro_influences.get('total_aspects', 0)}")
+        print(f"   💥 Сильных аспектов: {astro_influences.get('strong_aspects', 0)}")
+        print(f"   🔄 Ретроградных планет: {astro_influences.get('retrograde_planets', 0)}")
+        print(f"   📈 Интенсивность аспектов: {astro_influences.get('aspect_intensity', 'неизвестно')}")
+
+        # Ключевые аспекты
+        key_aspects = prepared_data.get('key_aspects', [])
+        print(f"   🔑 Ключевых аспектов для AI: {len(key_aspects)}")
+        for i, aspect in enumerate(key_aspects[:3], 1):
+            print(f"     {i}. {aspect}")
+
+        # 6. СТАТИСТИКА ДАННЫХ
+        print(f"\n📈 СТАТИСТИКА ДАННЫХ:")
+        total_data_points = 0
+
+        # Считаем общее количество данных
+        if natal_chart:
+            total_data_points += len(natal_chart.get('planets', {}))
+            total_data_points += len(natal_chart.get('houses', {}))
+            total_data_points += len(natal_chart.get('aspects', []))
+
+        if psyho_matrix:
+            total_data_points += 4  # основные числа
+            total_data_points += len(psyho_matrix.get('pythagoras_matrix', {}))
+
+        if daily_calculations:
+            total_data_points += 5  # биоритмы
+            total_data_points += len(daily_calculations.get('astro_data', {}).get('key_aspects', []))
+
+        print(f"   📊 Всего точек данных: {total_data_points}")
+        print(f"   🎯 Дата актуальности: {prediction.get('calculation_date', 'неизвестно')}")
+
+        # 7. JSON ПРЕДСТАВЛЕНИЕ ДЛЯ ОТЛАДКИ
+        print(f"\n📋 JSON СТРУКТУРА ОПТИМИЗИРОВАННЫХ ДАННЫХ:")
+        print("-" * 40)
+        try:
+            # Безопасное преобразование для отладки
+            debug_data = {
+                'user_context': prepared_data.get('user_profile', {}),
+                'energy_state_summary': {
+                    'overall_energy': energy_state.get('overall_energy_percentage'),
+                    'physical': physical.get('percentage'),
+                    'emotional': emotional.get('percentage'),
+                    'intellectual': intellectual.get('percentage')
+                },
+                'astro_summary': {
+                    'total_aspects': astro_influences.get('total_aspects'),
+                    'strong_aspects': astro_influences.get('strong_aspects'),
+                    'retrograde_planets': astro_influences.get('retrograde_planets'),
+                    'intensity': astro_influences.get('aspect_intensity')
+                },
+                'key_aspects_count': len(key_aspects),
+                'context': {
+                    'season': prepared_data.get('season'),
+                    'day_of_week': prepared_data.get('day_of_week'),
+                    'target_date': prepared_data.get('target_date')
+                }
+            }
+            print(json.dumps(debug_data, ensure_ascii=False, indent=2))
+        except Exception as e:
+            print(f"Ошибка форматирования JSON: {e}")
+
+        print("-" * 40)
+        print("✅ ВСЕ ДАННЫЕ ПОДГОТОВЛЕНЫ ДЛЯ AI МОДЕЛИ")
+        print("🎯" * 50 + "\n")
 
     async def collect_user_data(self, telegram_id: int, birth_date: date, birth_time: datetime.time,
                                 birth_city: str, current_city: str = None, profession: str = None,
@@ -143,6 +349,12 @@ class PersonalAssistant:
 
             # 2. AI рекомендации ТОЛЬКО если явно запрошены
             if include_ai:
+                print(f"\n🚀 ЗАПУСК AI ОБРАБОТКИ")
+                print(f"   👤 Пользователь: {telegram_id}")
+                print(f"   📅 Дата: {target_date.strftime('%d.%m.%Y')}")
+                print(f"   💼 Профессия: {user_profile.get('profession', 'не указана')}")
+                print(f"   🏙️ Город: {user_profile.get('current_city', 'не указан')}")
+
                 logger.info(f"🤖 Включена генерация AI рекомендаций для {telegram_id}")
                 ai_result = await self._get_ai_recommendations(telegram_id, user_profile, prediction, target_date)
                 result.update({
@@ -169,6 +381,9 @@ class PersonalAssistant:
         Асинхронное получение AI рекомендаций (для использования в handlers)
         """
         try:
+            print(f"\n🎯 ЗАПУСК AI ОБРАБОТКИ ДЛЯ ПОЛЬЗОВАТЕЛЯ {telegram_id}")
+            print(f"📅 Дата: {target_date.strftime('%d.%m.%Y')}")
+
             logger.info(f"🔄 Асинхронная генерация AI рекомендаций для {telegram_id}")
 
             # Ленивая инициализация AI движка
@@ -241,7 +456,7 @@ class PersonalAssistant:
             # Оптимизируем астрологические данные
             optimized_astro = self._optimize_astro_data(astro_data)
 
-            return {
+            prepared_data = {
                 'user_profile': {
                     'profession': user_profile.get('profession', 'не указана'),
                     'position': user_profile.get('job_position', 'не указана'),
@@ -255,6 +470,11 @@ class PersonalAssistant:
                 'season': self._get_season(target_date),  # Добавляем сезон для контекста
                 'day_of_week': target_date.strftime('%A')  # День недели для контекста
             }
+
+            # 🔴 ДОБАВЛЕНО: ПОЛНЫЙ ВЫВОД ВСЕХ ДАННЫХ
+            self._debug_print_complete_ai_data(telegram_id, user_profile, prediction, target_date, prepared_data)
+
+            return prepared_data
 
         except Exception as e:
             logger.error(f"❌ Ошибка подготовки оптимизированных данных для AI: {e}")
@@ -515,9 +735,9 @@ class PersonalAssistant:
     async def get_user_statistics(self, telegram_id: int):
         """Получение статистики пользователя"""
         try:
-            from backend.prediction_services import get_prediction_statistics
-            from backend.biorhythm_services import get_biorhythm_statistics
-            from backend.user_services import get_user_request_count
+            from backend.astrological.prediction_services import get_prediction_statistics
+            from backend.biorhythms.biorhythm_services import get_biorhythm_statistics
+            from backend.services.user_services import get_user_request_count
 
             data_status = await self.get_user_data_status(telegram_id)
             prediction_stats = await get_prediction_statistics(telegram_id)
@@ -545,8 +765,8 @@ class PersonalAssistant:
     async def cleanup_user_data(self, telegram_id: int):
         """Очистка данных пользователя (для администрирования)"""
         try:
-            from backend.biorhythm_services import cleanup_old_biorhythms
-            from backend.prediction_services import cleanup_old_predictions
+            from backend.biorhythms.biorhythm_services import cleanup_old_biorhythms
+            from backend.astrological.prediction_services import cleanup_old_predictions
 
             biorhythm_cleaned = await cleanup_old_biorhythms()
             prediction_cleaned = await cleanup_old_predictions()
@@ -569,7 +789,7 @@ class PersonalAssistant:
     async def validate_user_data(self, telegram_id: int):
         """Проверка корректности данных пользователя"""
         try:
-            from backend.prediction_services import validate_prediction_data
+            from backend.astrological.prediction_services import validate_prediction_data
 
             data_status = await self.get_user_data_status(telegram_id)
             prediction_valid = await validate_prediction_data(telegram_id)

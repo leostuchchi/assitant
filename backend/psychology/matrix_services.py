@@ -1,6 +1,6 @@
 from backend.database import async_session, PsyhoMatrix
-from backend.psyho_matrix import PsyhoMatrixCalculator
-from backend.user_services import get_user_profile
+from backend.psychology.psyho_matrix import PsyhoMatrixCalculator
+from backend.services.user_services import get_user_profile
 from sqlalchemy.future import select
 import logging
 

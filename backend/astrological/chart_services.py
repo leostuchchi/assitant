@@ -1,5 +1,5 @@
 from backend.database import async_session, UserNatalChart
-from backend.natal_chart import MLNatalChartCalculator
+from backend.astrological.natal_chart import MLNatalChartCalculator
 from sqlalchemy.future import select
 import logging
 

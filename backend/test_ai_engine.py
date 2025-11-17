@@ -5,7 +5,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from backend.ai_engine import AIPredictionEngine
+from backend.models.ai_engine import AIPredictionEngine
 
 logging.basicConfig(level=logging.INFO)
 

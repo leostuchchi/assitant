@@ -1,15 +1,14 @@
 from backend.database import async_session, NatalPredictions
-from backend.predictions import AstroPredictor
-from backend.chart_services import get_user_natal_chart
-from backend.matrix_services import get_user_matrix
-from backend.biorhythm_services import calculate_and_save_biorhythms
-from backend.aspect_recommendations import aspect_recommendations
+from backend.astrological.predictions import AstroPredictor
+from backend.astrological.chart_services import get_user_natal_chart
+from backend.psychology.matrix_services import get_user_matrix
+from backend.biorhythms.biorhythm_services import calculate_and_save_biorhythms
 from sqlalchemy.future import select
-from sqlalchemy import func, and_
+from sqlalchemy import func
 import logging
 import json
 from datetime import datetime, date
-from typing import List, Dict, Any  # ✅ ДОБАВЛЕННЫЙ ИМПОРТ
+from typing import List  # ✅ ДОБАВЛЕННЫЙ ИМПОРТ
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +99,7 @@ def _extract_strong_aspects(astro_data: dict) -> List[str]:
 
 
 # Добавить в начало файла:
-from backend.aspect_recommendations import aspect_recommendations
+from backend.astrological.aspect_recommendations import aspect_recommendations
 
 
 # Обновить функцию format_data_for_user:

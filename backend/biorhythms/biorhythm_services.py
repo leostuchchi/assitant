@@ -1,11 +1,10 @@
 from backend.database import async_session, Biorhythms
-from backend.biorhythm_calculator import BiorhythmCalculator
-from backend.user_services import get_user_profile
+from backend.biorhythms.biorhythm_calculator import BiorhythmCalculator
+from backend.services.user_services import get_user_profile
 from sqlalchemy.future import select
 from sqlalchemy import func, and_
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 import logging
-import asyncio
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 from aiogram import Router, types
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import Command
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
@@ -7,7 +7,7 @@ from datetime import datetime, date, timedelta
 import logging
 import asyncio
 
-from backend.assistant import assistant
+from backend.services.assistant import assistant
 
 logger = logging.getLogger(__name__)
 

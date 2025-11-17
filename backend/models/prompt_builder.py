@@ -22,6 +22,7 @@ class PromptBuilder:
         Строит оптимизированный промпт на основе данных пользователя
         """
         template = self.templates.get(prompt_type, self._daily_recommendations_template)
+        #print(template(data))
         return template(data)
 
     def _daily_recommendations_template(self, data: Dict[str, Any]) -> str:

@@ -5,7 +5,7 @@ import os
 import time
 import hashlib
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -52,8 +52,8 @@ class AIPredictionEngine:
         """Ленивая инициализация зависимостей"""
         if not self._dependencies_initialized:
             try:
-                from backend.prompt_builder import prompt_builder
-                from backend.recommendation_service import recommendation_service
+                from backend.models.prompt_builder import prompt_builder
+                from backend.services.recommendation_service import recommendation_service
 
                 self.prompt_builder = prompt_builder
                 self.recommendation_service = recommendation_service
