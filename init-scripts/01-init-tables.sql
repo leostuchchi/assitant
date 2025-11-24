@@ -159,5 +159,65 @@ END $$;
 -- Только добавление полей (обратно совместимо)
 ALTER TABLE daily_calculations ADD COLUMN ml_features JSONB;
 ALTER TABLE daily_calculations ADD COLUMN basic_insights JSONB;
+ALTER TABLE daily_calculations ADD column trend_data JSONB;
+
+-- Оптимизация запросов по ML фичам
+CREATE INDEX idx_daily_calc_ml_features ON daily_calculations 
+USING gin (ml_features);
+
+CREATE INDEX idx_daily_calc_trends ON daily_calculations 
+USING gin (trend_data);
+
+CREATE INDEX idx_daily_calc_insights ON daily_calculations 
+USING gin (basic_insights);
+
+-- Обновление структуры базы данных для ML функциональности
+
+-- 1. Добавить колонки в таблицу users
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS user_segment VARCHAR(50),
+ADD COLUMN IF NOT EXISTS activity_level VARCHAR(20),
+ADD COLUMN IF NOT EXISTS data_quality_score INTEGER DEFAULT 0;
+
+-- 2. Добавить колонки в таблицу user_astro_profile
+ALTER TABLE user_astro_profile 
+ADD COLUMN IF NOT EXISTS ml_features JSONB,
+ADD COLUMN IF NOT EXISTS behavior_patterns JSONB,
+ADD COLUMN IF NOT EXISTS compatibility_profile JSONB;
+
+-- 3. Добавить колонки в таблицу daily_calculations
+ALTER TABLE daily_calculations 
+ADD COLUMN IF NOT EXISTS ml_features JSONB,
+ADD COLUMN IF NOT EXISTS basic_insights JSONB,
+ADD COLUMN IF NOT EXISTS trend_data JSONB,
+ADD COLUMN IF NOT EXISTS risk_factors JSONB,
+ADD COLUMN IF NOT EXISTS opportunities JSONB,
+ADD COLUMN IF NOT EXISTS ml_data_quality INTEGER DEFAULT 0;
+
+-- 4. Создать таблицу ml_models
+CREATE TABLE IF NOT EXISTS ml_models (
+    model_id VARCHAR(50) PRIMARY KEY,
+    model_version VARCHAR(20) NOT NULL,
+    model_type VARCHAR(30) NOT NULL,
+    model_metadata JSONB NOT NULL,
+    accuracy_score INTEGER,
+    training_date DATE NOT NULL,
+    is_active INTEGER DEFAULT 1,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 5. Добавить индексы
+CREATE INDEX IF NOT EXISTS idx_users_activity ON users(activity_level);
+CREATE INDEX IF NOT EXISTS idx_users_data_quality ON users(data_quality_score);
+CREATE INDEX IF NOT EXISTS idx_astro_profile_ml ON user_astro_profile USING gin(ml_features);
+CREATE INDEX IF NOT EXISTS idx_daily_calc_ml_quality ON daily_calculations(ml_data_quality);
+CREATE INDEX IF NOT EXISTS idx_daily_calc_has_ml ON daily_calculations USING gin(ml_features);
+CREATE INDEX IF NOT EXISTS idx_ml_models_active ON ml_models(is_active);
+CREATE INDEX IF NOT EXISTS idx_ml_models_type ON ml_models(model_type);
+
+-- Проверить изменения
+SELECT '✅ База данных успешно обновлена для ML функциональности' as status;
+
 -- БЕЗ новых таблиц, БЕЗ миграций данных
 

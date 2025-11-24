@@ -3,7 +3,8 @@ from backend.predictions import AstroPredictor
 from backend.chart_services import get_user_natal_chart
 from backend.matrix_services import get_user_matrix
 from backend.biorhythm_services import calculate_and_save_biorhythms
-#from backend.aspect_recommendations import aspect_recommendations
+from backend.feature_engineering import feature_engine
+from backend.ml_orchestrator import ml_orchestrator
 from sqlalchemy.future import select
 from sqlalchemy import func, and_
 import logging
@@ -182,7 +183,6 @@ def _format_aspect_recommendation(aspect: Dict) -> str:
         return None
 
 
-
 async def format_data_for_user(prediction: dict) -> str:
     """Форматирование данных для отображения пользователю в боте"""
     if not prediction:
@@ -258,6 +258,25 @@ async def format_data_for_user(prediction: dict) -> str:
                 retrograde_ru = [planet_names.get(p, p) for p in retrograde_planets]
                 lines.append(f"🔄 **Ретроградные планеты:** {', '.join(retrograde_ru)}")
 
+        # ML инсайты и рекомендации (НОВАЯ ФУНКЦИОНАЛЬНОСТЬ)
+        basic_insights = daily_data.get('basic_insights', [])
+        if basic_insights:
+            lines.append("")
+            lines.append("💡 **Рекомендации на день:**")
+            for insight in basic_insights[:3]:  # Только 3 основных инсайта
+                lines.append(f"   • {insight}")
+
+        # ML фичи для продвинутых пользователей
+        ml_features = daily_data.get('ml_features', {})
+        if ml_features:
+            daily_score = ml_features.get('daily_score', 0)
+            if daily_score > 0.7:
+                lines.append("")
+                lines.append("🎯 **Отличный день для продуктивной работы!**")
+            elif daily_score < 0.3:
+                lines.append("")
+                lines.append("🌙 **Рекомендуется бережный режим и отдых**")
+
         # Критические дни
         if biorhythms and biorhythms.get('critical_days_count', 0) > 0:
             lines.append("")
@@ -305,6 +324,29 @@ async def generate_and_save_prediction(telegram_id: int, target_date: date) -> D
 
         logger.info(f"✅ Комбинированные данные созданы для {telegram_id}")
 
+        # Генерация ML данных через оркестратор (НОВАЯ ФУНКЦИОНАЛЬНОСТЬ)
+        ml_package = await ml_orchestrator.generate_daily_ml_data(
+            telegram_id,
+            target_date,
+            {
+                'calculations': {
+                    'biorhythms': biorhythm_data,
+                    'astrology': astro_prediction,
+                    'psychomatrix': matrix_data
+                },
+                'user_id': telegram_id
+            }
+        )
+
+        # Добавляем ML данные в combined_data
+        combined_data.update({
+            'ml_features': ml_package.get('ml_features', {}),
+            'basic_insights': ml_package.get('basic_insights', []),
+            'trend_data': ml_package.get('trend_data', {})
+        })
+
+        logger.info(f"✅ ML данные сгенерированы для {telegram_id}")
+
         # Сохраняем в daily_calculations
         await save_daily_calculations(telegram_id, target_date, combined_data)
 
@@ -346,6 +388,11 @@ async def save_daily_calculations(telegram_id: int, target_date: date, calculati
             )
             existing_record = result.scalar_one_or_none()
 
+            # Извлекаем ML данные для сохранения в отдельные колонки
+            ml_features = calculation_data.get('ml_features', {})
+            basic_insights = calculation_data.get('basic_insights', [])
+            trend_data = calculation_data.get('trend_data', {})
+
             if existing_record:
                 # Обновляем существующую запись
                 existing_record.biorhythm_data = calculation_data.get('biorhythm_data', {})
@@ -353,6 +400,12 @@ async def save_daily_calculations(telegram_id: int, target_date: date, calculati
                 existing_record.calculation_metadata = calculation_data.get('calculation_metadata', {})
                 existing_record.data_hash = data_hash
                 existing_record.calculation_timestamp = datetime.now()
+
+                # Сохраняем ML данные в новые колонки
+                existing_record.ml_features = ml_features
+                existing_record.basic_insights = basic_insights
+                existing_record.trend_data = trend_data
+
                 logger.info(f"📝 Обновлены daily calculations для {telegram_id} на {target_date}")
             else:
                 # Создаем новую запись
@@ -363,7 +416,11 @@ async def save_daily_calculations(telegram_id: int, target_date: date, calculati
                     astro_transits_data=calculation_data.get('astro_data', {}),
                     calculation_metadata=calculation_data.get('calculation_metadata', {}),
                     data_hash=data_hash,
-                    calculation_timestamp=datetime.now()
+                    calculation_timestamp=datetime.now(),
+                    # Новые колонки для ML данных
+                    ml_features=ml_features,
+                    basic_insights=basic_insights,
+                    trend_data=trend_data
                 )
                 session.add(new_record)
                 logger.info(f"🆕 Созданы daily calculations для {telegram_id} на {target_date}")
@@ -397,7 +454,11 @@ async def get_daily_calculations(telegram_id: int, target_date: date) -> Optiona
                     'astro_transits_data': daily_calc.astro_transits_data,
                     'calculation_metadata': daily_calc.calculation_metadata,
                     'calculation_timestamp': daily_calc.calculation_timestamp.isoformat(),
-                    'data_hash': daily_calc.data_hash
+                    'data_hash': daily_calc.data_hash,
+                    # Новые ML данные
+                    'ml_features': daily_calc.ml_features or {},
+                    'basic_insights': daily_calc.basic_insights or [],
+                    'trend_data': daily_calc.trend_data or {}
                 }
             return None
 
@@ -460,18 +521,48 @@ async def get_prediction_statistics(telegram_id: int) -> dict:
         # Получаем последние расчеты
         latest_calc = await get_daily_calculations(telegram_id, date.today())
 
+        # Статистика ML данных (НОВАЯ ФУНКЦИОНАЛЬНОСТЬ)
+        ml_features_available = latest_calc and bool(latest_calc.get('ml_features')) if latest_calc else False
+        insights_available = latest_calc and bool(latest_calc.get('basic_insights')) if latest_calc else False
+
         return {
             'total_calculations': total_calculations,
             'first_calculation_date': min_date.isoformat() if min_date else None,
             'last_calculation_date': max_date.isoformat() if max_date else None,
             'calculation_range_days': (max_date - min_date).days if min_date and max_date else 0,
-            'latest_energy_level': latest_calc.get('biorhythm_data', {}).get('overall_energy', {}).get('percentage', 0) if latest_calc else 0,
-            'latest_aspects_count': latest_calc.get('astro_transits_data', {}).get('aspects_count', 0) if latest_calc else 0
+            'latest_energy_level': latest_calc.get('biorhythm_data', {}).get('overall_energy', {}).get('percentage',
+                                                                                                       0) if latest_calc else 0,
+            'latest_aspects_count': latest_calc.get('astro_transits_data', {}).get('aspects_count',
+                                                                                   0) if latest_calc else 0,
+            # Новая ML статистика
+            'ml_features_available': ml_features_available,
+            'insights_available': insights_available,
+            'data_completeness': _calculate_data_completeness(latest_calc) if latest_calc else 0
         }
 
     except Exception as e:
         logger.error(f"❌ Ошибка получения статистики для {telegram_id}: {e}")
         return {}
+
+
+def _calculate_data_completeness(daily_calc: Dict) -> float:
+    """Расчет полноты данных"""
+    try:
+        components = 0
+        total_components = 4  # биоритмы, астрология, ML фичи, инсайты
+
+        if daily_calc.get('biorhythm_data'):
+            components += 1
+        if daily_calc.get('astro_transits_data'):
+            components += 1
+        if daily_calc.get('ml_features'):
+            components += 1
+        if daily_calc.get('basic_insights'):
+            components += 1
+
+        return round(components / total_components * 100, 1)
+    except Exception:
+        return 0.0
 
 
 async def validate_prediction_data(telegram_id: int) -> bool:
@@ -495,7 +586,15 @@ async def validate_prediction_data(telegram_id: int) -> bool:
             today = date.today()
             daily_calc = await get_daily_calculations(telegram_id, today)
 
-            return daily_calc is not None
+            if not daily_calc:
+                return False
+
+            # Дополнительная проверка ML данных (не критичная)
+            if not daily_calc.get('ml_features') or not daily_calc.get('basic_insights'):
+                logger.warning(f"⚠️ Отсутствуют ML данные для пользователя {telegram_id}")
+                # Не считаем это критической ошибкой, т.к. ML данные могут генерироваться асинхронно
+
+            return True
 
     except Exception as e:
         logger.error(f"❌ Ошибка валидации данных для {telegram_id}: {e}")
@@ -518,7 +617,8 @@ async def cleanup_old_predictions(days_old: int = 30) -> int:
             await session.commit()
 
             if deleted_count > 0:
-                logger.info(f"🗑️ Удалено {deleted_count} устаревших записей daily calculations (старше {days_old} дней)")
+                logger.info(
+                    f"🗑️ Удалено {deleted_count} устаревших записей daily calculations (старше {days_old} дней)")
             else:
                 logger.info("✅ Устаревших записей daily calculations для удаления не найдено")
 
@@ -543,12 +643,20 @@ async def get_user_calculation_history(telegram_id: int, limit: int = 10) -> Lis
 
             history = []
             for calc in calculations:
-                history.append({
+                # Базовые данные энергии
+                energy_data = {
                     'target_date': calc.target_date.isoformat(),
                     'energy_level': calc.biorhythm_data.get('overall_energy', {}).get('percentage', 0),
                     'aspects_count': calc.astro_transits_data.get('aspects_count', 0),
                     'calculation_timestamp': calc.calculation_timestamp.isoformat()
-                })
+                }
+
+                # Добавляем ML данные если они есть (НОВАЯ ФУНКЦИОНАЛЬНОСТЬ)
+                if calc.ml_features:
+                    energy_data['daily_score'] = calc.ml_features.get('daily_score', 0)
+                    energy_data['productivity_index'] = calc.ml_features.get('productivity_index', 0)
+
+                history.append(energy_data)
 
             return history
 
@@ -572,11 +680,16 @@ async def calculate_data_freshness(telegram_id: int, target_date: date) -> Dict[
         calc_timestamp = datetime.fromisoformat(daily_calc['calculation_timestamp'])
         age_hours = (datetime.now() - calc_timestamp).total_seconds() / 3600
 
+        # Проверяем наличие ML данных (НОВАЯ ФУНКЦИОНАЛЬНОСТЬ)
+        ml_data_available = bool(daily_calc.get('ml_features')) and bool(daily_calc.get('basic_insights'))
+
         return {
             'is_fresh': age_hours < 24,  # Считаем свежими данные младше 24 часов
             'age_hours': round(age_hours, 2),
             'calculation_timestamp': daily_calc['calculation_timestamp'],
-            'status': 'FRESH' if age_hours < 24 else 'STALE'
+            'ml_data_available': ml_data_available,
+            'status': 'FRESH' if age_hours < 24 else 'STALE',
+            'data_completeness': _calculate_data_completeness(daily_calc)
         }
 
     except Exception as e:
@@ -586,3 +699,65 @@ async def calculate_data_freshness(telegram_id: int, target_date: date) -> Dict[
             'age_hours': None,
             'status': 'ERROR'
         }
+
+
+async def regenerate_ml_data(telegram_id: int, target_date: date = None) -> Dict[str, Any]:
+    """Принудительная регенерация ML данных для конкретной даты"""
+    try:
+        if target_date is None:
+            target_date = date.today()
+
+        logger.info(f"🔄 Принудительная регенерация ML данных для {telegram_id} на {target_date}")
+
+        # Получаем существующие расчетные данные
+        daily_calc = await get_daily_calculations(telegram_id, target_date)
+        if not daily_calc:
+            return {'success': False, 'error': 'Нет расчетных данных для указанной даты'}
+
+        # Генерация ML данных через оркестратор
+        ml_package = await ml_orchestrator.generate_daily_ml_data(
+            telegram_id,
+            target_date,
+            {
+                'calculations': {
+                    'biorhythms': daily_calc.get('biorhythm_data', {}),
+                    'astrology': daily_calc.get('astro_transits_data', {}),
+                    'psychomatrix': {}  # Будет получено отдельно если нужно
+                },
+                'user_id': telegram_id
+            }
+        )
+
+        # Обновляем запись в БД
+        async with async_session() as session:
+            result = await session.execute(
+                select(DailyCalculations).where(
+                    and_(
+                        DailyCalculations.telegram_id == telegram_id,
+                        DailyCalculations.target_date == target_date
+                    )
+                )
+            )
+            record = result.scalar_one_or_none()
+
+            if record:
+                record.ml_features = ml_package.get('ml_features', {})
+                record.basic_insights = ml_package.get('basic_insights', [])
+                record.trend_data = ml_package.get('trend_data', {})
+                record.calculation_timestamp = datetime.now()
+
+                await session.commit()
+
+                logger.info(f"✅ ML данные перегенерированы для {telegram_id}")
+                return {
+                    'success': True,
+                    'ml_features_generated': bool(ml_package.get('ml_features')),
+                    'insights_generated': len(ml_package.get('basic_insights', [])),
+                    'execution_time': ml_package.get('execution_time_seconds', 0)
+                }
+
+        return {'success': False, 'error': 'Запись не найдена'}
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка регенерации ML данных для {telegram_id}: {e}")
+        return {'success': False, 'error': str(e)}
