@@ -1,23 +1,29 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16
-    container_name: postgres_astrology
+    container_name: postgres_astra
     environment:
-      POSTGRES_DB: p_assistant_bd
-      POSTGRES_USER: pers_assist
-      POSTGRES_PASSWORD: astra123  # Простой пароль без специальных символов
+      POSTGRES_DB: astra_db
+      POSTGRES_USER: astra_user
+      POSTGRES_PASSWORD: astra_password_2024
     ports:
-      - "5432:5432"
+      - "5435:5432"  # Пробуем порт 5435
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts/01-init-tables.sql:/docker-entrypoint-initdb.d/01-init-tables.sql
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pers_assist -d p_assistant_bd"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+
+  astra_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    container_name: astra_bot
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://astra_user:astra_password_2024@postgres:5432/astra_db
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    depends_on:
+      - postgres
+    restart: unless-stopped
 
 volumes:
   postgres_data:

@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres:
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+
+  astra_api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api.dev
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - RELOAD=true
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "python -m uvicorn backend.api_entrypoint:app 
+             --host 0.0.0.0 
+             --port 8000 
+             --reload 
+             --log-level debug"
+
+  astra_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot.dev
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    command: >
+      sh -c "python -m bot.main --debug"
+
+  pgadmin:
+    profiles: ["admin-tools", "default"]

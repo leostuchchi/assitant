@@ -9,7 +9,7 @@ import requests
 import time
 from urllib.parse import quote
 
-from backend.database import async_session, UserNatalChart
+#from backend.database import async_session, UserNatalChart
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -22,7 +22,7 @@ class DataCollectionStates(StatesGroup):
     waiting_for_current_city = State()
     waiting_for_profession = State()
     waiting_for_job_position = State()
-    waiting_for_gender = State()  # НОВОЕ СОСТОЯНИЕ
+    waiting_for_gender = State()
 
 
 # Состояние для ввода даты
@@ -35,7 +35,9 @@ def get_main_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="📊 Расчет натальной карты")],
-            [KeyboardButton(text="📅 Получить данные")],
+            [KeyboardButton(text="📅 Получить данные на сегодня")],
+            [KeyboardButton(text="🔮 Получить данные на завтра")],
+            [KeyboardButton(text="📋 Статус данных"), KeyboardButton(text="ℹ️ Помощь")]
         ],
         resize_keyboard=True
     )
@@ -68,7 +70,7 @@ def get_gender_keyboard():
 async def cmd_start(message: types.Message):
     """Команда начала работы с ботом"""
     welcome_text = """
-👋 Добро пожаловать в ваш персональный ассистент!
+👋 Добро пожаловать в ваш персональный ассистент Astra!
 
 Я помогу вам получать персонализированные данные на основе:
 • 🌟 Натальной карты и астрологических транзитов
@@ -92,13 +94,15 @@ async def start_data_collection(message: types.Message, state: FSMContext):
     if status['is_complete']:
         await message.answer(
             "✅ Ваши основные данные уже собраны!\n"
-            "Если хотите обновить профессию или город, используйте соответствующую команду.",
+            "Если хотите обновить профессию или город, используйте соответствующую команду.\n\n"
+            "Выберите действие из меню:",
             reply_markup=get_main_keyboard()
         )
     else:
         await message.answer(
-            "📊 Начнем сбор данных для персонализированных данных!\n\n"
-            "Пожалуйста, введите вашу дату рождения в формате ГГГГ-ММ-ДД:",
+            "📊 Начнем сбор данных для персонализированных расчетов!\n\n"
+            "Пожалуйста, введите вашу дату рождения в формате ГГГГ-ММ-ДД:\n"
+            "Например: 1990-05-15",
             reply_markup=types.ReplyKeyboardRemove()
         )
         await state.set_state(DataCollectionStates.waiting_for_birth_date)
@@ -109,16 +113,30 @@ async def process_birth_date(message: types.Message, state: FSMContext):
     """Обработка даты рождения"""
     try:
         birth_date = datetime.strptime(message.text, "%Y-%m-%d").date()
+
+        # Проверяем что дата не в будущем
+        if birth_date > date.today():
+            await message.answer(
+                "❌ Дата рождения не может быть в будущем!\n"
+                "Пожалуйста, введите корректную дату в формате ГГГГ-ММ-ДД:"
+            )
+            return
+
         await state.update_data(birth_date=birth_date)
 
         await message.answer(
             "✅ Дата рождения сохранена!\n\n"
-            "Теперь введите время рождения в формате ЧЧ:ММ (24 часа):"
+            "Теперь введите время рождения в формате ЧЧ:ММ (24 часа):\n"
+            "Например: 14:30"
         )
         await state.set_state(DataCollectionStates.waiting_for_birth_time)
 
     except ValueError:
-        await message.answer("❌ Неверный формат даты. Используйте формат ГГГГ-ММ-ДД:")
+        await message.answer(
+            "❌ Неверный формат даты.\n"
+            "Используйте формат ГГГГ-ММ-ДД:\n"
+            "Например: 1990-05-15"
+        )
 
 
 @router.message(DataCollectionStates.waiting_for_birth_time)
@@ -135,13 +153,25 @@ async def process_birth_time(message: types.Message, state: FSMContext):
         await state.set_state(DataCollectionStates.waiting_for_birth_city)
 
     except ValueError:
-        await message.answer("❌ Неверный формат времени. Используйте формат ЧЧ:ММ:")
+        await message.answer(
+            "❌ Неверный формат времени.\n"
+            "Используйте формат ЧЧ:ММ (24 часа):\n"
+            "Например: 14:30"
+        )
 
 
 @router.message(DataCollectionStates.waiting_for_birth_city)
 async def process_birth_city(message: types.Message, state: FSMContext):
     """Обработка города рождения"""
     birth_city = message.text.strip()
+
+    if len(birth_city) < 2:
+        await message.answer(
+            "❌ Название города слишком короткое.\n"
+            "Пожалуйста, введите корректное название города:"
+        )
+        return
+
     await state.update_data(birth_city=birth_city)
 
     await message.answer(
@@ -155,6 +185,14 @@ async def process_birth_city(message: types.Message, state: FSMContext):
 async def process_current_city(message: types.Message, state: FSMContext):
     """Обработка города проживания"""
     current_city = message.text.strip()
+
+    if len(current_city) < 2:
+        await message.answer(
+            "❌ Название города слишком короткое.\n"
+            "Пожалуйста, введите корректное название города:"
+        )
+        return
+
     await state.update_data(current_city=current_city)
 
     await message.answer(
@@ -168,6 +206,14 @@ async def process_current_city(message: types.Message, state: FSMContext):
 async def process_profession(message: types.Message, state: FSMContext):
     """Обработка профессии"""
     profession = message.text.strip()
+
+    if len(profession) < 2:
+        await message.answer(
+            "❌ Название профессии слишком короткое.\n"
+            "Пожалуйста, введите корректное название профессии:"
+        )
+        return
+
     await state.update_data(profession=profession)
 
     await message.answer(
@@ -198,9 +244,9 @@ async def process_job_position(message: types.Message, state: FSMContext):
 async def process_gender(message: types.Message, state: FSMContext):
     """Обработка пола и завершение сбора данных"""
     gender_map = {
-        "👨 мужской": "male",
-        "👩 женский": "female",
-        "🤷 не указывать": None
+        "👨 Мужской": "male",
+        "👩 Женский": "female",
+        "🤷 Не указывать": None
     }
 
     gender_text = message.text.lower()
@@ -208,7 +254,7 @@ async def process_gender(message: types.Message, state: FSMContext):
 
     # Определяем пол по тексту
     for key, value in gender_map.items():
-        if key in gender_text:
+        if key.lower() in gender_text:
             gender = value
             break
 
@@ -234,13 +280,13 @@ async def process_gender(message: types.Message, state: FSMContext):
             current_city=user_data['current_city'],
             profession=user_data['profession'],
             job_position=user_data.get('job_position'),
-            gender=gender  # ПЕРЕДАЕМ ПОЛ
+            gender=gender
         )
 
         if result['success']:
             await message.answer(
                 "🎉 Поздравляем! Все данные успешно собраны!\n\n"
-                "Теперь вы можете получать персонализированные данные:",
+                "Теперь вы можете получать персонализированные расчеты:",
                 reply_markup=get_main_keyboard()
             )
         else:
@@ -261,32 +307,13 @@ async def process_gender(message: types.Message, state: FSMContext):
     await state.clear()
 
 
-@router.message(lambda message: message.text == "📅 Получить данные")
-async def select_date_option(message: types.Message):
-    """Выбор даты для получения данных"""
-    # Проверяем наличие данных
-    status = await assistant.get_user_data_status(message.from_user.id)
-    if not status['is_complete']:
-        await message.answer(
-            "❌ Сначала необходимо собрать данные!\n"
-            "Нажмите '📊 Расчет натальной карты'",
-            reply_markup=get_main_keyboard()
-        )
-        return
-
-    await message.answer(
-        "📅 Выберите дату для расчетов:",
-        reply_markup=get_date_keyboard()
-    )
-
-
-@router.message(lambda message: message.text == "📅 Сегодня")
+@router.message(lambda message: message.text == "📅 Получить данные на сегодня")
 async def get_todays_data(message: types.Message):
     """Получение данных на сегодня"""
     await process_date_selection(message, date.today())
 
 
-@router.message(lambda message: message.text == "📅 Завтра")
+@router.message(lambda message: message.text == "🔮 Получить данные на завтра")
 async def get_tomorrows_data(message: types.Message):
     """Получение данных на завтра"""
     tomorrow = date.today() + timedelta(days=1)
@@ -297,7 +324,8 @@ async def get_tomorrows_data(message: types.Message):
 async def request_custom_date(message: types.Message, state: FSMContext):
     """Запрос произвольной даты"""
     await message.answer(
-        "Введите дату в формате ГГГГ-ММ-ДД:",
+        "📅 Введите дату в формате ГГГГ-ММ-ДД:\n"
+        "Например: 2024-12-25",
         reply_markup=types.ReplyKeyboardRemove()
     )
     await state.set_state(DateSelectionStates.waiting_for_custom_date)
@@ -321,7 +349,9 @@ async def process_custom_date(message: types.Message, state: FSMContext):
 
     except ValueError:
         await message.answer(
-            "❌ Неверный формат даты. Используйте ГГГГ-ММ-ДД",
+            "❌ Неверный формат даты.\n"
+            "Используйте ГГГГ-ММ-ДД:\n"
+            "Например: 2024-12-25",
             reply_markup=get_date_keyboard()
         )
 
@@ -339,7 +369,20 @@ async def go_back_to_main(message: types.Message):
 
 async def process_date_selection(message: types.Message, target_date: date):
     """Общая обработка выбранной даты"""
-    processing_msg = await message.answer(f"🔄 Формирую данные на {target_date.strftime('%d.%m.%Y')}...")
+    # Проверяем наличие данных пользователя
+    status = await assistant.get_user_data_status(message.from_user.id)
+    if not status['is_complete']:
+        await message.answer(
+            "❌ Сначала необходимо собрать данные!\n"
+            "Нажмите '📊 Расчет натальной карты' для сбора данных",
+            reply_markup=get_main_keyboard()
+        )
+        return
+
+    processing_msg = await message.answer(
+        f"🔄 Формирую расчеты на {target_date.strftime('%d.%m.%Y')}...\n"
+        "Это может занять несколько секунд"
+    )
 
     try:
         result = await assistant.get_recommendations(message.from_user.id, target_date)
@@ -348,23 +391,32 @@ async def process_date_selection(message: types.Message, target_date: date):
             # Отправляем пользователю форматированные данные
             await message.answer(result['user_data'], parse_mode="Markdown")
 
-            # Данные для модели уже выводятся через print в assistant.py
+            # Дополнительная информация
+            additional_info = (
+                f"\n📊 *Расчеты на {target_date.strftime('%d.%m.%Y')} готовы!*\n\n"
+                "💡 *Используйте эти данные для:*\n"
+                "• Планирования важных дел\n"
+                "• Оптимизации рабочего графика\n"
+                "• Принятия взвешенных решений\n"
+                "• Поддержания энергетического баланса\n\n"
+                "Выберите следующее действие из меню 👇"
+            )
+
             await message.answer(
-                f"🤖 *Данные на {target_date.strftime('%d.%m.%Y')} отправлены в AI модель*\n"
-                "Результаты будут доступны в ближайшее время!",
+                additional_info,
                 parse_mode="Markdown",
                 reply_markup=get_main_keyboard()
             )
         else:
             await message.answer(
-                result['message'],
+                f"❌ {result['message']}",
                 reply_markup=get_main_keyboard()
             )
 
     except Exception as e:
         logger.error(f"Ошибка получения данных на сегодня: {e}")
         await message.answer(
-            "❌ Произошла ошибка при формировании данных\n"
+            "❌ Произошла ошибка при формировании расчетов\n"
             "Попробуйте позже или обратитесь в поддержку.",
             reply_markup=get_main_keyboard()
         )
@@ -390,6 +442,19 @@ async def cmd_status(message: types.Message):
         status_text += f"• Психоматрица: {'✅' if status['has_psyho_matrix'] else '❌'}\n"
         status_text += f"• Биоритмы: {'✅' if status['has_biorhythms'] else '❌'}\n\n"
 
+        if status['is_complete']:
+            # Показываем статистику если данные есть
+            stats = await assistant.get_user_statistics(message.from_user.id)
+            if stats.get('request_count', 0) > 0:
+                status_text += f"📈 **Статистика:**\n"
+                status_text += f"• Запросов расчетов: {stats['request_count']}\n"
+
+                if stats.get('prediction_stats', {}).get('total_calculations', 0) > 0:
+                    status_text += f"• Всего расчетов: {stats['prediction_stats']['total_calculations']}\n"
+
+                if stats.get('biorhythm_stats', {}).get('total_records', 0) > 0:
+                    status_text += f"• Записей биоритмов: {stats['biorhythm_stats']['total_records']}\n"
+
         if not status['is_complete']:
             status_text += "Нажмите '📊 Расчет натальной карты' для сбора недостающих данных"
 
@@ -397,7 +462,10 @@ async def cmd_status(message: types.Message):
 
     except Exception as e:
         logger.error(f"Ошибка проверки статуса: {e}")
-        await message.answer("❌ Не удалось проверить статус данных")
+        await message.answer(
+            "❌ Не удалось проверить статус данных",
+            reply_markup=get_main_keyboard()
+        )
 
 
 @router.message(Command("help"))
@@ -407,33 +475,194 @@ async def cmd_help(message: types.Message):
 📋 **Доступные команды:**
 
 /start - Начать работу с ботом
-/status - Проверить статус ваших данных
+/status - Проверить статус ваших данных  
 /help - Показать эту справку
 
 **Основные действия:**
 
 📊 Расчет натальной карты - Собрать или обновить ваши данные
-📅 Получить данные - Получить расчеты на выбранную дату
-
-**Выбор даты:**
-• 📅 Сегодня - данные на текущий день
-• 📅 Завтра - данные на следующий день  
-• 📅 Выбрать дату - произвольная дата (ГГГГ-ММ-ДД)
+📅 Получить данные на сегодня - Расчеты на текущий день
+🔮 Получить данные на завтра - Расчеты на следующий день
 
 **Что рассчитывается:**
-• Астрологические транзиты и аспекты
-• Биоритмы (физический, эмоциональный, интеллектуальный)
-• Нумерологическая психоматрица
-• Все данные передаются в AI модель для формирования персонализированных рекомендаций
+• ⚡ Биоритмы (физический, эмоциональный, интеллектуальный)
+• 🌟 Астрологические транзиты и аспекты  
+• 🔢 Нумерологическая психоматрица
+• 💼 Профессиональные рекомендации
+
+**Как использовать:**
+1. Сначала соберите данные через '📊 Расчет натальной карты'
+2. Получайте ежедневные расчеты через меню
+3. Используйте данные для планирования своего дня
+
+Все расчеты выполняются на основе научных методов и проверенных алгоритмов.
     """
 
-    await message.answer(help_text, parse_mode="Markdown")
+    await message.answer(help_text, parse_mode="Markdown", reply_markup=get_main_keyboard())
+
+
+@router.message(Command("stats"))
+async def cmd_stats(message: types.Message):
+    """Показать детальную статистику"""
+    try:
+        stats = await assistant.get_user_statistics(message.from_user.id)
+
+        stats_text = "📈 **Детальная статистика:**\n\n"
+
+        # Основная статистика
+        stats_text += f"• Запросов расчетов: {stats.get('request_count', 0)}\n"
+
+        # Статистика расчетов
+        prediction_stats = stats.get('prediction_stats', {})
+        if prediction_stats:
+            stats_text += f"• Всего расчетов: {prediction_stats.get('total_calculations', 0)}\n"
+            if prediction_stats.get('first_calculation_date'):
+                stats_text += f"• Первый расчет: {prediction_stats['first_calculation_date'][:10]}\n"
+            if prediction_stats.get('latest_energy_level', 0) > 0:
+                stats_text += f"• Последняя энергия: {prediction_stats['latest_energy_level']}%\n"
+
+        # Статистика биоритмов
+        biorhythm_stats = stats.get('biorhythm_stats', {})
+        if biorhythm_stats:
+            stats_text += f"• Записей биоритмов: {biorhythm_stats.get('total_records', 0)}\n"
+            if biorhythm_stats.get('average_energy_level', 0) > 0:
+                stats_text += f"• Средняя энергия: {biorhythm_stats['average_energy_level']}%\n"
+
+        stats_text += f"\n📅 Статистика обновлена: {stats.get('calculated_at', '')[:16]}"
+
+        await message.answer(stats_text, parse_mode="Markdown", reply_markup=get_main_keyboard())
+
+    except Exception as e:
+        logger.error(f"Ошибка получения статистики: {e}")
+        await message.answer(
+            "❌ Не удалось получить статистику",
+            reply_markup=get_main_keyboard()
+        )
+
+
+@router.message(Command("cleanup"))
+async def cmd_cleanup(message: types.Message):
+    """Очистка данных пользователя (только для отладки)"""
+    try:
+        # Проверяем что пользователь существует
+        status = await assistant.get_user_data_status(message.from_user.id)
+        if not status['has_basic_data']:
+            await message.answer(
+                "❌ У вас нет данных для очистки",
+                reply_markup=get_main_keyboard()
+            )
+            return
+
+        # Запрашиваем подтверждение
+        confirm_keyboard = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="✅ Да, очистить"), KeyboardButton(text="❌ Нет, отменить")],
+            ],
+            resize_keyboard=True
+        )
+
+        await message.answer(
+            "⚠️ **Внимание!**\n\n"
+            "Вы собираетесь очистить все ваши данные:\n"
+            "• Профиль пользователя\n"
+            "• Натальную карту\n"
+            "• Психоматрицу\n"
+            "• Историю расчетов\n\n"
+            "Это действие нельзя отменить!\n"
+            "Вы уверены что хотите продолжить?",
+            parse_mode="Markdown",
+            reply_markup=confirm_keyboard
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка подготовки очистки: {e}")
+        await message.answer(
+            "❌ Ошибка подготовки очистки",
+            reply_markup=get_main_keyboard()
+        )
+
+
+@router.message(lambda message: message.text == "✅ Да, очистить")
+async def confirm_cleanup(message: types.Message):
+    """Подтверждение очистки данных"""
+    try:
+        result = await assistant.cleanup_user_data(message.from_user.id)
+
+        if result['success']:
+            await message.answer(
+                "🧹 Все ваши данные успешно очищены!\n\n"
+                "Вы можете начать заново с команды /start",
+                reply_markup=get_main_keyboard()
+            )
+        else:
+            await message.answer(
+                f"❌ {result['message']}",
+                reply_markup=get_main_keyboard()
+            )
+
+    except Exception as e:
+        logger.error(f"Ошибка очистки данных: {e}")
+        await message.answer(
+            "❌ Произошла ошибка при очистке данных",
+            reply_markup=get_main_keyboard()
+        )
+
+
+@router.message(lambda message: message.text == "❌ Нет, отменить")
+async def cancel_cleanup(message: types.Message):
+    """Отмена очистки данных"""
+    await message.answer(
+        "✅ Очистка данных отменена",
+        reply_markup=get_main_keyboard()
+    )
+
+
+@router.message(Command("validate"))
+async def cmd_validate(message: types.Message):
+    """Проверка корректности данных"""
+    try:
+        validation = await assistant.validate_user_data(message.from_user.id)
+
+        if validation['is_valid']:
+            await message.answer(
+                "✅ Все данные корректны и готовы к использованию!",
+                reply_markup=get_main_keyboard()
+            )
+        else:
+            issues_text = "❌ Обнаружены проблемы в данных:\n\n"
+            for issue in validation['issues']:
+                issues_text += f"• {issue}\n"
+
+            issues_text += "\nИспользуйте '📊 Расчет натальной карты' для исправления"
+
+            await message.answer(
+                issues_text,
+                reply_markup=get_main_keyboard()
+            )
+
+    except Exception as e:
+        logger.error(f"Ошибка валидации данных: {e}")
+        await message.answer(
+            "❌ Не удалось проверить данные",
+            reply_markup=get_main_keyboard()
+        )
 
 
 @router.message()
 async def handle_other_messages(message: types.Message):
     """Обработка всех остальных сообщений"""
-    await message.answer(
-        "Выберите действие из меню ниже:",
-        reply_markup=get_main_keyboard()
-    )
+    # Проверяем если это текстовая команда
+    text = message.text.lower()
+
+    if any(word in text for word in ['привет', 'hello', 'start', 'начать']):
+        await cmd_start(message)
+    elif any(word in text for word in ['статус', 'status', 'данные']):
+        await cmd_status(message)
+    elif any(word in text for word in ['помощь', 'help', 'команды']):
+        await cmd_help(message)
+    else:
+        await message.answer(
+            "🤔 Я не понял ваше сообщение.\n\n"
+            "Используйте меню ниже или команду /help для справки:",
+            reply_markup=get_main_keyboard()
+        )
