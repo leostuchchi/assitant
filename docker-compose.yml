@@ -1,57 +1,29 @@
 services:
   postgres:
     image: postgres:16
-    container_name: postgres_astrology
+    container_name: postgres_astra
     environment:
-      POSTGRES_DB: p_assistant_bd
-      POSTGRES_USER: pers_assist
-      POSTGRES_PASSWORD: astra123
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+      POSTGRES_DB: astra_db
+      POSTGRES_USER: astra_user
+      POSTGRES_PASSWORD: astra_password_2024
     ports:
-      - "5432:5432"
+      - "5435:5432"  # Пробуем порт 5435
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
+      - ./init-scripts/01-init-tables.sql:/docker-entrypoint-initdb.d/01-init-tables.sql
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pers_assist -d p_assistant_bd"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
 
-  # ОПЦИОНАЛЬНО: pgAdmin для управления БД
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: pgadmin_astrology
+  astra_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    container_name: astra_bot
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@astrology.local
-      PGADMIN_DEFAULT_PASSWORD: admin123
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-    ports:
-      - "8080:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    restart: unless-stopped
+      - DATABASE_URL=postgresql+asyncpg://astra_user:astra_password_2024@postgres:5432/astra_db
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
     depends_on:
-      postgres:
-        condition: service_healthy
-    profiles:
-      - admin-tools
+      - postgres
+    restart: unless-stopped
 
 volumes:
   postgres_data:
-    driver: local
-  pgadmin_data:
-    driver: local
-
-networks:
-  assistant_net:
-    driver: bridge
-    

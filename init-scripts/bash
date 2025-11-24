@@ -43,7 +43,8 @@ docker compose -f ollama/docker-compose.yml up -d
 docker exec ollama_assistant ollama pull llama3.1:8b-instruct-q4_0
 
 
-
+# Запустить только PostgreSQL
+docker-compose up -d postgres
 
 
 

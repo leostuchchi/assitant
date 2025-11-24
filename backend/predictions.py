@@ -4,7 +4,7 @@ from datetime import date, datetime
 import swisseph as swe
 from sqlalchemy.future import select
 
-from backend.database import async_session, NatalPredictions
+from backend.database import async_session
 
 
 class AstroPredictor:
@@ -134,25 +134,3 @@ class AstroPredictor:
                 'error_message': str(e)
             }
 
-    async def save_prediction_to_db(self, telegram_id: int, prediction_date: date):
-        """Сохранение предсказания в базу данных"""
-        prediction = self.generate_prediction(prediction_date)
-        async with async_session() as session:
-            result = await session.execute(
-                select(NatalPredictions).where(NatalPredictions.telegram_id == telegram_id)
-            )
-            existing_record = result.scalar_one_or_none()
-
-            if existing_record:
-                existing_record.predictions = prediction
-                existing_record.updated_at = datetime.utcnow()
-            else:
-                new_record = NatalPredictions(
-                    telegram_id=telegram_id,
-                    predictions=prediction,
-                    assistant_data={},
-                )
-                session.add(new_record)
-
-            await session.commit()
-        return prediction

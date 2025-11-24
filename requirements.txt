@@ -21,3 +21,5 @@ pytz>=2023.0
 python-dotenv>=1.0.0
 pyswisseph>=2.10.0
 # async-timeout НЕ нужен - используем встроенный asyncio
+fastapi[all]
+uvicorn

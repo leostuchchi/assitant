@@ -1,1174 +1,1166 @@
-проект personal_assistant
+проект astra является частью проекта personal_assistant состоящего из трех проектов:
 
-итоговая задача проекта: 
-персонализированные основанные на расчетах и данных, рекоммендации человеку на один день. для развития, самореализации человека на базе модели ИИ.
+astra: подготовка натальных карт, психоматриц, расчета биоритмов и рекоммендаций на один день
 
+testing: психологическое тестирование и потребностей пользователя
 
+assistant: на основании расчетов astra и testing выдает персонализированные рекоммендации на один день на базе ollama
 
-логика проекта:
-сбор данных пользователя (tegram bot)
-подготовка натальной карты
-подготовка психоматрицы
-расчет биоритмов
-подготовка рекоммендаций на один день, на основе: натальной карты, психоматрицы, биоритмов
-вывод рекоммендаций на один день пользователю (telegram bot)
+astra: развернут локально (включая бд), взаимодействие телеграм бот 
 
-текущая задача проекта: 
-## 🔧 **3. МОДУЛИ, ЗАТРОНУТЫЕ ИЗМЕНЕНИЯМИ**
+расчеты: сбор первичной информации пользователя, расчет натальной карты, психоматрицы, биоритмов, лунных фаз, расчет данных на день.
 
-### **🔴 ТРЕБУЮТ ИЗМЕНЕНИЙ:**
+Структура проекта:
 
-1. **`backend/database.py`** - новые модели и связи
-2. **`backend/assistant.py`** - интеграция AI движка
-3. **`backend/prediction_services.py`** - подготовка данных для AI
-4. **`bot/handlers.py`** - вывод AI рекомендаций
-5. **`docker-compose.yml`** - добавление Ollama сервиса
+backend:
+backend.api_entrypoint.py
+backend.aspect_recommendations.py
+backend.assistant.py
+backend.biorhythm_calculator.py
+backend.biorhythm_services.py
+backend.calculation_services.py
+backend.chart_services.py
+backend.database.py
+backend.db_connection.py
+backend.__init__.py
+backend.matrix_services.py
+backend.moon.py
+backend.natal_chart.py
+backend.predictions.py
+backend.prediction_services.py
+backend.psyho_matrix.py
+backend.user_services.py
 
-### **🟢 НОВЫЕ МОДУЛИ:**
+bot:
+bot.config.py
+bot.handlers.py
+bot.__init__.py
+bot.main.py
+bot..env
 
-1. **`backend/ai_engine.py`** - работа с Ollama API
-2. **`backend/astro_interpreter.py`** - пре-обработка астроданных
-3. **`backend/prompt_builder.py`** - построение оптимизированных промптов
-4. **`backend/recommendation_cache.py`** - управление кэшем рекомендаций
-5. **`backend/data_optimizer.py`** - сжатие и оптимизация данных
+ephe
 
-## ⚖️ **4. ВЛИЯНИЕ НА СЛОЖНОСТЬ ПРОЕКТА**
+init-scripts:
+init-scripts.01-init-tables.sql
 
-### **🟢 УПРОЩЕНИЕ:**
-- **Более чистые интерфейсы** - модули общаются через стандартизированные форматы
-- **Улучшенная обработка ошибок** - изоляция AI компонентов
-- **Легче тестировать** - моки для AI вызовов
-- **Предсказуемая производительность** - кэширование стабилизирует отклик
-
-### **🔴 УСЛОЖНЕНИЕ:**
-- **Увеличивается количество модулей** +5 новых файлов
-- **Новые зависимости** - асинхронные HTTP запросы, хэширование
-- **Сложнее дебажить** - распределенная логика между модулями
-- **Требует мониторинга** - здоровье Ollama, использование памяти
-
-### **⚖️ БАЛАНС:**
-**ЧИСТЫЙ ВЫИГРЫШ** - архитектура становится более масштабируемой и поддерживаемой, несмотря на увеличение количества компонентов.
-
-## 🏗️ **5. ИТОГОВАЯ СТРУКТУРА ПРОЕКТА**
-
-```
-personal_assistant/
-├── 📁 bot/
-│   ├── config.py                          # ✅ БЕЗ ИЗМЕНЕНИЙ
-│   ├── handlers.py                        # 🔴 ИЗМЕНИТЬ - вывод AI рекомендаций
-│   ├── main.py                            # ✅ БЕЗ ИЗМЕНЕНИЙ  
-│   └── __init__.py
-├── 📁 backend/
-│   ├── 🆕 ai_engine.py                    # 🟢 НОВЫЙ - работа с Ollama API
-│   ├── 🆕 astro_interpreter.py            # 🟢 НОВЫЙ - пре-обработка астроданных
-│   ├── 🆕 prompt_builder.py               # 🟢 НОВЫЙ - построение промптов
-│   ├── 🆕 recommendation_cache.py         # 🟢 НОВЫЙ - управление кэшем
-│   ├── 🆕 data_optimizer.py               # 🟢 НОВЫЙ - сжатие данных для AI
-│   ├── assistant.py                       # 🔴 ИЗМЕНИТЬ - интеграция AI движка
-│   ├── prediction_services.py             # 🔴 ИЗМЕНИТЬ - подготовка для AI
-│   ├── database.py                        # 🔴 ИЗМЕНИТЬ - новые модели БД
-│   ├── biorhythm_calculator.py            # ✅ БЕЗ ИЗМЕНЕНИЙ
-│   ├── biorhythm_services.py              # ✅ БЕЗ ИЗМЕНЕНИЙ
-│   ├── chart_services.py                  # ✅ БЕЗ ИЗМЕНЕНИЙ
-│   ├── matrix_services.py                 # ✅ БЕЗ ИЗМЕНЕНИЙ
-│   ├── natal_chart.py                     # ✅ БЕЗ ИЗМЕНЕНИЙ
-│   ├── predictions.py                     # ✅ БЕЗ ИЗМЕНЕНИЙ
-│   ├── psyho_matrix.py                    # ✅ БЕЗ ИЗМЕНЕНИЙ
-│   ├── user_services.py                   # ✅ БЕЗ ИЗМЕНЕНИЙ
-│   ├── db_connection.py                   # ✅ БЕЗ ИЗМЕНЕНИЙ
-│   └── __init__.py
-├── 📁 ollama/
-│   └── docker-compose.yml                 # 🔴 ИЗМЕНИТЬ - добавить сети
-├── docker-compose.yml                     # 🔴 ИЗМЕНИТЬ - добавить Ollama
-└── requirements.txt                       # 🔴 ИЗМЕНИТЬ - новые зависимости
-```
-
-
-структура проекта personal_assistant:
+docker-compose.override.yml
 
 docker-compose.yml
 
-bot: 
-config.py
-handlers.py
-__init__.py
-main.py
+Dockerfile.api.dev
 
-backend: 
-__init__.py
-assistant.py
-biorhythm_calculator.py
-biorhythm_services.py
-chart_services.py
-database.py
-db_connection.py
-matrix_services.py
-moon.py
-natal_chart.py
-predictions.py
-prediction_services.py
-psyho_matrix.py
-user_services.py
+Dockerfile.bot.dev
 
-ollama:
-docker-compose.yml:
-services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama_assistant
-    ports:
-      - "11435:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-      - OLLAMA_NUM_GPU=0                    # Отключаем GPU
-      - OLLAMA_CPU_COUNT=4                  # Используем 4 CPU ядра
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 15s
-      retries: 5
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 8G                        # 8GB для CPU-режима
-          cpus: "4.0"                       # 4 CPU ядра
-        reservations:
-          memory: 6G
-          cpus: "3.0"
+requirements.txt
 
-volumes:
-  ollama_data:
-    driver: local
-
-networks:
-  assistant_net:
-    name: personal_assistant_network
-    external: true
-
-init-scripts.01-init-tables.sql
-
--- Инициализация таблиц при первом запуске контейнера
-
--- Таблица пользователей
-CREATE TABLE IF NOT EXISTS users (
-    telegram_id BIGINT PRIMARY KEY,
-    birth_date DATE NOT NULL,
-    birth_time TIME NOT NULL,
-    birth_city VARCHAR(100) NOT NULL,
-    profession VARCHAR(100),
-    job_position VARCHAR(100),
-    current_city VARCHAR(100),
-    gender VARCHAR(10),
-    request_count INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Таблица натальных карт
-CREATE TABLE IF NOT EXISTS user_natal_charts (
-    telegram_id BIGINT PRIMARY KEY REFERENCES users(telegram_id) ON DELETE CASCADE,
-    natal_data JSONB NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Таблица психоматриц
-CREATE TABLE IF NOT EXISTS psyho_matrix (
-    telegram_id BIGINT PRIMARY KEY REFERENCES users(telegram_id) ON DELETE CASCADE,
-    matrix_data JSONB NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Таблица предсказаний
-CREATE TABLE IF NOT EXISTS natal_predictions (
-    telegram_id BIGINT PRIMARY KEY REFERENCES users(telegram_id) ON DELETE CASCADE,
-    predictions JSONB NOT NULL,
-    assistant_data JSONB NOT NULL DEFAULT '{}',
-    data_hash VARCHAR(64),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Таблица биоритмов
-CREATE TABLE IF NOT EXISTS biorhythms (
-    telegram_id BIGINT REFERENCES users(telegram_id) ON DELETE CASCADE,
-    biorhythm_data JSONB NOT NULL,
-    calculation_date DATE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (telegram_id, calculation_date)
-);
-
--- НОВЫЕ ТАБЛИЦЫ ДЛЯ AI РЕКОМЕНДАЦИЙ:
-
--- Таблица для кэширования AI рекомендаций
-CREATE TABLE IF NOT EXISTS ai_recommendations (
-    telegram_id BIGINT REFERENCES users(telegram_id) ON DELETE CASCADE,
-    target_date DATE NOT NULL,
-    data_hash VARCHAR(64) NOT NULL,
-    recommendations TEXT NOT NULL,
-    model_version VARCHAR(20) DEFAULT 'gemma:2b',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (telegram_id, target_date)
-);
-
--- Таблица для пре-обработанных астрологических инсайтов
-CREATE TABLE IF NOT EXISTS astro_insights (
-    telegram_id BIGINT PRIMARY KEY REFERENCES users(telegram_id) ON DELETE CASCADE,
-    dominant_energy JSONB NOT NULL,
-    personality_traits JSONB NOT NULL,
-    planetary_strengths JSONB NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- СОЗДАНИЕ ИНДЕКСОВ ДЛЯ ПРОИЗВОДИТЕЛЬНОСТИ:
-
--- Индексы для users
-CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id);
-CREATE INDEX IF NOT EXISTS idx_users_birth_date ON users(birth_date);
-CREATE INDEX IF NOT EXISTS idx_users_profession ON users(profession);
-
--- Индексы для натальных карт
-CREATE INDEX IF NOT EXISTS idx_user_natal_charts_telegram_id ON user_natal_charts(telegram_id);
-
--- Индексы для психоматриц
-CREATE INDEX IF NOT EXISTS idx_psyho_matrix_telegram_id ON psyho_matrix(telegram_id);
-
--- Индексы для предсказаний
-CREATE INDEX IF NOT EXISTS idx_natal_predictions_telegram_id ON natal_predictions(telegram_id);
-CREATE INDEX IF NOT EXISTS idx_natal_predictions_hash ON natal_predictions(data_hash);
-
--- Индексы для биоритмов
-CREATE INDEX IF NOT EXISTS idx_biorhythms_telegram_id ON biorhythms(telegram_id);
-CREATE INDEX IF NOT EXISTS idx_biorhythms_calculation_date ON biorhythms(calculation_date);
-
--- Индексы для AI рекомендаций
-CREATE INDEX IF NOT EXISTS idx_ai_recommendations_hash ON ai_recommendations(data_hash);
-CREATE INDEX IF NOT EXISTS idx_ai_recommendations_date ON ai_recommendations(target_date);
-CREATE INDEX IF NOT EXISTS idx_ai_recommendations_created ON ai_recommendations(created_at);
-
--- Права для пользователя
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO pers_assist;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO pers_assist;
-
--- Комментарии к таблицам
-COMMENT ON TABLE users IS 'Основная таблица пользователей персонального ассистента';
-COMMENT ON TABLE ai_recommendations IS 'Кэш AI рекомендаций от модели Llama';
-COMMENT ON TABLE astro_insights IS 'Пре-обработанные астрологические инсайты для AI';
-
--- Логирование успешной инициализации
-DO $$ 
-BEGIN
-    RAISE NOTICE '✅ База данных personal_assistant успешно инициализирована';
-END $$;
+.env
 
 
+код модулей проекта:
 
+backend:
 
-   
+backend.api_entrypoint.py
 
-docker-compose.yml:
-services:
-  postgres:
-    image: postgres:16
-    container_name: postgres_astrology
-    environment:
-      POSTGRES_DB: p_assistant_bd
-      POSTGRES_USER: pers_assist
-      POSTGRES_PASSWORD: astra123
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pers_assist -d p_assistant_bd"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
-
-  # ОПЦИОНАЛЬНО: pgAdmin для управления БД
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: pgadmin_astrology
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@astrology.local
-      PGADMIN_DEFAULT_PASSWORD: admin123
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-    ports:
-      - "8080:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    profiles:
-      - admin-tools
-
-volumes:
-  postgres_data:
-    driver: local
-  pgadmin_data:
-    driver: local
-
-networks:
-  assistant_net:
-    driver: bridge
-  
-модули проекта:
-
-bot: 
-
-config.py:
-
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-
-handlers.py:
-
-from aiogram import Router, types
-from aiogram.filters import Command, StateFilter
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.fsm.context import FSMContext
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from datetime import datetime, date, timedelta
+from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+from datetime import date, datetime
+from typing import Dict, Any, List, Optional
 import logging
+import uvicorn
+from fastapi.responses import JSONResponse
 
 from backend.assistant import assistant
+from backend.calculation_services import calculation_service, calculation_optimizer
+from backend.database import check_db_connection, get_database_stats, init_db
+from backend.user_services import get_user_profile
 
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Создаем роутер
-router = Router()
+# Создание FastAPI приложения
+app = FastAPI(
+    title="Astra Calculations API",
+    description="API для доступа к расчетным данным проекта Astra (биоритмы, астрология, психоматрицы)",
+    version="2.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+# Настройка CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # В продакшене заменить на конкретные домены
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-# Определяем состояния для сбора данных
-class DataCollectionStates(StatesGroup):
-    waiting_for_birth_date = State()
-    waiting_for_birth_time = State()
-    waiting_for_birth_city = State()
-    waiting_for_current_city = State()
-    waiting_for_profession = State()
-    waiting_for_job_position = State()
-    waiting_for_gender = State()  # НОВОЕ СОСТОЯНИЕ
+# Модели Pydantic для запросов и ответов
+class CalculationRequest(BaseModel):
+    telegram_id: int = Field(..., description="ID пользователя в Telegram")
+    target_date: date = Field(default_factory=date.today, description="Дата для расчетов")
 
 
-# Состояние для ввода даты
-class DateSelectionStates(StatesGroup):
-    waiting_for_custom_date = State()
+class HealthResponse(BaseModel):
+    status: str
+    service: str
+    timestamp: str
+    database_connected: bool
+    version: str
 
 
-# Основная клавиатура
-def get_main_keyboard():
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="📊 Расчет натальной карты")],
-            [KeyboardButton(text="📅 Получить данные")],
-        ],
-        resize_keyboard=True
-    )
+class CalculationResponse(BaseModel):
+    success: bool
+    user_id: int
+    target_date: str
+    calculations: Dict[str, Any]
+    user_context: Dict[str, Any]
+    metadata: Dict[str, Any]
+    error: Optional[str] = None
 
 
-# Клавиатура для выбора даты
-def get_date_keyboard():
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="📅 Сегодня"), KeyboardButton(text="📅 Завтра")],
-            [KeyboardButton(text="📅 Выбрать дату")],
-            [KeyboardButton(text="🔙 Назад")]
-        ],
-        resize_keyboard=True
-    )
+class UserDataStatusResponse(BaseModel):
+    user_id: int
+    has_basic_data: bool
+    has_natal_chart: bool
+    has_psyho_matrix: bool
+    has_biorhythms: bool
+    is_complete: bool
+    profile_exists: bool
 
 
-# Клавиатура для выбора пола
-def get_gender_keyboard():
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="👨 Мужской"), KeyboardButton(text="👩 Женский")],
-            [KeyboardButton(text="🤷 Не указывать")]
-        ],
-        resize_keyboard=True
-    )
+class HealthCheckResponse(BaseModel):
+    user_id: int
+    overall_status: str
+    check_timestamp: str
+    detailed_checks: Dict[str, Any]
+    recommendations: List[str]
 
 
-@router.message(Command("start"))
-async def cmd_start(message: types.Message):
-    """Команда начала работы с ботом"""
-    welcome_text = """
-👋 Добро пожаловать в ваш персональный ассистент!
-
-Я помогу вам получать персонализированные данные на основе:
-• 🌟 Натальной карты и астрологических транзитов
-• 🔢 Психоматрицы по дате рождения  
-• ⚡ Биоритмов на каждый день
-• 💼 Вашей профессиональной деятельности
-
-Выберите действие из меню ниже:
-    """
-
-    await message.answer(welcome_text, reply_markup=get_main_keyboard())
+class StatisticsResponse(BaseModel):
+    user_id: int
+    request_count: int
+    calculations_count: int
+    biorhythms_count: int
+    first_calculation: Optional[str]
+    last_calculation: Optional[str]
+    average_energy: float
 
 
-@router.message(lambda message: message.text == "📊 Расчет натальной карты")
-async def start_data_collection(message: types.Message, state: FSMContext):
-    """Начало сбора данных пользователя"""
-
-    # Проверяем статус данных пользователя
-    status = await assistant.get_user_data_status(message.from_user.id)
-
-    if status['is_complete']:
-        await message.answer(
-            "✅ Ваши основные данные уже собраны!\n"
-            "Если хотите обновить профессию или город, используйте соответствующую команду.",
-            reply_markup=get_main_keyboard()
-        )
-    else:
-        await message.answer(
-            "📊 Начнем сбор данных для персонализированных данных!\n\n"
-            "Пожалуйста, введите вашу дату рождения в формате ГГГГ-ММ-ДД:",
-            reply_markup=types.ReplyKeyboardRemove()
-        )
-        await state.set_state(DataCollectionStates.waiting_for_birth_date)
+class ErrorResponse(BaseModel):
+    error: str
+    detail: Optional[str] = None
+    timestamp: str
 
 
-@router.message(DataCollectionStates.waiting_for_birth_date)
-async def process_birth_date(message: types.Message, state: FSMContext):
-    """Обработка даты рождения"""
-    try:
-        birth_date = datetime.strptime(message.text, "%Y-%m-%d").date()
-        await state.update_data(birth_date=birth_date)
+@app.on_event("startup")
+async def startup_event():
+    """Инициализация при запуске"""
+    logger.info("🚀 Запуск Astra Calculations API...")
 
-        await message.answer(
-            "✅ Дата рождения сохранена!\n\n"
-            "Теперь введите время рождения в формате ЧЧ:ММ (24 часа):"
-        )
-        await state.set_state(DataCollectionStates.waiting_for_birth_time)
-
-    except ValueError:
-        await message.answer("❌ Неверный формат даты. Используйте формат ГГГГ-ММ-ДД:")
-
-
-@router.message(DataCollectionStates.waiting_for_birth_time)
-async def process_birth_time(message: types.Message, state: FSMContext):
-    """Обработка времени рождения"""
-    try:
-        birth_time = datetime.strptime(message.text, "%H:%M").time()
-        await state.update_data(birth_time=birth_time)
-
-        await message.answer(
-            "✅ Время рождения сохранено!\n\n"
-            "Введите город рождения:"
-        )
-        await state.set_state(DataCollectionStates.waiting_for_birth_city)
-
-    except ValueError:
-        await message.answer("❌ Неверный формат времени. Используйте формат ЧЧ:ММ:")
-
-
-@router.message(DataCollectionStates.waiting_for_birth_city)
-async def process_birth_city(message: types.Message, state: FSMContext):
-    """Обработка города рождения"""
-    birth_city = message.text.strip()
-    await state.update_data(birth_city=birth_city)
-
-    await message.answer(
-        "✅ Город рождения сохранен!\n\n"
-        "Теперь введите город проживания:"
-    )
-    await state.set_state(DataCollectionStates.waiting_for_current_city)
-
-
-@router.message(DataCollectionStates.waiting_for_current_city)
-async def process_current_city(message: types.Message, state: FSMContext):
-    """Обработка города проживания"""
-    current_city = message.text.strip()
-    await state.update_data(current_city=current_city)
-
-    await message.answer(
-        "✅ Город проживания сохранен!\n\n"
-        "Введите вашу специальность или профессию:"
-    )
-    await state.set_state(DataCollectionStates.waiting_for_profession)
-
-
-@router.message(DataCollectionStates.waiting_for_profession)
-async def process_profession(message: types.Message, state: FSMContext):
-    """Обработка профессии"""
-    profession = message.text.strip()
-    await state.update_data(profession=profession)
-
-    await message.answer(
-        "✅ Профессия сохранена!\n\n"
-        "Введите вашу должность (если нет - напишите 'нет'):"
-    )
-    await state.set_state(DataCollectionStates.waiting_for_job_position)
-
-
-@router.message(DataCollectionStates.waiting_for_job_position)
-async def process_job_position(message: types.Message, state: FSMContext):
-    """Обработка должности и переход к выбору пола"""
-    job_position = message.text.strip()
-    if job_position.lower() == 'нет':
-        job_position = None
-
-    await state.update_data(job_position=job_position)
-
-    await message.answer(
-        "✅ Должность сохранена!\n\n"
-        "Укажите ваш пол:",
-        reply_markup=get_gender_keyboard()
-    )
-    await state.set_state(DataCollectionStates.waiting_for_gender)
-
-
-@router.message(DataCollectionStates.waiting_for_gender)
-async def process_gender(message: types.Message, state: FSMContext):
-    """Обработка пола и завершение сбора данных"""
-    gender_map = {
-        "👨 мужской": "male",
-        "👩 женский": "female",
-        "🤷 не указывать": None
-    }
-
-    gender_text = message.text.lower()
-    gender = None
-
-    # Определяем пол по тексту
-    for key, value in gender_map.items():
-        if key in gender_text:
-            gender = value
-            break
-
-    # Если пол не распознан, используем текст как есть
-    if gender is None:
-        if any(word in gender_text for word in ["муж", "male", "м"]):
-            gender = "male"
-        elif any(word in gender_text for word in ["жен", "female", "ж"]):
-            gender = "female"
-        else:
-            gender = None
-
-    await state.update_data(gender=gender)
-    user_data = await state.get_data()
-
-    try:
-        # Сохраняем все данные через ассистента
-        result = await assistant.collect_user_data(
-            telegram_id=message.from_user.id,
-            birth_date=user_data['birth_date'],
-            birth_time=user_data['birth_time'],
-            birth_city=user_data['birth_city'],
-            current_city=user_data['current_city'],
-            profession=user_data['profession'],
-            job_position=user_data.get('job_position'),
-            gender=gender  # ПЕРЕДАЕМ ПОЛ
-        )
-
-        if result['success']:
-            await message.answer(
-                "🎉 Поздравляем! Все данные успешно собраны!\n\n"
-                "Теперь вы можете получать персонализированные данные:",
-                reply_markup=get_main_keyboard()
-            )
-        else:
-            await message.answer(
-                f"❌ {result['message']}\n\n"
-                "Попробуйте начать сбор данных заново.",
-                reply_markup=get_main_keyboard()
-            )
-
-    except Exception as e:
-        logger.error(f"Ошибка при сохранении данных: {e}")
-        await message.answer(
-            f"❌ Произошла ошибка при сохранении данных: {str(e)}\n\n"
-            "Попробуйте начать сбор данных заново.",
-            reply_markup=get_main_keyboard()
-        )
-
-    await state.clear()
-
-
-@router.message(lambda message: message.text == "📅 Получить данные")
-async def select_date_option(message: types.Message):
-    """Выбор даты для получения данных"""
-    # Проверяем наличие данных
-    status = await assistant.get_user_data_status(message.from_user.id)
-    if not status['is_complete']:
-        await message.answer(
-            "❌ Сначала необходимо собрать данные!\n"
-            "Нажмите '📊 Расчет натальной карты'",
-            reply_markup=get_main_keyboard()
-        )
+    # Проверяем подключение к БД
+    db_connected = await check_db_connection()
+    if not db_connected:
+        logger.error("❌ Не удалось подключиться к базе данных")
         return
 
-    await message.answer(
-        "📅 Выберите дату для расчетов:",
-        reply_markup=get_date_keyboard()
+    # Инициализируем БД если нужно
+    await init_db()
+    logger.info("✅ Astra Calculations API готов к работе")
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    """Корневой endpoint"""
+    return {
+        "message": "Astra Calculations API",
+        "version": "2.0.0",
+        "status": "operational",
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+@app.get("/health", response_model=HealthResponse)
+async def health_check():
+    """Проверка здоровья сервиса"""
+    db_connected = await check_db_connection()
+
+    return HealthResponse(
+        status="healthy" if db_connected else "degraded",
+        service="astra_calculations",
+        timestamp=datetime.now().isoformat(),
+        database_connected=db_connected,
+        version="2.0.0"
     )
 
 
-@router.message(lambda message: message.text == "📅 Сегодня")
-async def get_todays_data(message: types.Message):
-    """Получение данных на сегодня"""
-    await process_date_selection(message, date.today())
-
-
-@router.message(lambda message: message.text == "📅 Завтра")
-async def get_tomorrows_data(message: types.Message):
-    """Получение данных на завтра"""
-    tomorrow = date.today() + timedelta(days=1)
-    await process_date_selection(message, tomorrow)
-
-
-@router.message(lambda message: message.text == "📅 Выбрать дату")
-async def request_custom_date(message: types.Message, state: FSMContext):
-    """Запрос произвольной даты"""
-    await message.answer(
-        "Введите дату в формате ГГГГ-ММ-ДД:",
-        reply_markup=types.ReplyKeyboardRemove()
-    )
-    await state.set_state(DateSelectionStates.waiting_for_custom_date)
-
-
-@router.message(DateSelectionStates.waiting_for_custom_date)
-async def process_custom_date(message: types.Message, state: FSMContext):
-    """Обработка введенной пользователем даты"""
-    try:
-        target_date = datetime.strptime(message.text, "%Y-%m-%d").date()
-
-        # Проверяем что дата не в прошлом
-        if target_date < date.today():
-            await message.answer(
-                "❌ Можно получить данные только на сегодня или будущие даты",
-                reply_markup=get_date_keyboard()
-            )
-            return
-
-        await process_date_selection(message, target_date)
-
-    except ValueError:
-        await message.answer(
-            "❌ Неверный формат даты. Используйте ГГГГ-ММ-ДД",
-            reply_markup=get_date_keyboard()
-        )
-
-    await state.clear()
-
-
-@router.message(lambda message: message.text == "🔙 Назад")
-async def go_back_to_main(message: types.Message):
-    """Возврат в главное меню"""
-    await message.answer(
-        "Возвращаемся в главное меню:",
-        reply_markup=get_main_keyboard()
-    )
-
-
-async def process_date_selection(message: types.Message, target_date: date):
-    """Общая обработка выбранной даты"""
-    processing_msg = await message.answer(f"🔄 Формирую данные на {target_date.strftime('%d.%m.%Y')}...")
-
-    try:
-        result = await assistant.get_recommendations(message.from_user.id, target_date)
-
-        if result['success']:
-            # Отправляем пользователю форматированные данные
-            await message.answer(result['user_data'], parse_mode="Markdown")
-
-            # Данные для модели уже выводятся через print в assistant.py
-            await message.answer(
-                f"🤖 *Данные на {target_date.strftime('%d.%m.%Y')} отправлены в AI модель*\n"
-                "Результаты будут доступны в ближайшее время!",
-                parse_mode="Markdown",
-                reply_markup=get_main_keyboard()
-            )
-        else:
-            await message.answer(
-                result['message'],
-                reply_markup=get_main_keyboard()
-            )
-
-    except Exception as e:
-        logger.error(f"Ошибка получения данных на сегодня: {e}")
-        await message.answer(
-            "❌ Произошла ошибка при формировании данных\n"
-            "Попробуйте позже или обратитесь в поддержку.",
-            reply_markup=get_main_keyboard()
-        )
-
-    await processing_msg.delete()
-
-
-@router.message(Command("status"))
-async def cmd_status(message: types.Message):
-    """Проверка статуса данных пользователя"""
-    try:
-        status = await assistant.get_user_data_status(message.from_user.id)
-
-        status_text = "📊 **Статус ваших данных:**\n\n"
-
-        if status['is_complete']:
-            status_text += "✅ Все данные собраны и готовы к использованию\n\n"
-        else:
-            status_text += "❌ Не все данные собраны\n\n"
-
-        status_text += f"• Основные данные: {'✅' if status['has_basic_data'] else '❌'}\n"
-        status_text += f"• Натальная карта: {'✅' if status['has_natal_chart'] else '❌'}\n"
-        status_text += f"• Психоматрица: {'✅' if status['has_psyho_matrix'] else '❌'}\n"
-        status_text += f"• Биоритмы: {'✅' if status['has_biorhythms'] else '❌'}\n\n"
-
-        if not status['is_complete']:
-            status_text += "Нажмите '📊 Расчет натальной карты' для сбора недостающих данных"
-
-        await message.answer(status_text, parse_mode="Markdown")
-
-    except Exception as e:
-        logger.error(f"Ошибка проверки статуса: {e}")
-        await message.answer("❌ Не удалось проверить статус данных")
-
-
-@router.message(Command("help"))
-async def cmd_help(message: types.Message):
-    """Справка по командам бота"""
-    help_text = """
-📋 **Доступные команды:**
-
-/start - Начать работу с ботом
-/status - Проверить статус ваших данных
-/help - Показать эту справку
-
-**Основные действия:**
-
-📊 Расчет натальной карты - Собрать или обновить ваши данные
-📅 Получить данные - Получить расчеты на выбранную дату
-
-**Выбор даты:**
-• 📅 Сегодня - данные на текущий день
-• 📅 Завтра - данные на следующий день  
-• 📅 Выбрать дату - произвольная дата (ГГГГ-ММ-ДД)
-
-**Что рассчитывается:**
-• Астрологические транзиты и аспекты
-• Биоритмы (физический, эмоциональный, интеллектуальный)
-• Нумерологическая психоматрица
-• Все данные передаются в AI модель для формирования персонализированных рекомендаций
+@app.post("/api/v1/calculations", response_model=CalculationResponse)
+async def get_calculations(request: CalculationRequest):
     """
+    Получение полного пакета расчетных данных для пользователя
+    """
+    try:
+        logger.info(f"📥 Запрос расчетов для пользователя {request.telegram_id} на {request.target_date}")
 
-    await message.answer(help_text, parse_mode="Markdown")
+        # Получаем полный пакет расчетов
+        calculation_package = await calculation_service.get_full_calculation_package(
+            request.telegram_id,
+            request.target_date
+        )
+
+        if not calculation_package.get('success'):
+            raise HTTPException(
+                status_code=400,
+                detail=calculation_package.get('error', 'Неизвестная ошибка расчетов')
+            )
+
+        logger.info(f"✅ Расчеты отправлены для пользователя {request.telegram_id}")
+
+        return CalculationResponse(**calculation_package)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения расчетов для {request.telegram_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Внутренняя ошибка сервера: {str(e)}"
+        )
 
 
-@router.message()
-async def handle_other_messages(message: types.Message):
-    """Обработка всех остальных сообщений"""
-    await message.answer(
-        "Выберите действие из меню ниже:",
-        reply_markup=get_main_keyboard()
+@app.post("/api/v1/calculations/optimized", response_model=CalculationResponse)
+async def get_optimized_calculations(
+        telegram_id: int = Query(..., description="ID пользователя в Telegram"),
+        target_date: date = Query(default_factory=date.today, description="Дата для расчетов"),
+        include_biorhythms: bool = Query(True, description="Включить биоритмы"),
+        include_astrology: bool = Query(True, description="Включить астрологию"),
+        include_psychomatrix: bool = Query(True, description="Включить психоматрицу")
+):
+    """
+    Получение оптимизированного пакета расчетов с фильтрацией по типам
+    """
+    try:
+        logger.info(f"📥 Оптимизированный запрос расчетов для пользователя {telegram_id}")
+
+        # Формируем список включаемых типов расчетов
+        include_types = []
+        if include_biorhythms:
+            include_types.append('biorhythms')
+        if include_astrology:
+            include_types.append('astrology')
+        if include_psychomatrix:
+            include_types.append('psychomatrix')
+
+        if not include_types:
+            raise HTTPException(
+                status_code=400,
+                detail="Не выбран ни один тип расчетов для включения"
+            )
+
+        # Получаем оптимизированные расчеты
+        optimized_data = await calculation_optimizer.get_optimized_calculations(
+            telegram_id,
+            target_date,
+            include_types
+        )
+
+        if not optimized_data.get('success'):
+            raise HTTPException(
+                status_code=400,
+                detail=optimized_data.get('error', 'Неизвестная ошибка расчетов')
+            )
+
+        logger.info(f"✅ Оптимизированные расчеты отправлены для пользователя {telegram_id}")
+
+        return CalculationResponse(**optimized_data)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Ошибка оптимизированных расчетов для {telegram_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Внутренняя ошибка сервера: {str(e)}"
+        )
+
+
+@app.get("/api/v1/users/{telegram_id}/status", response_model=UserDataStatusResponse)
+async def get_user_data_status(telegram_id: int):
+    """
+    Получение статуса данных пользователя
+    """
+    try:
+        logger.info(f"📊 Запрос статуса данных для пользователя {telegram_id}")
+
+        status = await assistant.get_user_data_status(telegram_id)
+        user_profile = await get_user_profile(telegram_id)
+
+        return UserDataStatusResponse(
+            user_id=telegram_id,
+            has_basic_data=status['has_basic_data'],
+            has_natal_chart=status['has_natal_chart'],
+            has_psyho_matrix=status['has_psyho_matrix'],
+            has_biorhythms=status['has_biorhythms'],
+            is_complete=status['is_complete'],
+            profile_exists=user_profile is not None
+        )
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения статуса для {telegram_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка получения статуса: {str(e)}"
+        )
+
+
+@app.get("/api/v1/users/{telegram_id}/health", response_model=HealthCheckResponse)
+async def get_user_health_check(telegram_id: int):
+    """
+    Проверка здоровья расчетных данных пользователя
+    """
+    try:
+        logger.info(f"🏥 Запрос проверки здоровья данных для пользователя {telegram_id}")
+
+        health_status = await calculation_optimizer.get_calculation_health_check(telegram_id)
+
+        # Формируем рекомендации на основе проверок
+        recommendations = []
+        detailed_checks = health_status.get('detailed_checks', {})
+
+        for check_type, check_data in detailed_checks.items():
+            if check_data.get('status') != 'healthy':
+                recommendation = check_data.get('recommendation')
+                if recommendation:
+                    recommendations.append(recommendation)
+
+        # Добавляем общие рекомендации
+        if not recommendations:
+            recommendations.append("Все системы в порядке. Данные актуальны и готовы к использованию.")
+
+        return HealthCheckResponse(
+            user_id=telegram_id,
+            overall_status=health_status['overall_status'],
+            check_timestamp=health_status['check_timestamp'],
+            detailed_checks=detailed_checks,
+            recommendations=recommendations
+        )
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка проверки здоровья для {telegram_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка проверки здоровья: {str(e)}"
+        )
+
+
+@app.get("/api/v1/users/{telegram_id}/statistics", response_model=StatisticsResponse)
+async def get_user_statistics(telegram_id: int):
+    """
+    Получение статистики пользователя
+    """
+    try:
+        logger.info(f"📈 Запрос статистики для пользователя {telegram_id}")
+
+        stats = await assistant.get_user_statistics(telegram_id)
+
+        return StatisticsResponse(
+            user_id=telegram_id,
+            request_count=stats.get('request_count', 0),
+            calculations_count=stats.get('prediction_stats', {}).get('total_calculations', 0),
+            biorhythms_count=stats.get('biorhythm_stats', {}).get('total_records', 0),
+            first_calculation=stats.get('prediction_stats', {}).get('first_calculation_date'),
+            last_calculation=stats.get('prediction_stats', {}).get('last_calculation_date'),
+            average_energy=stats.get('biorhythm_stats', {}).get('average_energy_level', 0)
+        )
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения статистики для {telegram_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка получения статистики: {str(e)}"
+        )
+
+
+@app.get("/api/v1/biorhythms/{telegram_id}")
+async def get_biorhythms_only(
+        telegram_id: int,
+        target_date: date = Query(default_factory=date.today, description="Дата для расчетов")
+):
+    """
+    Получение только данных биоритмов
+    """
+    try:
+        logger.info(f"⚡ Запрос биоритмов для пользователя {telegram_id}")
+
+        from backend.biorhythm_services import get_user_biorhythms
+        biorhythm_data = await get_user_biorhythms(telegram_id, target_date)
+
+        if not biorhythm_data:
+            raise HTTPException(
+                status_code=404,
+                detail="Данные биоритмов не найдены"
+            )
+
+        return {
+            "success": True,
+            "user_id": telegram_id,
+            "target_date": target_date.isoformat(),
+            "biorhythms": biorhythm_data,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения биоритмов для {telegram_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка получения биоритмов: {str(e)}"
+        )
+
+
+@app.get("/api/v1/astrology/{telegram_id}")
+async def get_astrology_only(
+        telegram_id: int,
+        target_date: date = Query(default_factory=date.today, description="Дата для расчетов")
+):
+    """
+    Получение только астрологических данных
+    """
+    try:
+        logger.info(f"🌟 Запрос астрологических данных для пользователя {telegram_id}")
+
+        from backend.chart_services import get_user_natal_chart
+        from backend.predictions import AstroPredictor
+
+        natal_data = await get_user_natal_chart(telegram_id)
+        if not natal_data:
+            raise HTTPException(
+                status_code=404,
+                detail="Натальная карта не найдена"
+            )
+
+        predictor = AstroPredictor(natal_data)
+        astro_data = predictor.generate_prediction(target_date)
+
+        return {
+            "success": True,
+            "user_id": telegram_id,
+            "target_date": target_date.isoformat(),
+            "astrology": astro_data,
+            "natal_chart_summary": {
+                "planets_count": len(natal_data.get('planets', {})),
+                "dominant_element": _get_dominant_element(natal_data),
+                "ascendant": natal_data.get('angles', {}).get('ascendant', {}).get('sign', 'неизвестно')
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения астрологических данных для {telegram_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка получения астрологических данных: {str(e)}"
+        )
+
+
+def _get_dominant_element(natal_data: dict) -> str:
+    """Определение доминирующего элемента"""
+    try:
+        element_balance = natal_data.get('ml_features', {}).get('element_balance', {})
+        if element_balance:
+            return max(element_balance.items(), key=lambda x: x[1])[0]
+        return 'неизвестно'
+    except Exception:
+        return 'неизвестно'
+
+
+@app.get("/api/v1/psychomatrix/{telegram_id}")
+async def get_psychomatrix_only(telegram_id: int):
+    """
+    Получение только данных психоматрицы
+    """
+    try:
+        logger.info(f"🔢 Запрос психоматрицы для пользователя {telegram_id}")
+
+        from backend.matrix_services import get_user_matrix, get_matrix_summary
+
+        matrix_data = await get_user_matrix(telegram_id)
+        if not matrix_data:
+            raise HTTPException(
+                status_code=404,
+                detail="Психоматрица не найдена"
+            )
+
+        matrix_summary = await get_matrix_summary(telegram_id)
+
+        return {
+            "success": True,
+            "user_id": telegram_id,
+            "psychomatrix": matrix_data,
+            "summary": matrix_summary,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения психоматрицы для {telegram_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка получения психоматрицы: {str(e)}"
+        )
+
+
+@app.get("/api/v1/admin/database/stats")
+async def get_database_statistics():
+    """
+    Получение статистики базы данных (только для администрирования)
+    """
+    try:
+        logger.info("📊 Запрос статистики базы данных")
+
+        stats = await get_database_stats()
+
+        return {
+            "success": True,
+            "database_stats": stats,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения статистики БД: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка получения статистики БД: {str(e)}"
+        )
+
+
+@app.post("/api/v1/admin/cleanup")
+async def cleanup_old_data(days_old: int = Query(30, description="Удалять данные старше N дней")):
+    """
+    Очистка устаревших данных (только для администрирования)
+    """
+    try:
+        logger.info(f"🧹 Запрос очистки данных старше {days_old} дней")
+
+        if days_old < 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Параметр days_old должен быть положительным числом"
+            )
+
+        cleanup_result = await calculation_optimizer.cleanup_old_calculations(days_old)
+
+        return {
+            "success": True,
+            "cleanup_result": cleanup_result,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Ошибка очистки данных: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка очистки данных: {str(e)}"
+        )
+
+
+@app.get("/api/v1/version")
+async def get_version():
+    """
+    Получение информации о версии API
+    """
+    return {
+        "service": "Astra Calculations API",
+        "version": "2.0.0",
+        "description": "API для расчетных данных (биоритмы, астрология, психоматрицы)",
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+# Обработчики ошибок
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc):
+    """Обработчик HTTP исключений"""
+    logger.warning(f"HTTP ошибка {exc.status_code}: {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ErrorResponse(
+            error="HTTP Exception",
+            detail=exc.detail,
+            timestamp=datetime.now().isoformat()
+        ).dict()
     )
 
 
-__init__.py:
-"""
-Пакет бота Personal Assistant
-"""
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+    """Обработчик общих исключений"""
+    logger.error(f"Необработанная ошибка: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content=ErrorResponse(
+            error="Internal Server Error",
+            detail="Произошла внутренняя ошибка сервера",
+            timestamp=datetime.now().isoformat()
+        ).dict()
+    )
 
-__version__ = "1.0.0"
-__author__ = "Personal Assistant Team"
 
-from bot.main import main
+# Для запуска напрямую
+if __name__ == "__main__":
+    uvicorn.run(
+        "api_entrypoint:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )
 
-__all__ = ['main']
+backend.aspect_recommendations.py
 
-main.py:
-
-from aiogram import Bot, Dispatcher
-import asyncio
 import logging
-
-from bot.config import TOKEN
-from bot.handlers import router
-from backend.db_connection import check_db_connection
-import math
-from datetime import date, datetime
-from typing import Dict, List, Tuple
-import logging
+from typing import Dict, List, Any
+import random
 
 logger = logging.getLogger(__name__)
 
 
-class BiorhythmCalculator:
+class AspectRecommendationEngine:
     """
-    Калькулятор биоритмов на основе даты рождения.
-    Рассчитывает физический, эмоциональный и интеллектуальный циклы.
+    Улучшенный движок рекомендаций с конкретными областями применения
     """
 
     def __init__(self):
-        # Периоды биоритмов в днях
-        self.PHYSICAL_CYCLE = 23
-        self.EMOTIONAL_CYCLE = 28
-        self.INTELLECTUAL_CYCLE = 33
-        self.INTUITIVE_CYCLE = 38  # Дополнительный цикл
+        # Конкретные области применения для разных аспектов
+        self.action_areas = {
+            'conjunction': [
+                "начало новых проектов", "решительные действия", "запуск инициатив",
+                "активные перемены", "проявление инициативы", "старт важных дел"
+            ],
+            'opposition': [
+                "переговоры и компромиссы", "поиск баланса", "урегулирование конфликтов",
+                "работа в команде", "учет разных мнений", "дипломатические решения"
+            ],
+            'square': [
+                "преодоление препятствий", "решение сложных задач", "борьба с трудностями",
+                "устранение проблем", "преодоление кризисов", "исправление ошибок"
+            ],
+            'trine': [
+                "творческие проекты", "сотрудничество", "реализация идей",
+                "гармоничное развитие", "укрепление отношений", "обучение и рост"
+            ],
+            'sextile': [
+                "установление связей", "профессиональный рост", "поиск возможностей",
+                "планирование будущего", "расширение кругозора", "новые знакомства"
+            ]
+        }
 
-    def calculate_biorhythms(self, birth_date: date, target_date: date) -> Dict:
-        """
-        Расчет биоритмов на заданную дату
+        # Конкретные действия для планет
+        self.planet_actions = {
+            'Sun': [
+                "проявление лидерства", "укрепление уверенности", "творческая реализация",
+                "демонстрация талантов", "работа над имиджем", "развитие индивидуальности"
+            ],
+            'Moon': [
+                "забота о эмоциях", "создание уюта", "работа с интуицией",
+                "семейные дела", "отдых и восстановление", "кулинарные эксперименты"
+            ],
+            'Mercury': [
+                "обучение и учеба", "переговоры", "письменная работа",
+                "планирование", "анализ информации", "коммуникация"
+            ],
+            'Venus': [
+                "укрепление отношений", "творчество", "финансовые вопросы",
+                "создание красоты", "социальная активность", "искусство"
+            ],
+            'Mars': [
+                "спорт и активность", "конкуренция", "решение задач",
+                "техническая работа", "защита интересов", "физические нагрузки"
+            ],
+            'Jupiter': [
+                "планирование путешествий", "обучение", "расширение бизнеса",
+                "философские размышления", "поиск возможностей", "личностный рост"
+            ],
+            'Saturn': [
+                "планирование", "организация", "работа с долгосрочными целями",
+                "укрепление дисциплины", "завершение проектов", "структурирование"
+            ],
+            'Uranus': [
+                "инновации", "эксперименты", "технологические проекты",
+                "нестандартные решения", "изменение подходов", "свободное творчество"
+            ],
+            'Neptune': [
+                "медитация", "творчество", "работа с интуицией",
+                "помощь другим", "искусство", "духовные практики"
+            ],
+            'Pluto': [
+                "трансформация", "избавление от старого", "глубинный анализ",
+                "работа с кризисами", "психологические вопросы", "стратегические изменения"
+            ]
+        }
 
-        Args:
-            birth_date: Дата рождения
-            target_date: Дата для расчета
-
-        Returns:
-            Словарь с данными биоритмов
-        """
-        try:
-            # Вычисляем количество прожитых дней
-            days_lived = (target_date - birth_date).days
-
-            if days_lived < 0:
-                raise ValueError("Дата расчета не может быть раньше даты рождения")
-
-            # Рассчитываем фазы биоритмов
-            physical = self._calculate_cycle(days_lived, self.PHYSICAL_CYCLE)
-            emotional = self._calculate_cycle(days_lived, self.EMOTIONAL_CYCLE)
-            intellectual = self._calculate_cycle(days_lived, self.INTELLECTUAL_CYCLE)
-            intuitive = self._calculate_cycle(days_lived, self.INTUITIVE_CYCLE)
-
-            # Общий показатель энергии
-            overall_energy = self._calculate_overall_energy(physical, emotional, intellectual, intuitive)
-
-            # Рекомендации на основе биоритмов
-            recommendations = self._generate_recommendations(physical, emotional, intellectual, intuitive,
-                                                             overall_energy)
-
-            biorhythm_data = {
-                'calculation_date': target_date.isoformat(),
-                'days_lived': days_lived,
-                'cycles': {
-                    'physical': physical,
-                    'emotional': emotional,
-                    'intellectual': intellectual,
-                    'intuitive': intuitive
-                },
-                'overall_energy': overall_energy,
-                'recommendations': recommendations,
-                'critical_days': self._find_critical_days(physical, emotional, intellectual, target_date),
-                'peak_days': self._find_peak_days(physical, emotional, intellectual, target_date)
+        # Улучшенные шаблоны рекомендаций
+        self.aspect_templates = {
+            'conjunction': {
+                'positive': [
+                    "Энергия {transit} и {natal} объединяется - идеальное время для {action} в области {area}",
+                    "Соединение {transit} с {natal} дает мощный импульс для {action}, особенно в {area}",
+                    "Используйте объединенную энергию {transit} и {natal} для {action}, например в {area}"
+                ],
+                'challenge': [
+                    "Соединение {transit} и {natal} создает напряжение - будьте внимательны при {action} в {area}",
+                    "Энергия аспекта очень концентрированная - сфокусируйтесь на {action} в {area}",
+                    "Мощная энергия соединения требует осторожности в {area}, особенно при {action}"
+                ]
+            },
+            'opposition': {
+                'positive': [
+                    "Оппозиция {transit} и {natal} помогает в {action} - ищите баланс в {area}",
+                    "Идеальное время для {action} через компромиссы в {area}",
+                    "Используйте противостояние энергий для {action} в {area}"
+                ],
+                'challenge': [
+                    "Оппозиция {transit}-{natal} требует гибкости в {area}, особенно при {action}",
+                    "Возможны противоречия в {area} - ищите золотую середину для {action}",
+                    "Избегайте категоричных решений в {area}, лучше сосредоточьтесь на {action}"
+                ]
+            },
+            'square': {
+                'positive': [
+                    "Квадрат {transit} и {natal} дает энергию для {action} в сложных ситуациях {area}",
+                    "Используйте напряжение аспекта для {action} в проблемных {area}",
+                    "Это время активных действий для {action} в трудных {area}"
+                ],
+                'challenge': [
+                    "Квадратура {transit}-{natal} требует осторожности при {action} в {area}",
+                    "Возможны сложности в {area} - имейте запасной план для {action}",
+                    "Избегайте конфронтации в {area}, решайте вопросы через {action}"
+                ]
+            },
+            'trine': {
+                'positive': [
+                    "Трин {transit} и {natal} приносит гармонию для {action} в {area}",
+                    "Благоприятное время для {action} через сотрудничество в {area}",
+                    "Энергия течет легко - идеально для {action} в {area}"
+                ],
+                'challenge': [
+                    "При легкой энергии трина важно не упускать возможности для {action} в {area}",
+                    "Не расслабляйтесь слишком - используйте период для {action} в {area}",
+                    "Сохраняйте активность в {area}, особенно для {action}"
+                ]
+            },
+            'sextile': {
+                'positive': [
+                    "Секстиль {transit} и {natal} открывает перспективы для {action} в {area}",
+                    "Идеальное время для {action} через новые связи в {area}",
+                    "Используйте возможности для {action} и роста в {area}"
+                ],
+                'challenge': [
+                    "При множестве возможностей в {area} важно правильно выбрать направление для {action}",
+                    "Не распыляйтесь в {area} - выберите самые перспективные варианты для {action}",
+                    "Уделите внимание планированию {action} в {area}"
+                ]
             }
-
-            logger.info(f"✅ Биоритмы рассчитаны для {target_date}, прожито дней: {days_lived}")
-            return biorhythm_data
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка расчета биоритмов: {e}")
-            raise
-
-    def _calculate_cycle(self, days_lived: int, cycle_length: int) -> Dict:
-        """
-        Расчет одного цикла биоритма
-
-        Args:
-            days_lived: Количество прожитых дней
-            cycle_length: Длина цикла в днях
-
-        Returns:
-            Данные цикла
-        """
-        # Текущая фаза в радианах (2π за полный цикл)
-        phase = (2 * math.pi * days_lived) / cycle_length
-
-        # Значение синусоиды (-1 до +1)
-        value = math.sin(phase)
-
-        # Процент от максимума (0% до 100%)
-        percentage = ((value + 1) / 2) * 100
-
-        # День в цикле (0 до cycle_length-1)
-        day_in_cycle = days_lived % cycle_length
-
-        return {
-            'value': round(value, 4),
-            'percentage': round(percentage, 2),
-            'day_in_cycle': day_in_cycle,
-            'phase': self._get_phase_description(value),
-            'trend': self._get_trend(phase)
         }
 
-    def _get_phase_description(self, value: float) -> str:
-        """Описание фазы биоритма"""
-        if value >= 0.7:
-            return "пик энергии"
-        elif value >= 0.3:
-            return "высокая активность"
-        elif value >= -0.3:
-            return "нейтральная фаза"
-        elif value >= -0.7:
-            return "низкая активность"
-        else:
-            return "критическая точка"
-
-    def _get_trend(self, phase: float) -> str:
-        """Определение тренда (растет/падает)"""
-        # Анализируем производную (cos(phase))
-        derivative = math.cos(phase)
-
-        if derivative > 0.1:
-            return "растет"
-        elif derivative < -0.1:
-            return "падает"
-        else:
-            return "стабильно"
-
-    def _calculate_overall_energy(self, physical: Dict, emotional: Dict, intellectual: Dict, intuitive: Dict) -> Dict:
-        """Расчет общего уровня энергии"""
-        # Взвешенная сумма всех циклов
-        total_energy = (
-                physical['value'] * 0.3 +  # Физический цикл - 30%
-                emotional['value'] * 0.25 +  # Эмоциональный - 25%
-                intellectual['value'] * 0.25 +  # Интеллектуальный - 25%
-                intuitive['value'] * 0.2  # Интуитивный - 20%
-        )
-
-        # Нормализуем до 0-100%
-        energy_percentage = ((total_energy + 1) / 2) * 100
-
-        # Определяем уровень энергии
-        if energy_percentage >= 80:
-            level = "очень высокий"
-            description = "Отличный день для активных действий и важных решений"
-        elif energy_percentage >= 60:
-            level = "высокий"
-            description = "Хороший день для продуктивной работы"
-        elif energy_percentage >= 40:
-            level = "средний"
-            description = "Стабильный день, подходит для рутинных задач"
-        elif energy_percentage >= 20:
-            level = "низкий"
-            description = "День для отдыха и восстановления сил"
-        else:
-            level = "очень низкий"
-            description = "Рекомендуется беречь энергию, избегать нагрузок"
-
-        return {
-            'value': round(total_energy, 4),
-            'percentage': round(energy_percentage, 2),
-            'level': level,
-            'description': description
+        # Русские названия планет
+        self.planet_names_ru = {
+            'Sun': 'Солнца', 'Moon': 'Луны', 'Mercury': 'Меркурия',
+            'Venus': 'Венеры', 'Mars': 'Марса', 'Jupiter': 'Юпитера',
+            'Saturn': 'Сатурна', 'Uranus': 'Урана', 'Neptune': 'Нептуна',
+            'Pluto': 'Плутона', 'North_Node': 'Северного Узла',
+            'Ascendant': 'Асцендента', 'Midheaven': 'Середины Неба'
         }
 
-    def _generate_recommendations(self, physical: Dict, emotional: Dict, intellectual: Dict, intuitive: Dict,
-                                  overall: Dict) -> List[str]:
-        """Генерация рекомендаций на основе биоритмов"""
+    def generate_aspect_recommendations(self, aspects_data: List[Dict]) -> List[str]:
+        """
+        Генерация конкретных рекомендаций с областями применения
+        """
         recommendations = []
 
-        # Физические рекомендации
-        if physical['value'] > 0.5:
-            recommendations.append("💪 Идеальный день для спорта и физической активности")
-        elif physical['value'] < -0.5:
-            recommendations.append("🛌 Избегайте тяжелых физических нагрузок")
+        try:
+            # Сортируем аспекты по силе (самые сильные первые)
+            strong_aspects = [a for a in aspects_data if a.get('strength', 0) > 0.7]
+            sorted_aspects = sorted(strong_aspects, key=lambda x: x.get('strength', 0), reverse=True)
 
-        # Эмоциональные рекомендации
-        if emotional['value'] > 0.6:
-            recommendations.append("😊 Отличное время для общения и новых знакомств")
-        elif emotional['value'] < -0.4:
-            recommendations.append("🧘 Контролируйте эмоции, избегайте конфликтов")
+            # Берем только топ-3 самых сильных аспекта
+            for aspect in sorted_aspects[:3]:
+                rec = self._generate_specific_aspect_recommendation(aspect)
+                if rec:
+                    recommendations.append(rec)
 
-        # Интеллектуальные рекомендации
-        if intellectual['value'] > 0.5:
-            recommendations.append("📚 Благоприятный период для обучения и анализа")
-        elif intellectual['value'] < -0.3:
-            recommendations.append("📝 Отложите сложные интеллектуальные задачи")
+            # Если сильных аспектов мало, добавляем общие рекомендации
+            if len(recommendations) < 2:
+                general_recs = self._get_general_recommendations(aspects_data)
+                recommendations.extend(general_recs[:2])
 
-        # Интуитивные рекомендации
-        if intuitive['value'] > 0.4:
-            recommendations.append("🔮 Доверяйте интуиции при принятии решений")
+        except Exception as e:
+            logger.error(f"❌ Ошибка генерации рекомендаций аспектов: {e}")
+            recommendations = [
+                "Сегодня стабильный астрологический фон - хорошее время для плановых дел и рутинных задач"]
 
-        # Общие рекомендации по энергии
-        if overall['percentage'] > 70:
-            recommendations.append("🚀 Используйте высокую энергию для важных проектов")
-        elif overall['percentage'] < 30:
-            recommendations.append("⚡ Экономьте силы, планируйте короткие перерывы")
+        return recommendations
 
-        # Если рекомендаций мало, добавляем общие
-        if len(recommendations) < 3:
-            recommendations.extend([
-                "📅 Следуйте своему естественному ритму",
-                "⏰ Планируйте задачи в соответствии с энергетическими пиками",
-                "💧 Пейте足够 воды для поддержания энергии"
-            ])
+    def _generate_specific_aspect_recommendation(self, aspect: Dict) -> str:
+        """Генерация конкретной рекомендации с областями применения"""
+        try:
+            transit_planet = aspect.get('transit_planet', '')
+            natal_planet = aspect.get('natal_planet', '')
+            aspect_type = aspect.get('aspect', '')
+            strength = aspect.get('strength', 0)
 
-        return recommendations[:5]  # Не более 5 рекомендаций
+            if not all([transit_planet, natal_planet, aspect_type]):
+                return None
 
-    def _find_critical_days(self, physical: Dict, emotional: Dict, intellectual: Dict, target_date: date) -> List[Dict]:
-        """Определение критических дней (ближайшие 7 дней)"""
-        critical_days = []
+            # Получаем русские названия планет
+            transit_ru = self.planet_names_ru.get(transit_planet, transit_planet)
+            natal_ru = self.planet_names_ru.get(natal_planet, natal_planet)
 
-        # Проверяем текущий день
-        if (abs(physical['value']) > 0.9 or
-                abs(emotional['value']) > 0.9 or
-                abs(intellectual['value']) > 0.9):
-            critical_days.append({
-                'date': target_date.isoformat(),
-                'cycles': self._get_critical_cycles(physical, emotional, intellectual),
-                'description': 'Критический день - будьте осторожны'
-            })
+            # Выбираем тип рекомендации (позитивная или вызов)
+            rec_type = 'positive' if strength > 0.8 else 'challenge'
 
-        return critical_days
+            # Выбираем конкретную область и действие
+            area = random.choice(self.action_areas.get(aspect_type, ["разных сферах жизни"]))
+            action = random.choice(self.planet_actions.get(transit_planet, ["активных действий"]))
 
-    def _find_peak_days(self, physical: Dict, emotional: Dict, intellectual: Dict, target_date: date) -> List[Dict]:
-        """Определение пиковых дней (ближайшие 7 дней)"""
-        peak_days = []
+            # Получаем шаблоны для этого типа аспекта
+            templates = self.aspect_templates.get(aspect_type, {}).get(rec_type, [])
 
-        # Проверяем текущий день
-        if (physical['value'] > 0.8 or
-                emotional['value'] > 0.8 or
-                intellectual['value'] > 0.8):
+            if templates:
+                template = random.choice(templates)
+                recommendation = template.format(
+                    transit=transit_ru,
+                    natal=natal_ru,
+                    action=action,
+                    area=area
+                )
 
-            peak_cycles = []
-            if physical['value'] > 0.8: peak_cycles.append('физический')
-            if emotional['value'] > 0.8: peak_cycles.append('эмоциональный')
-            if intellectual['value'] > 0.8: peak_cycles.append('интеллектуальный')
+                # Добавляем эмодзи в зависимости от типа аспекта
+                emoji_map = {
+                    'conjunction': '⚡', 'opposition': '⚖️',
+                    'square': '🎯', 'trine': '🌟', 'sextile': '💫'
+                }
+                emoji = emoji_map.get(aspect_type, '✨')
 
-            peak_days.append({
-                'date': target_date.isoformat(),
-                'cycles': peak_cycles,
-                'description': f'Пик энергии в циклах: {", ".join(peak_cycles)}'
-            })
+                return f"{emoji} {recommendation}"
 
-        return peak_days
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка генерации рекомендации для аспекта: {e}")
 
-    def _get_critical_cycles(self, physical: Dict, emotional: Dict, intellectual: Dict) -> List[str]:
-        """Получение списка критических циклов"""
-        critical = []
-        if abs(physical['value']) > 0.9: critical.append('физический')
-        if abs(emotional['value']) > 0.9: critical.append('эмоциональный')
-        if abs(intellectual['value']) > 0.9: critical.append('интеллектуальный')
-        return critical
+        return None
 
-    def calculate_weekly_forecast(self, birth_date: date, start_date: date, days: int = 7) -> List[Dict]:
-        """Расчет прогноза биоритмов на несколько дней"""
-        forecast = []
+    def _get_general_recommendations(self, aspects_data: List[Dict]) -> List[str]:
+        """Общие рекомендации с конкретными действиями"""
+        general_recs = []
 
-        for i in range(days):
-            current_date = start_date + timedelta(days=i)
-            biorhythms = self.calculate_biorhythms(birth_date, current_date)
+        try:
+            total_aspects = len(aspects_data)
+            strong_aspects = len([a for a in aspects_data if a.get('strength', 0) > 0.7])
 
-            forecast.append({
-                'date': current_date.isoformat(),
-                'overall_energy': biorhythms['overall_energy']['percentage'],
-                'physical': biorhythms['cycles']['physical']['percentage'],
-                'emotional': biorhythms['cycles']['emotional']['percentage'],
-                'intellectual': biorhythms['cycles']['intellectual']['percentage'],
-                'is_critical': len(biorhythms['critical_days']) > 0,
-                'is_peak': len(biorhythms['peak_days']) > 0
-            })
+            # Конкретные рекомендации по количеству аспектов
+            if total_aspects == 0:
+                actions = ["чтении книг", "уборке дома", "планировании недели", "отдыхе и восстановлении"]
+                general_recs.append(
+                    f"🌙 Сегодня спокойный астрологический фон - хорошее время для {random.choice(actions)}")
+            elif total_aspects <= 3:
+                actions = ["размеренной работе", "анализу информации", "подготовке документов", "обучению"]
+                general_recs.append(f"⚖️ Небольшое количество аспектов - день подходит для {random.choice(actions)}")
+            elif total_aspects > 8:
+                actions = ["решению срочных вопросов", "многозадачности", "переговорам", "принятию решений"]
+                general_recs.append(f"🎯 Много астрологических влияний - будьте готовы к {random.choice(actions)}")
 
-        return forecast
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('bot.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+            # Конкретные рекомендации по силе аспектов
+            if strong_aspects >= 3:
+                actions = ["важных решений", "стратегического планирования", "реализации проектов", "перемен"]
+                general_recs.append(f"💥 Несколько сильных аспектов - важный день для {random.choice(actions)}")
+            elif strong_aspects == 0 and total_aspects > 0:
+                actions = ["подготовки и анализа", "исследования возможностей", "создания планов", "обучения новому"]
+                general_recs.append(f"🌊 Аспекты слабые - хорошее время для {random.choice(actions)}")
+
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка генерации общих рекомендаций: {e}")
+
+        return general_recs
 
 
-async def main():
-    try:
-        # Проверяем подключение к БД перед запуском
-        logger.info("🔍 Проверка подключения к базе данных...")
-        db_connected = await check_db_connection()
+# Глобальный экземпляр движка рекомендаций
+aspect_recommendations = AspectRecommendationEngine()
 
-        if not db_connected:
-            logger.error("❌ Не удалось подключиться к базе данных. Завершение работы.")
-            return
-
-        bot = Bot(token=TOKEN)
-        dp = Dispatcher()
-
-        # Подключаем роутер
-        dp.include_router(router)
-
-        logger.info("✅ Бот запущен и готов к работе...")
-        logger.info("✅ База данных подключена успешно")
-        logger.info("✅ Personal Assistant инициализирован")
-
-        # Запускаем поллинг
-        await dp.start_polling(bot)
-
-    except Exception as e:
-        logger.error(f"❌ Ошибка при запуске бота: {e}")
-    finally:
-        if 'bot' in locals():
-            await bot.close()
-        logger.info("🛑 Бот остановлен")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-
-backend: 
-
-__init__.py
+backend.assistant.py
 
 from backend.user_services import create_or_update_user, get_user_profile, update_user_profession, \
     increment_request_count
 from backend.chart_services import create_and_save_natal_chart, get_user_natal_chart
 from backend.matrix_services import calculate_and_save_psyho_matrix, get_user_matrix
 from backend.prediction_services import generate_and_save_prediction, get_user_predictions, \
-    format_data_for_user, format_data_for_model
+    format_data_for_user, get_daily_calculations, save_daily_calculations
 from backend.biorhythm_services import calculate_and_save_biorhythms, get_user_biorhythms
 from backend.database import async_session
 from datetime import datetime, date, timedelta
-from backend.moon import calculate_lunar_phase
 import logging
 import asyncio
 from typing import Dict, Any, List, Optional
+import json
+import math
 
 logger = logging.getLogger(__name__)
 
 
 class PersonalAssistant:
-    """Главный класс помощника для управления всеми данными с AI интеграцией"""
+    """Главный класс помощника для управления расчетными данными (без AI логики)"""
 
     def __init__(self):
-        self.ai_engine = None
-        self._ai_engine_initialized = False
+        self.calculation_cache = {}
 
-    async def _initialize_ai_engine(self):
-        """Ленивая инициализация AI движка"""
-        if not self._ai_engine_initialized:
-            try:
-                from backend.ai_engine import ai_engine
-                self.ai_engine = ai_engine
-                self._ai_engine_initialized = True
-                logger.info("✅ AI движок инициализирован")
-            except ImportError as e:
-                logger.warning(f"⚠️ AI движок недоступен: {e}")
-                self._ai_engine_initialized = True
+    def _calculate_user_age(self, birth_date: date) -> int:
+        """Расчет возраста пользователя"""
+        try:
+            if not birth_date:
+                return 0
+            today = date.today()
+            age = today.year - birth_date.year
+            if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day):
+                age -= 1
+            return age
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка расчета возраста: {e}")
+            return 0
+
+    def _estimate_experience_level(self, age: int, profession: str) -> str:
+        """Оценка уровня профессионального опыта"""
+        if not profession or profession.lower() in ['не указана', 'нет', '']:
+            return "неизвестно"
+
+        if age < 22:
+            return "начинающий"
+        elif age < 30:
+            return "опытный"
+        elif age < 45:
+            return "профессионал"
+        else:
+            return "эксперт"
+
+    def _get_energy_level_description(self, percentage: float) -> Dict[str, str]:
+        """Описание уровня энергии"""
+        if percentage >= 90:
+            return {"level": "очень высокий", "description": "идеально для сложных задач и важных решений"}
+        elif percentage >= 75:
+            return {"level": "высокий", "description": "отлично для продуктивной работы"}
+        elif percentage >= 60:
+            return {"level": "хороший", "description": "подходит для активной деятельности"}
+        elif percentage >= 40:
+            return {"level": "средний", "description": "стабильно для рутинных задач"}
+        elif percentage >= 20:
+            return {"level": "низкий", "description": "требует бережного отношения к силам"}
+        else:
+            return {"level": "критически низкий", "description": "необходим отдых и восстановление"}
+
+    def _get_physical_recommendation(self, percentage: float) -> str:
+        """Рекомендации по физической активности"""
+        if percentage >= 90:
+            return "идеальное время для спорта и физических нагрузок"
+        elif percentage >= 70:
+            return "хороший день для активной работы и движения"
+        elif percentage >= 50:
+            return "подходит для умеренной физической активности"
+        elif percentage >= 30:
+            return "берегите силы, избегайте перегрузок"
+        else:
+            return "требуется отдых и восстановление физических сил"
+
+    def _get_emotional_recommendation(self, percentage: float) -> str:
+        """Рекомендации по эмоциональному состоянию"""
+        if percentage >= 90:
+            return "отличное настроение для общения и новых знакомств"
+        elif percentage >= 70:
+            return "эмоционально стабильный день"
+        elif percentage >= 50:
+            return "сохраняйте эмоциональное равновесие"
+        elif percentage >= 30:
+            return "будьте осторожны в общении, контролируйте эмоции"
+        else:
+            return "критический эмоциональный фон - избегайте конфликтов и стрессов"
+
+    def _get_intellectual_recommendation(self, percentage: float) -> str:
+        """Рекомендации по интеллектуальной деятельности"""
+        if percentage >= 90:
+            return "пик умственных способностей - время для сложных задач и обучения"
+        elif percentage >= 70:
+            return "отличные когнитивные способности для анализа и планирования"
+        elif percentage >= 50:
+            return "стабильная умственная активность"
+        elif percentage >= 30:
+            return "сосредоточьтесь на простых задачах, избегайте сложного анализа"
+        else:
+            return "умственное истощение - время для отдыха и простых действий"
+
+    def _get_season(self, target_date: date) -> str:
+        """Определение сезона для контекста"""
+        try:
+            month = target_date.month
+            if month in [12, 1, 2]:
+                return 'зима'
+            elif month in [3, 4, 5]:
+                return 'весна'
+            elif month in [6, 7, 8]:
+                return 'лето'
+            else:
+                return 'осень'
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка определения сезона: {e}")
+            return 'неизвестно'
+
+    def _get_lunar_phase(self, target_date: date) -> str:
+        """Упрощенный расчет лунной фазы"""
+        try:
+            day = target_date.day
+            if day <= 7:
+                return 'растущая луна'
+            elif day <= 14:
+                return 'полнолуние'
+            elif day <= 21:
+                return 'убывающая луна'
+            else:
+                return 'новолуние'
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка расчета лунной фазы: {e}")
+            return 'неизвестно'
+
+    def _prepare_calculation_data(self, telegram_id: int, user_profile: dict, prediction: dict,
+                                  target_date: date) -> dict:
+        """
+        Подготовка структурированных данных для внешнего потребления
+        """
+        try:
+            daily_calculations = prediction.get('daily_calculations', {})
+            biorhythm_data = daily_calculations.get('biorhythm_data', {})
+            astro_data = daily_calculations.get('astro_data', {})
+            natal_chart = prediction.get('natal_chart', {})
+            psyho_matrix = prediction.get('psyho_matrix', {})
+
+            # Базовые данные пользователя
+            user_age = self._calculate_user_age(user_profile.get('birth_date'))
+            experience_level = self._estimate_experience_level(user_age, user_profile.get('profession'))
+
+            # Оптимизированные данные для внешнего API
+            prepared_data = {
+                # Контекст пользователя
+                'user_context': {
+                    'telegram_id': telegram_id,
+                    'age': user_age,
+                    'experience_level': experience_level,
+                    'profession': user_profile.get('profession', 'не указана'),
+                    'position': user_profile.get('job_position', 'не указана'),
+                    'current_city': user_profile.get('current_city', 'не указан'),
+                    'birth_city': user_profile.get('birth_city', 'не указан'),
+                    'gender': user_profile.get('gender', 'не указан')
+                },
+
+                # Энергетическое состояние
+                'energy_state': {
+                    'overall_energy': biorhythm_data.get('overall_energy', {}),
+                    'physical_cycle': biorhythm_data.get('cycles', {}).get('physical', {}),
+                    'emotional_cycle': biorhythm_data.get('cycles', {}).get('emotional', {}),
+                    'intellectual_cycle': biorhythm_data.get('cycles', {}).get('intellectual', {})
+                },
+
+                # Астрологические данные
+                'astro_data': {
+                    'aspects_count': astro_data.get('aspects_count', 0),
+                    'strong_aspects_count': astro_data.get('strong_aspects_count', 0),
+                    'retrograde_planets': astro_data.get('retrograde_planets', []),
+                    'key_aspects': astro_data.get('key_aspects', [])[:3]  # Только топ-3
+                },
+
+                # Статические данные
+                'static_profile': {
+                    'natal_chart_summary': {
+                        'planets_count': len(natal_chart.get('planets', {})),
+                        'dominant_element': self._get_dominant_element(natal_chart),
+                        'ascendant': natal_chart.get('angles', {}).get('ascendant', {}).get('sign', 'неизвестно')
+                    },
+                    'psyho_matrix_summary': {
+                        'life_path_number': psyho_matrix.get('basic_numbers', {}).get('first'),
+                        'matrix_complexity': self._calculate_matrix_complexity(psyho_matrix)
+                    }
+                },
+
+                # Контекст дня
+                'daily_context': {
+                    'season': self._get_season(target_date),
+                    'day_of_week': target_date.strftime('%A'),
+                    'lunar_phase': self._get_lunar_phase(target_date),
+                    'is_weekend': target_date.weekday() >= 5
+                },
+
+                # Мета-информация
+                'calculation_meta': {
+                    'target_date': target_date.strftime('%Y-%m-%d'),
+                    'calculation_timestamp': datetime.now().isoformat(),
+                    'data_version': '1.0'
+                }
+            }
+
+            logger.info(f"✅ Данные подготовлены для пользователя {telegram_id} на {target_date}")
+            return prepared_data
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка подготовки данных: {e}")
+            return self._prepare_data_fallback(user_profile, target_date)
+
+    def _get_dominant_element(self, natal_chart: dict) -> str:
+        """Определение доминирующего элемента в натальной карте"""
+        try:
+            element_balance = natal_chart.get('ml_features', {}).get('element_balance', {})
+            if element_balance:
+                return max(element_balance.items(), key=lambda x: x[1])[0]
+            return 'неизвестно'
+        except Exception:
+            return 'неизвестно'
+
+    def _calculate_matrix_complexity(self, psyho_matrix: dict) -> str:
+        """Оценка сложности психоматрицы"""
+        try:
+            matrix_data = psyho_matrix.get('pythagoras_matrix', {})
+            total_digits = sum(matrix_data.values())
+            if total_digits >= 15:
+                return "сложная"
+            elif total_digits >= 10:
+                return "средняя"
+            else:
+                return "простая"
+        except Exception:
+            return "неизвестно"
+
+    def _prepare_data_fallback(self, user_profile: dict, target_date: date) -> dict:
+        """Резервная подготовка данных при ошибках"""
+        return {
+            'user_context': {
+                'profession': user_profile.get('profession', 'не указана'),
+                'position': user_profile.get('job_position', 'не указана'),
+                'current_city': user_profile.get('current_city', 'не указан')
+            },
+            'energy_state': {},
+            'astro_data': {},
+            'static_profile': {},
+            'daily_context': {
+                'target_date': target_date.strftime('%Y-%m-%d')
+            },
+            'calculation_meta': {
+                'fallback_mode': True,
+                'error': 'Данные временно недоступны'
+            }
+        }
 
     async def collect_user_data(self, telegram_id: int, birth_date: date, birth_time: datetime.time,
                                 birth_city: str, current_city: str = None, profession: str = None,
@@ -1177,7 +1169,6 @@ class PersonalAssistant:
         try:
             logger.info(f"🔄 Начало сбора данных для пользователя {telegram_id}")
 
-            # Используем транзакцию для атомарности операций
             async with async_session() as session:
                 try:
                     # 1. Сохраняем основные данные пользователя
@@ -1236,10 +1227,9 @@ class PersonalAssistant:
                 'message': f"❌ Ошибка при сборе данных: {str(e)}"
             }
 
-    async def get_recommendations(self, telegram_id: int, target_date: date, include_ai: bool = False):
+    async def get_recommendations(self, telegram_id: int, target_date: date):
         """
-        Получение данных на выбранную дату
-        include_ai: если False - возвращает только расчеты (мгновенно)
+        Получение расчетных данных на выбранную дату (без AI рекомендаций)
         """
         try:
             logger.info(f"📅 Формирование данных на {target_date} для {telegram_id}")
@@ -1258,7 +1248,7 @@ class PersonalAssistant:
             # Генерируем и сохраняем данные для выбранной даты
             prediction = await generate_and_save_prediction(telegram_id, target_date)
 
-            # Получаем профиль пользователя для модели
+            # Получаем профиль пользователя
             user_profile = await get_user_profile(telegram_id)
             if not user_profile:
                 return {
@@ -1269,27 +1259,19 @@ class PersonalAssistant:
             # 1. Данные для пользователя (через бот)
             user_data = await format_data_for_user(prediction)
 
+            # 2. Структурированные данные для внешнего API
+            structured_data = self._prepare_calculation_data(telegram_id, user_profile, prediction, target_date)
+
             result = {
                 'success': True,
                 'date': target_date.isoformat(),
-                'user_data': user_data,
-                'prediction_data': prediction,  # Данные для AI
-                'user_profile': user_profile  # Профиль для AI
+                'user_data': user_data,  # Для бота
+                'structured_data': structured_data,  # Для внешнего API
+                'prediction_data': prediction,  # Полные данные
+                'user_profile': user_profile
             }
 
-            # 2. AI рекомендации ТОЛЬКО если явно запрошены
-            if include_ai:
-                logger.info(f"🤖 Включена генерация AI рекомендаций для {telegram_id}")
-                ai_result = await self._get_ai_recommendations(telegram_id, user_profile, prediction, target_date)
-                result.update({
-                    'ai_recommendations': ai_result.get('recommendations', {}),
-                    'ai_success': ai_result.get('success', False),
-                    'is_fallback': ai_result.get('is_fallback', False),
-                    'ai_error': ai_result.get('error')
-                })
-            else:
-                logger.info(f"⚡ AI рекомендации отключены для быстрого показа данных {telegram_id}")
-
+            logger.info(f"✅ Данные сформированы для {telegram_id} на {target_date}")
             return result
 
         except Exception as e:
@@ -1299,289 +1281,71 @@ class PersonalAssistant:
                 'message': f"❌ Не удалось получить данные на выбранную дату: {str(e)}"
             }
 
-    async def get_ai_recommendations_async(self, telegram_id: int, target_date: date,
-                                           prediction_data: dict, user_profile: dict):
+    async def get_calculation_package(self, telegram_id: int, target_date: date) -> Dict[str, Any]:
         """
-        Асинхронное получение AI рекомендаций (для использования в handlers)
-        """
-        try:
-            logger.info(f"🔄 Асинхронная генерация AI рекомендаций для {telegram_id}")
-
-            # Ленивая инициализация AI движка
-            await self._initialize_ai_engine()
-
-            if not self.ai_engine:
-                return self._get_fallback_ai_recommendations("AI движок недоступен")
-
-            # Проверяем доступность AI сервиса
-            health_check = await self.ai_engine.test_connection()
-            if not health_check.get('ollama_available', False):
-                return self._get_fallback_ai_recommendations("Ollama сервис недоступен")
-
-            if not health_check.get('model_loaded', False):
-                return self._get_fallback_ai_recommendations("AI модель не загружена")
-
-            # Подготавливаем ОПТИМИЗИРОВАННЫЕ данные для AI
-            prepared_data = self._prepare_optimized_ai_data(telegram_id, user_profile, prediction_data, target_date)
-
-            # Генерируем рекомендации с таймаутом
-            try:
-                ai_result = await asyncio.wait_for(
-                    self.ai_engine.generate_recommendations(prepared_data),
-                    timeout=170  # 170 секунд для AI обработки
-                )
-
-                if ai_result.get('success', False):
-                    logger.info(f"✅ AI рекомендации сгенерированы для {telegram_id}")
-                    return ai_result
-                else:
-                    logger.warning(f"⚠️ AI не смог сгенерировать рекомендации: {ai_result.get('error')}")
-                    return self._get_fallback_ai_recommendations(ai_result.get('error', 'Unknown AI error'))
-
-            except asyncio.TimeoutError:
-                logger.warning(f"⏰ Таймаут AI обработки для {telegram_id}")
-                return self._get_fallback_ai_recommendations("Таймаут генерации рекомендаций")
-
-            except Exception as e:
-                logger.error(f"❌ Ошибка AI обработки для {telegram_id}: {e}")
-                return self._get_fallback_ai_recommendations(str(e))
-
-        except Exception as e:
-            logger.error(f"❌ Критическая ошибка AI системы для {telegram_id}: {e}")
-            return self._get_fallback_ai_recommendations(str(e))
-
-    async def _get_ai_recommendations(self, telegram_id: int, user_profile: dict, prediction: dict, target_date: date):
-        """Получение AI рекомендаций (синхронная версия)"""
-        return await self.get_ai_recommendations_async(telegram_id, target_date, prediction, user_profile)
-
-    def _prepare_optimized_ai_data(self, telegram_id: int, user_profile: dict, prediction: dict,
-                                   target_date: date) -> dict:
-        """
-        ОПТИМИЗИРОВАННАЯ подготовка данных для AI модели
-        Убраны избыточные поля, добавлены полезные контекстные данные
+        Полный пакет расчетных данных для внешнего API
+        Оптимизирован для проекта Assistant
         """
         try:
-            daily_calculations = prediction.get('daily_calculations', {})
-            biorhythm_data = daily_calculations.get('biorhythm_data', {})
-            astro_data = daily_calculations.get('astro_data', {})
+            # Проверяем кэш
+            cache_key = f"{telegram_id}_{target_date}"
+            if cache_key in self.calculation_cache:
+                cached_data = self.calculation_cache[cache_key]
+                # Проверяем актуальность кэша (5 минут)
+                if datetime.now().timestamp() - cached_data['timestamp'] < 300:
+                    logger.info(f"✅ Использованы кэшированные данные для {telegram_id}")
+                    return cached_data['data']
 
-            # Рассчитываем возраст пользователя для контекста
-            user_age = self._calculate_user_age(user_profile.get('birth_date'))
+            # Получаем основные данные
+            result = await self.get_recommendations(telegram_id, target_date)
 
-            # Извлекаем ключевые сильные аспекты
-            strong_aspects = self._extract_key_strong_aspects(astro_data)
-
-            # Оптимизируем данные биоритмов
-            optimized_biorhythms = self._optimize_biorhythm_data(biorhythm_data)
-
-            # Оптимизируем астрологические данные
-            optimized_astro = self._optimize_astro_data(astro_data)
-
-            return {
-                'user_profile': {
-                    'profession': user_profile.get('profession', 'не указана'),
-                    'position': user_profile.get('job_position', 'не указана'),
-                    'current_city': user_profile.get('current_city', 'не указан'),
-                    'age': user_age
-                },
-                'energy_state': optimized_biorhythms,
-                'astro_influences': optimized_astro,
-                'key_aspects': strong_aspects,
-                'target_date': target_date.strftime('%d.%m.%Y'),  # Более читаемый формат
-                'season': self._get_season(target_date),  # Добавляем сезон для контекста
-                'day_of_week': target_date.strftime('%A')  # День недели для контекста
-            }
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка подготовки оптимизированных данных для AI: {e}")
-            # Fallback на старую структуру при ошибке
-            return self._prepare_ai_data_fallback(user_profile, prediction, target_date)
-
-    def _calculate_user_age(self, birth_date: date) -> int:
-        """Расчет возраста пользователя"""
-        try:
-            if not birth_date:
-                return 0
-            today = date.today()
-            age = today.year - birth_date.year
-            # Корректируем если день рождения еще не наступил в этом году
-            if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day):
-                age -= 1
-            return age
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка расчета возраста: {e}")
-            return 0
-
-    def _extract_key_strong_aspects(self, astro_data: dict) -> List[str]:
-        """Извлечение ключевых сильных аспектов для AI"""
-        try:
-            key_aspects = astro_data.get('key_aspects', [])
-            strong_aspects = []
-
-            # Берем только топ-5 самых сильных аспектов
-            sorted_aspects = sorted(key_aspects, key=lambda x: x.get('strength', 0), reverse=True)[:5]
-
-            for aspect in sorted_aspects:
-                if aspect.get('strength', 0) > 0.6:  # Более строгий порог для AI
-                    transit = aspect.get('transit_planet', '')
-                    natal = aspect.get('natal_planet', '')
-                    aspect_type = aspect.get('aspect', '')
-
-                    if transit and natal and aspect_type:
-                        # Упрощенные названия для AI
-                        strong_aspects.append(f"{transit}-{natal}-{aspect_type}")
-
-            return strong_aspects
-
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка извлечения сильных аспектов для AI: {e}")
-            return []
-
-    def _optimize_biorhythm_data(self, biorhythm_data: dict) -> Dict[str, Any]:
-        """Оптимизация данных биоритмов для AI"""
-        try:
-            overall = biorhythm_data.get('overall_energy', {})
-            cycles = biorhythm_data.get('cycles', {})
-
-            return {
-                'overall_energy_percentage': overall.get('percentage', 0),
-                'overall_energy_level': overall.get('level', 'средний'),
-                'physical': {
-                    'percentage': cycles.get('physical', {}).get('percentage', 0),
-                    'phase': cycles.get('physical', {}).get('phase', 'нейтральная'),
-                    'trend': cycles.get('physical', {}).get('trend', 'стабильно')
-                },
-                'emotional': {
-                    'percentage': cycles.get('emotional', {}).get('percentage', 0),
-                    'phase': cycles.get('emotional', {}).get('phase', 'нейтральная'),
-                    'trend': cycles.get('emotional', {}).get('trend', 'стабильно')
-                },
-                'intellectual': {
-                    'percentage': cycles.get('intellectual', {}).get('percentage', 0),
-                    'phase': cycles.get('intellectual', {}).get('phase', 'нейтральная'),
-                    'trend': cycles.get('intellectual', {}).get('trend', 'стабильно')
+            if not result['success']:
+                return {
+                    'success': False,
+                    'error': result['message'],
+                    'timestamp': datetime.now().isoformat()
                 }
-            }
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка оптимизации данных биоритмов: {e}")
-            return {}
 
-    def _optimize_astro_data(self, astro_data: dict) -> Dict[str, Any]:
-        """Оптимизация астрологических данных для AI"""
-        try:
+            # Формируем оптимизированный пакет
+            calculation_package = {
+                'success': True,
+                'user_id': telegram_id,
+                'target_date': target_date.isoformat(),
+                'calculations': result['structured_data'],
+                'raw_data_available': True,
+                'timestamp': datetime.now().isoformat(),
+                'data_source': 'astra_calculations'
+            }
+
+            # Сохраняем в кэш
+            self.calculation_cache[cache_key] = {
+                'data': calculation_package,
+                'timestamp': datetime.now().timestamp()
+            }
+
+            logger.info(f"✅ Пакет расчетов подготовлен для {telegram_id}")
+            return calculation_package
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка формирования пакета расчетов для {telegram_id}: {e}")
             return {
-                'total_aspects': astro_data.get('aspects_count', 0),
-                'strong_aspects': astro_data.get('strong_aspects_count', 0),
-                'retrograde_planets': len(astro_data.get('retrograde_planets', [])),
-                'aspect_intensity': self._calculate_aspect_intensity(astro_data)
-            }
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка оптимизации астроданных: {e}")
-            return {}
-
-    def _calculate_aspect_intensity(self, astro_data: dict) -> str:
-        """Расчет интенсивности аспектов для AI"""
-        try:
-            strong_count = astro_data.get('strong_aspects_count', 0)
-            total_count = astro_data.get('aspects_count', 0)
-
-            if total_count == 0:
-                return 'низкая'
-
-            intensity_ratio = strong_count / total_count
-
-            if intensity_ratio > 0.7:
-                return 'очень высокая'
-            elif intensity_ratio > 0.5:
-                return 'высокая'
-            elif intensity_ratio > 0.3:
-                return 'средняя'
-            else:
-                return 'низкая'
-
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка расчета интенсивности аспектов: {e}")
-            return 'неизвестно'
-
-    def _get_season(self, target_date: date) -> str:
-        """Определение сезона для контекста"""
-        try:
-            month = target_date.month
-            if month in [12, 1, 2]:
-                return 'зима'
-            elif month in [3, 4, 5]:
-                return 'весна'
-            elif month in [6, 7, 8]:
-                return 'лето'
-            else:
-                return 'осень'
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка определения сезона: {e}")
-            return 'неизвестно'
-
-    def _prepare_ai_data_fallback(self, user_profile: dict, prediction: dict, target_date: date) -> dict:
-        """Fallback подготовка данных (старая структура)"""
-        try:
-            daily_calculations = prediction.get('daily_calculations', {})
-
-            return {
-                'user_context': {
-                    'profession': user_profile.get('profession'),
-                    'position': user_profile.get('job_position'),
-                    'current_city': user_profile.get('current_city')
-                },
-                'energy_state': daily_calculations.get('biorhythm_data', {}),
-                'astro_highlights': daily_calculations.get('astro_data', {}),
-                'target_date': target_date.isoformat()
-            }
-        except Exception as e:
-            logger.error(f"❌ Критическая ошибка fallback подготовки данных: {e}")
-            return {
-                'user_context': {'profession': 'неизвестно'},
-                'energy_state': {},
-                'astro_highlights': {},
-                'target_date': target_date.isoformat()
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
             }
 
-    def _get_fallback_ai_recommendations(self, error: str) -> dict:
-        """Резервные рекомендации при недоступности AI"""
-        logger.info(f"🔄 Используются резервные рекомендации: {error}")
+    async def get_todays_recommendations(self, telegram_id: int):
+        """Получение данных на сегодня"""
+        return await self.get_recommendations(telegram_id, date.today())
 
-        return {
-            'success': False,
-            'is_fallback': True,
-            'error': error,
-            'recommendations': {
-                'professional': [
-                    "Сфокусируйтесь на текущих задачах",
-                    "Планируйте работу по приоритетам"
-                ],
-                'personal_effectiveness': [
-                    "Соблюдайте баланс работы и отдыха",
-                    "Делайте регулярные перерывы"
-                ],
-                'emotional': [
-                    "Сохраняйте эмоциональное равновесие",
-                    "Избегайте импульсивных решений"
-                ],
-                'daily_focus': [
-                    "Баланс между продуктивностью и восстановлением"
-                ]
-            }
-        }
-
-    async def get_todays_recommendations(self, telegram_id: int, include_ai: bool = False):
-        """Получение данных на сегодня (для обратной совместимости)"""
-        return await self.get_recommendations(telegram_id, date.today(), include_ai)
-
-    async def get_tomorrows_recommendations(self, telegram_id: int, include_ai: bool = False):
+    async def get_tomorrows_recommendations(self, telegram_id: int):
         """Получение данных на завтра"""
         tomorrow = date.today() + timedelta(days=1)
-        return await self.get_recommendations(telegram_id, tomorrow, include_ai)
+        return await self.get_recommendations(telegram_id, tomorrow)
 
-    async def get_date_recommendations(self, telegram_id: int, target_date: date, include_ai: bool = False):
-        """Получение данных на выбранную дату (alias для единообразия)"""
-        return await self.get_recommendations(telegram_id, target_date, include_ai)
+    async def get_date_recommendations(self, telegram_id: int, target_date: date):
+        """Получение данных на выбранную дату"""
+        return await self.get_recommendations(telegram_id, target_date)
 
     async def update_professional_info(self, telegram_id: int, current_city: str, profession: str,
                                        job_position: str = None, gender: str = None):
@@ -1589,7 +1353,6 @@ class PersonalAssistant:
         try:
             await update_user_profession(telegram_id, profession, job_position)
 
-            # Обновляем город проживания и пол
             user_profile = await get_user_profile(telegram_id)
             if user_profile:
                 await create_or_update_user(
@@ -1679,7 +1442,7 @@ class PersonalAssistant:
             }
 
     async def cleanup_user_data(self, telegram_id: int):
-        """Очистка данных пользователя (для администрирования)"""
+        """Очистка данных пользователя"""
         try:
             from backend.biorhythm_services import cleanup_old_biorhythms
             from backend.prediction_services import cleanup_old_predictions
@@ -1739,31 +1502,16 @@ class PersonalAssistant:
                 'prediction_valid': False
             }
 
-    async def test_ai_connection(self):
-        """Тестирование подключения к AI сервису"""
-        try:
-            await self._initialize_ai_engine()
-
-            if not self.ai_engine:
-                return {
-                    'available': False,
-                    'error': 'AI движок недоступен'
-                }
-
-            return await self.ai_engine.test_connection()
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка тестирования AI подключения: {e}")
-            return {
-                'available': False,
-                'error': str(e)
-            }
+    def clear_cache(self):
+        """Очистка внутреннего кэша"""
+        self.calculation_cache.clear()
+        logger.info("✅ Кэш помощника очищен")
 
 
 # Создаем глобальный экземпляр помощника
 assistant = PersonalAssistant()
 
-biorhythm_calculator.py:
+backend.biorhythm_calculator.py
 
 import math
 from datetime import date, datetime, timedelta
@@ -1972,9 +1720,9 @@ class BiorhythmCalculator:
 
         return forecast
 
-biorhythm_services.py:
+backend.biorhythm_services.py
 
-from backend.database import async_session, Biorhythms
+from backend.database import async_session, Biorhythms, DailyCalculations
 from backend.biorhythm_calculator import BiorhythmCalculator
 from backend.user_services import get_user_profile
 from sqlalchemy.future import select
@@ -1982,6 +1730,8 @@ from sqlalchemy import func, and_
 from datetime import date, datetime, timedelta
 import logging
 import asyncio
+import json
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -2026,6 +1776,9 @@ async def calculate_and_save_biorhythms(telegram_id: int, target_date: date = No
                 session.add(new_record)
                 logger.info(f"🆕 Созданы новые биоритмы для {telegram_id} на {target_date}")
 
+                # Также сохраняем в daily_calculations для оптимизации
+                await _save_to_daily_calculations(session, telegram_id, target_date, biorhythm_data)
+
                 await session.commit()
                 logger.info(f"💾 Биоритмы успешно сохранены для {telegram_id}")
 
@@ -2041,12 +1794,64 @@ async def calculate_and_save_biorhythms(telegram_id: int, target_date: date = No
         raise
 
 
+async def _save_to_daily_calculations(session, telegram_id: int, target_date: date, biorhythm_data: dict):
+    """Сохранение биоритмов в таблицу daily_calculations"""
+    try:
+        # Генерируем хэш данных
+        data_str = json.dumps(biorhythm_data, sort_keys=True)
+        data_hash = hashlib.sha256(data_str.encode()).hexdigest()
+
+        # Проверяем существующую запись
+        result = await session.execute(
+            select(DailyCalculations).where(
+                and_(
+                    DailyCalculations.telegram_id == telegram_id,
+                    DailyCalculations.target_date == target_date
+                )
+            )
+        )
+        daily_calc = result.scalar_one_or_none()
+
+        if daily_calc:
+            # Обновляем существующую запись
+            daily_calc.biorhythm_data = biorhythm_data
+            daily_calc.data_hash = data_hash
+            daily_calc.calculation_timestamp = datetime.now()
+        else:
+            # Создаем новую запись только с биоритмами
+            daily_calc = DailyCalculations(
+                telegram_id=telegram_id,
+                target_date=target_date,
+                biorhythm_data=biorhythm_data,
+                astro_transits_data={},  # Пустые астрологические данные
+                calculation_metadata={
+                    'data_source': 'biorhythms_only',
+                    'calculation_method': 'sine_wave_analysis'
+                },
+                data_hash=data_hash,
+                calculation_timestamp=datetime.now()
+            )
+            session.add(daily_calc)
+
+        logger.info(f"💾 Биоритмы сохранены в daily_calculations для {telegram_id}")
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка сохранения в daily_calculations: {e}")
+        raise
+
+
 async def get_user_biorhythms(telegram_id: int, target_date: date = None):
     """Получение биоритмов пользователя с улучшенной обработкой ошибок"""
     try:
         if target_date is None:
             target_date = date.today()
 
+        # Сначала пробуем получить из daily_calculations (оптимизированно)
+        daily_calc = await _get_biorhythms_from_daily_calculations(telegram_id, target_date)
+        if daily_calc:
+            return daily_calc
+
+        # Если нет в daily_calculations, ищем в основной таблице
         async with async_session() as session:
             result = await session.execute(
                 select(Biorhythms).where(
@@ -2068,6 +1873,31 @@ async def get_user_biorhythms(telegram_id: int, target_date: date = None):
 
     except Exception as e:
         logger.error(f"❌ Ошибка при получении биоритмов {telegram_id}: {e}")
+        return None
+
+
+async def _get_biorhythms_from_daily_calculations(telegram_id: int, target_date: date):
+    """Получение биоритмов из оптимизированной таблицы daily_calculations"""
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                select(DailyCalculations).where(
+                    and_(
+                        DailyCalculations.telegram_id == telegram_id,
+                        DailyCalculations.target_date == target_date
+                    )
+                )
+            )
+            daily_calc = result.scalar_one_or_none()
+
+            if daily_calc and daily_calc.biorhythm_data:
+                logger.info(f"⚡ Биоритмы получены из daily_calculations для {telegram_id}")
+                return daily_calc.biorhythm_data
+
+        return None
+
+    except Exception as e:
+        logger.debug(f"⚠️ Ошибка получения из daily_calculations: {e}")
         return None
 
 
@@ -2095,6 +1925,189 @@ async def get_biorhythm_weekly_forecast(telegram_id: int, start_date: date = Non
     except Exception as e:
         logger.error(f"❌ Ошибка при получении прогноза биоритмов {telegram_id}: {e}")
         return None
+
+
+async def get_biorhythm_trend(telegram_id: int, period_days: int = 30):
+    """Анализ тренда биоритмов за период"""
+    try:
+        end_date = date.today()
+        start_date = end_date - timedelta(days=period_days)
+
+        async with async_session() as session:
+            result = await session.execute(
+                select(Biorhythms).where(
+                    and_(
+                        Biorhythms.telegram_id == telegram_id,
+                        Biorhythms.calculation_date >= start_date,
+                        Biorhythms.calculation_date <= end_date
+                    )
+                ).order_by(Biorhythms.calculation_date)
+            )
+            biorhythms_records = result.scalars().all()
+
+        if not biorhythms_records:
+            return {"error": "Недостаточно данных для анализа тренда"}
+
+        # Анализируем тренды
+        trends = {
+            'physical_trend': _calculate_trend(biorhythms_records, 'physical'),
+            'emotional_trend': _calculate_trend(biorhythms_records, 'emotional'),
+            'intellectual_trend': _calculate_trend(biorhythms_records, 'intellectual'),
+            'overall_trend': _calculate_overall_trend(biorhythms_records),
+            'analysis_period': f"{start_date.isoformat()} - {end_date.isoformat()}",
+            'records_analyzed': len(biorhythms_records)
+        }
+
+        logger.info(f"📈 Проанализирован тренд биоритмов для {telegram_id}")
+        return trends
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка анализа тренда биоритмов {telegram_id}: {e}")
+        return {"error": str(e)}
+
+
+def _calculate_trend(biorhythms_records, cycle_type: str):
+    """Расчет тренда для конкретного цикла"""
+    try:
+        percentages = []
+        for record in biorhythms_records:
+            cycle_data = record.biorhythm_data.get('cycles', {}).get(cycle_type, {})
+            percentage = cycle_data.get('percentage', 0)
+            percentages.append(percentage)
+
+        if len(percentages) < 2:
+            return "недостаточно данных"
+
+        # Простой анализ тренда
+        first_half = percentages[:len(percentages) // 2]
+        second_half = percentages[len(percentages) // 2:]
+
+        avg_first = sum(first_half) / len(first_half)
+        avg_second = sum(second_half) / len(second_half)
+
+        if avg_second > avg_first + 5:
+            return "растущий"
+        elif avg_second < avg_first - 5:
+            return "падающий"
+        else:
+            return "стабильный"
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка расчета тренда {cycle_type}: {e}")
+        return "ошибка расчета"
+
+
+def _calculate_overall_trend(biorhythms_records):
+    """Расчет общего тренда энергии"""
+    try:
+        overall_energies = []
+        for record in biorhythms_records:
+            overall_energy = record.biorhythm_data.get('overall_energy', {})
+            percentage = overall_energy.get('percentage', 0)
+            overall_energies.append(percentage)
+
+        if len(overall_energies) < 2:
+            return "недостаточно данных"
+
+        # Анализ общего тренда
+        first_third = overall_energies[:len(overall_energies) // 3]
+        last_third = overall_energies[-(len(overall_energies) // 3):]
+
+        avg_first = sum(first_third) / len(first_third)
+        avg_last = sum(last_third) / len(last_third)
+
+        difference = avg_last - avg_first
+
+        if difference > 10:
+            return "сильный рост"
+        elif difference > 5:
+            return "умеренный рост"
+        elif difference < -10:
+            return "сильное падение"
+        elif difference < -5:
+            return "умеренное падение"
+        else:
+            return "стабильный"
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка расчета общего тренда: {e}")
+        return "ошибка расчета"
+
+
+async def get_critical_days_forecast(telegram_id: int, days_ahead: int = 30):
+    """Прогноз критических дней на указанный период"""
+    try:
+        user_profile = await get_user_profile(telegram_id)
+        if not user_profile:
+            raise ValueError(f"Пользователь {telegram_id} не найден")
+
+        calculator = BiorhythmCalculator()
+        start_date = date.today()
+        end_date = start_date + timedelta(days=days_ahead)
+
+        critical_days = []
+        current_date = start_date
+
+        while current_date <= end_date:
+            biorhythm_data = calculator.calculate_biorhythms(
+                user_profile['birth_date'],
+                current_date
+            )
+
+            critical_days_list = biorhythm_data.get('critical_days', [])
+            if critical_days_list:
+                critical_days.append({
+                    'date': current_date.isoformat(),
+                    'cycles': critical_days_list[0].get('cycles', []),
+                    'energy_level': biorhythm_data.get('overall_energy', {}).get('percentage', 0)
+                })
+
+            current_date += timedelta(days=1)
+
+        logger.info(f"⚠️  Найдено {len(critical_days)} критических дней для {telegram_id}")
+        return critical_days
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка прогноза критических дней {telegram_id}: {e}")
+        return []
+
+
+async def get_peak_days_forecast(telegram_id: int, days_ahead: int = 30):
+    """Прогноз пиковых дней на указанный период"""
+    try:
+        user_profile = await get_user_profile(telegram_id)
+        if not user_profile:
+            raise ValueError(f"Пользователь {telegram_id} не найден")
+
+        calculator = BiorhythmCalculator()
+        start_date = date.today()
+        end_date = start_date + timedelta(days=days_ahead)
+
+        peak_days = []
+        current_date = start_date
+
+        while current_date <= end_date:
+            biorhythm_data = calculator.calculate_biorhythms(
+                user_profile['birth_date'],
+                current_date
+            )
+
+            peak_days_list = biorhythm_data.get('peak_days', [])
+            if peak_days_list:
+                peak_days.append({
+                    'date': current_date.isoformat(),
+                    'cycles': peak_days_list[0].get('cycles', []),
+                    'energy_level': biorhythm_data.get('overall_energy', {}).get('percentage', 0)
+                })
+
+            current_date += timedelta(days=1)
+
+        logger.info(f"📈 Найдено {len(peak_days)} пиковых дней для {telegram_id}")
+        return peak_days
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка прогноза пиковых дней {telegram_id}: {e}")
+        return []
 
 
 async def cleanup_duplicate_biorhythms():
@@ -2149,11 +2162,21 @@ async def get_biorhythm_statistics(telegram_id: int):
             )
             min_date, max_date = dates_result.first() or (None, None)
 
+            # Средний уровень энергии
+            energy_result = await session.execute(
+                select(func.avg(Biorhythms.biorhythm_data['overall_energy']['percentage'].as_float())).where(
+                    Biorhythms.telegram_id == telegram_id
+                )
+            )
+            avg_energy = energy_result.scalar() or 0
+
             statistics = {
                 'total_records': total_records,
                 'first_calculation': min_date.isoformat() if min_date else None,
                 'last_calculation': max_date.isoformat() if max_date else None,
-                'calculation_range_days': (max_date - min_date).days if min_date and max_date else 0
+                'calculation_range_days': (max_date - min_date).days if min_date and max_date else 0,
+                'average_energy_level': round(avg_energy, 2),
+                'calculation_frequency': _calculate_frequency(total_records, min_date, max_date)
             }
 
             logger.info(f"📊 Статистика биоритмов получена для {telegram_id}")
@@ -2165,8 +2188,31 @@ async def get_biorhythm_statistics(telegram_id: int):
             'total_records': 0,
             'first_calculation': None,
             'last_calculation': None,
-            'calculation_range_days': 0
+            'calculation_range_days': 0,
+            'average_energy_level': 0,
+            'calculation_frequency': 'неизвестно'
         }
+
+
+def _calculate_frequency(total_records, min_date, max_date):
+    """Расчет частоты расчетов"""
+    if not min_date or not max_date or total_records == 0:
+        return "неизвестно"
+
+    total_days = (max_date - min_date).days
+    if total_days == 0:
+        return "ежедневно"
+
+    frequency = total_records / (total_days + 1)  # +1 чтобы избежать деления на 0
+
+    if frequency >= 0.9:
+        return "ежедневно"
+    elif frequency >= 0.3:
+        return "регулярно"
+    elif frequency >= 0.1:
+        return "периодически"
+    else:
+        return "редко"
 
 
 async def cleanup_old_biorhythms(days_old: int = 30):
@@ -2195,46 +2241,914 @@ async def cleanup_old_biorhythms(days_old: int = 30):
         logger.error(f"❌ Ошибка при очистке старых биоритмов: {e}")
         return 0
 
-chart_services.py:
 
-from backend.database import async_session, UserNatalChart
+async def get_optimal_planning_days(telegram_id: int, days_ahead: int = 14):
+    """Рекомендации оптимальных дней для планирования"""
+    try:
+        user_profile = await get_user_profile(telegram_id)
+        if not user_profile:
+            raise ValueError(f"Пользователь {telegram_id} не найден")
+
+        calculator = BiorhythmCalculator()
+        start_date = date.today()
+        end_date = start_date + timedelta(days=days_ahead)
+
+        optimal_days = []
+        current_date = start_date
+
+        while current_date <= end_date:
+            biorhythm_data = calculator.calculate_biorhythms(
+                user_profile['birth_date'],
+                current_date
+            )
+
+            overall_energy = biorhythm_data.get('overall_energy', {}).get('percentage', 0)
+            cycles = biorhythm_data.get('cycles', {})
+            physical = cycles.get('physical', {}).get('percentage', 0)
+            emotional = cycles.get('emotional', {}).get('percentage', 0)
+            intellectual = cycles.get('intellectual', {}).get('percentage', 0)
+
+            # Оценка дня для планирования
+            planning_score = _calculate_planning_score(overall_energy, physical, emotional, intellectual)
+
+            if planning_score >= 80:
+                day_type = "отличный"
+                recommendation = "идеально для важных решений и планирования"
+            elif planning_score >= 60:
+                day_type = "хороший"
+                recommendation = "подходит для стратегического планирования"
+            elif planning_score >= 40:
+                day_type = "удовлетворительный"
+                recommendation = "можно планировать рутинные задачи"
+            else:
+                day_type = "неблагоприятный"
+                recommendation = "лучше отложить важные решения"
+
+            optimal_days.append({
+                'date': current_date.isoformat(),
+                'planning_score': planning_score,
+                'day_type': day_type,
+                'recommendation': recommendation,
+                'energy_level': overall_energy,
+                'physical': physical,
+                'emotional': emotional,
+                'intellectual': intellectual
+            })
+
+            current_date += timedelta(days=1)
+
+        # Сортируем по убыванию оценки
+        optimal_days.sort(key=lambda x: x['planning_score'], reverse=True)
+
+        logger.info(f"🎯 Определены оптимальные дни для планирования {telegram_id}")
+        return optimal_days
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка определения оптимальных дней {telegram_id}: {e}")
+        return []
+
+
+def _calculate_planning_score(overall: float, physical: float, emotional: float, intellectual: float) -> float:
+    """Расчет оценки дня для планирования"""
+    # Веса для разных аспектов планирования
+    weights = {
+        'overall': 0.3,
+        'intellectual': 0.4,  # Самый важный для планирования
+        'emotional': 0.2,  # Важен для принятия решений
+        'physical': 0.1  # Менее важен для планирования
+    }
+
+    score = (
+            overall * weights['overall'] +
+            intellectual * weights['intellectual'] +
+            emotional * weights['emotional'] +
+            physical * weights['physical']
+    )
+
+    return round(score, 2)
+
+
+class BiorhythmAnalysisService:
+    """Сервис для углубленного анализа биоритмов"""
+
+    def __init__(self):
+        self.calculator = BiorhythmCalculator()
+
+    async def get_comprehensive_analysis(self, telegram_id: int, target_date: date = None):
+        """Полный анализ биоритмов с рекомендациями"""
+        try:
+            if target_date is None:
+                target_date = date.today()
+
+            # Получаем текущие биоритмы
+            biorhythm_data = await get_user_biorhythms(telegram_id, target_date)
+            if not biorhythm_data:
+                return {"error": "Не удалось получить данные биоритмов"}
+
+            # Получаем прогнозы
+            weekly_forecast = await get_biorhythm_weekly_forecast(telegram_id, target_date, 7)
+            critical_days = await get_critical_days_forecast(telegram_id, 30)
+            peak_days = await get_peak_days_forecast(telegram_id, 30)
+            optimal_days = await get_optimal_planning_days(telegram_id, 14)
+
+            # Анализ трендов
+            trend_analysis = await get_biorhythm_trend(telegram_id, 30)
+
+            # Формируем полный анализ
+            analysis = {
+                'current_data': biorhythm_data,
+                'weekly_forecast': weekly_forecast,
+                'critical_days_forecast': critical_days[:5],  # Только ближайшие 5
+                'peak_days_forecast': peak_days[:5],
+                'optimal_planning_days': optimal_days[:3],  # Только топ-3
+                'trend_analysis': trend_analysis,
+                'personalized_recommendations': self._generate_recommendations(biorhythm_data),
+                'analysis_timestamp': datetime.now().isoformat()
+            }
+
+            logger.info(f"📊 Полный анализ биоритмов подготовлен для {telegram_id}")
+            return analysis
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка полного анализа биоритмов {telegram_id}: {e}")
+            return {"error": str(e)}
+
+    def _generate_recommendations(self, biorhythm_data: dict) -> list:
+        """Генерация персонализированных рекомендаций"""
+        recommendations = []
+
+        overall_energy = biorhythm_data.get('overall_energy', {}).get('percentage', 0)
+        cycles = biorhythm_data.get('cycles', {})
+        physical = cycles.get('physical', {})
+        emotional = cycles.get('emotional', {})
+        intellectual = cycles.get('intellectual', {})
+
+        # Рекомендации по общей энергии
+        if overall_energy >= 80:
+            recommendations.append("💪 Идеальный день для сложных задач и важных решений")
+        elif overall_energy >= 60:
+            recommendations.append("🚀 Хорошее время для активной работы и проектов")
+        elif overall_energy <= 30:
+            recommendations.append("🛌 Рекомендуется беречь силы, делать перерывы")
+
+        # Рекомендации по физическому циклу
+        physical_percentage = physical.get('percentage', 0)
+        if physical_percentage >= 70:
+            recommendations.append("🏃 Отличный день для спорта и физической активности")
+        elif physical_percentage <= 30:
+            recommendations.append("💤 Избегайте тяжелых физических нагрузок")
+
+        # Рекомендации по эмоциональному циклу
+        emotional_percentage = emotional.get('percentage', 0)
+        if emotional_percentage >= 70:
+            recommendations.append("😊 Благоприятное время для общения и встреч")
+        elif emotional_percentage <= 30:
+            recommendations.append("🧘 Контролируйте эмоции, избегайте конфликтов")
+
+        # Рекомендации по интеллектуальному циклу
+        intellectual_percentage = intellectual.get('percentage', 0)
+        if intellectual_percentage >= 70:
+            recommendations.append("📚 Идеально для обучения, анализа и планирования")
+        elif intellectual_percentage <= 30:
+            recommendations.append("📝 Отложите сложные интеллектуальные задачи")
+
+        # Критические дни
+        critical_days = biorhythm_data.get('critical_days', [])
+        if critical_days:
+            recommendations.append("⚠️ Критический день - будьте осторожны в принятии решений")
+
+        return recommendations
+
+    async def get_energy_optimization_plan(self, telegram_id: int, period_days: int = 7):
+        """План оптимизации энергии на период"""
+        try:
+            forecast = await get_biorhythm_weekly_forecast(telegram_id, date.today(), period_days)
+            if not forecast:
+                return {"error": "Не удалось получить прогноз"}
+
+            optimization_plan = []
+
+            for day_data in forecast:
+                date_str = day_data['date']
+                energy_level = day_data['overall_energy']
+                physical = day_data['physical']
+                emotional = day_data['emotional']
+                intellectual = day_data['intellectual']
+
+                # Определяем тип дня и рекомендации
+                if energy_level >= 75:
+                    day_type = "энергичный"
+                    focus = "сложные задачи, новые проекты"
+                    activities = ["стратегическое планирование", "принятие решений", "переговоры"]
+                elif energy_level >= 50:
+                    day_type = "стабильный"
+                    focus = "текущие задачи, рутинная работа"
+                    activities = ["выполнение планов", "коммуникация", "обучение"]
+                else:
+                    day_type = "восстановительный"
+                    focus = "отдых, подготовка, анализ"
+                    activities = ["планирование", "анализ результатов", "восстановление сил"]
+
+                optimization_plan.append({
+                    'date': date_str,
+                    'energy_level': energy_level,
+                    'day_type': day_type,
+                    'focus_area': focus,
+                    'recommended_activities': activities,
+                    'physical_energy': physical,
+                    'emotional_energy': emotional,
+                    'intellectual_energy': intellectual
+                })
+
+            return {
+                'optimization_plan': optimization_plan,
+                'period': f"{period_days} дней",
+                'generated_at': datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка создания плана оптимизации для {telegram_id}: {e}")
+            return {"error": str(e)}
+
+
+# Глобальный экземпляр сервиса
+biorhythm_service = BiorhythmAnalysisService()
+
+backend.calculation_services.py
+
+from backend.database import async_session, DailyCalculations, CalculationCache, UserAstroProfile
+from backend.biorhythm_services import calculate_and_save_biorhythms, get_user_biorhythms
+from backend.chart_services import get_user_natal_chart
+from backend.matrix_services import get_user_matrix
+from backend.predictions import AstroPredictor
+from sqlalchemy.future import select
+from sqlalchemy import and_, func
+from datetime import datetime, date, timedelta
+import logging
+import asyncio
+import json
+import hashlib
+from typing import Dict, Any, List, Optional
+
+logger = logging.getLogger(__name__)
+
+
+class CalculationService:
+    """
+    Унифицированный сервис для управления всеми типами расчетов
+    Объединяет биоритмы, астрологию и психоматрицу
+    """
+
+    def __init__(self):
+        self.cache_ttl_hours = 24  # Время жизни кэша в часах
+
+    async def get_full_calculation_package(self, telegram_id: int, target_date: date) -> Dict[str, Any]:
+        """
+        Получение полного пакета расчетных данных
+        Основной метод для внешнего API
+        """
+        try:
+            # Проверяем кэш
+            cached_data = await self._get_cached_calculation(telegram_id, target_date, 'full_package')
+            if cached_data:
+                logger.info(f"⚡ Использованы кэшированные данные для {telegram_id}")
+                return cached_data
+
+            # Получаем все типы расчетов
+            calculations = await asyncio.gather(
+                self._get_biorhythm_calculations(telegram_id, target_date),
+                self._get_astrology_calculations(telegram_id, target_date),
+                self._get_matrix_calculations(telegram_id),
+                self._get_user_context(telegram_id),
+                return_exceptions=True
+            )
+
+            # Обрабатываем результаты
+            biorhythm_data = calculations[0] if not isinstance(calculations[0], Exception) else {}
+            astrology_data = calculations[1] if not isinstance(calculations[1], Exception) else {}
+            matrix_data = calculations[2] if not isinstance(calculations[2], Exception) else {}
+            user_context = calculations[3] if not isinstance(calculations[3], Exception) else {}
+
+            # Формируем полный пакет
+            calculation_package = {
+                'success': True,
+                'user_id': telegram_id,
+                'target_date': target_date.isoformat(),
+                'calculations': {
+                    'biorhythms': biorhythm_data,
+                    'astrology': astrology_data,
+                    'psychomatrix': matrix_data
+                },
+                'user_context': user_context,
+                'metadata': {
+                    'calculation_timestamp': datetime.now().isoformat(),
+                    'data_version': '2.0',
+                    'sources_used': self._get_used_sources(biorhythm_data, astrology_data, matrix_data)
+                }
+            }
+
+            # Сохраняем в кэш
+            await self._save_to_cache(telegram_id, target_date, 'full_package', calculation_package)
+
+            logger.info(f"✅ Полный пакет расчетов подготовлен для {telegram_id}")
+            return calculation_package
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка формирования пакета расчетов для {telegram_id}: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'user_id': telegram_id,
+                'target_date': target_date.isoformat(),
+                'timestamp': datetime.now().isoformat()
+            }
+
+    async def _get_biorhythm_calculations(self, telegram_id: int, target_date: date) -> Dict[str, Any]:
+        """Получение расчетов биоритмов"""
+        try:
+            biorhythm_data = await get_user_biorhythms(telegram_id, target_date)
+
+            if not biorhythm_data:
+                # Если данных нет, рассчитываем заново
+                biorhythm_data = await calculate_and_save_biorhythms(telegram_id, target_date)
+
+            return {
+                'energy_levels': {
+                    'overall': biorhythm_data.get('overall_energy', {}).get('percentage', 0),
+                    'physical': biorhythm_data.get('cycles', {}).get('physical', {}).get('percentage', 0),
+                    'emotional': biorhythm_data.get('cycles', {}).get('emotional', {}).get('percentage', 0),
+                    'intellectual': biorhythm_data.get('cycles', {}).get('intellectual', {}).get('percentage', 0)
+                },
+                'phases': {
+                    'physical': biorhythm_data.get('cycles', {}).get('physical', {}).get('phase', 'неизвестно'),
+                    'emotional': biorhythm_data.get('cycles', {}).get('emotional', {}).get('phase', 'неизвестно'),
+                    'intellectual': biorhythm_data.get('cycles', {}).get('intellectual', {}).get('phase', 'неизвестно')
+                },
+                'special_days': {
+                    'critical_days': len(biorhythm_data.get('critical_days', [])),
+                    'peak_days': len(biorhythm_data.get('peak_days', []))
+                },
+                'days_lived': biorhythm_data.get('days_lived', 0)
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка получения биоритмов для {telegram_id}: {e}")
+            return {'error': str(e)}
+
+    async def _get_astrology_calculations(self, telegram_id: int, target_date: date) -> Dict[str, Any]:
+        """Получение астрологических расчетов"""
+        try:
+            # Получаем натальную карту
+            natal_data = await get_user_natal_chart(telegram_id)
+            if not natal_data:
+                return {'error': 'Натальная карта не найдена'}
+
+            # Рассчитываем транзиты
+            predictor = AstroPredictor(natal_data)
+            astro_prediction = predictor.generate_prediction(target_date)
+
+            return {
+                'transits': {
+                    'total_planets': len(astro_prediction.get('transits', {})),
+                    'retrograde_planets': astro_prediction.get('retrograde_planets', [])
+                },
+                'aspects': {
+                    'total_count': astro_prediction.get('aspects_count', 0),
+                    'strong_count': astro_prediction.get('strong_aspects_count', 0),
+                    'key_aspects': astro_prediction.get('aspects', [])[:3]  # Топ-3 аспекта
+                },
+                'natal_summary': {
+                    'dominant_element': self._get_dominant_element(natal_data),
+                    'planets_count': len(natal_data.get('planets', {})),
+                    'ascendant': natal_data.get('angles', {}).get('ascendant', {}).get('sign', 'неизвестно')
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка получения астрологических данных для {telegram_id}: {e}")
+            return {'error': str(e)}
+
+    def _get_dominant_element(self, natal_data: dict) -> str:
+        """Определение доминирующего элемента"""
+        try:
+            element_balance = natal_data.get('ml_features', {}).get('element_balance', {})
+            if element_balance:
+                return max(element_balance.items(), key=lambda x: x[1])[0]
+            return 'неизвестно'
+        except Exception:
+            return 'неизвестно'
+
+    async def _get_matrix_calculations(self, telegram_id: int) -> Dict[str, Any]:
+        """Получение расчетов психоматрицы"""
+        try:
+            matrix_data = await get_user_matrix(telegram_id)
+            if not matrix_data:
+                return {'error': 'Психоматрица не найдена'}
+
+            basic_numbers = matrix_data.get('basic_numbers', {})
+            pythagoras_matrix = matrix_data.get('pythagoras_matrix', {})
+
+            return {
+                'life_path': basic_numbers.get('first'),
+                'destiny_number': basic_numbers.get('second'),
+                'personality_number': basic_numbers.get('third'),
+                'matrix_analysis': {
+                    'complexity': self._calculate_matrix_complexity(pythagoras_matrix),
+                    'strong_digits': [digit for digit, count in pythagoras_matrix.items() if count >= 2],
+                    'missing_digits': [digit for digit in map(str, range(1, 10)) if
+                                       pythagoras_matrix.get(digit, 0) == 0]
+                },
+                'energy_centers': self._analyze_energy_centers(pythagoras_matrix)
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка получения психоматрицы для {telegram_id}: {e}")
+            return {'error': str(e)}
+
+    def _calculate_matrix_complexity(self, matrix: dict) -> str:
+        """Оценка сложности психоматрицы"""
+        total_digits = sum(matrix.values())
+        if total_digits >= 15:
+            return "сложная"
+        elif total_digits >= 10:
+            return "средняя"
+        else:
+            return "простая"
+
+    def _analyze_energy_centers(self, matrix: dict) -> Dict[str, int]:
+        """Анализ энергетических центров"""
+        return {
+            'practical': sum(matrix.get(str(digit), 0) for digit in [4, 5, 6]),
+            'spiritual': sum(matrix.get(str(digit), 0) for digit in [7, 8, 9]),
+            'will': sum(matrix.get(str(digit), 0) for digit in [1, 2, 3])
+        }
+
+    async def _get_user_context(self, telegram_id: int) -> Dict[str, Any]:
+        """Получение контекста пользователя"""
+        try:
+            from backend.user_services import get_user_profile
+
+            user_profile = await get_user_profile(telegram_id)
+            if not user_profile:
+                return {}
+
+            # Рассчитываем возраст
+            age = self._calculate_age(user_profile.get('birth_date'))
+
+            return {
+                'demographics': {
+                    'age': age,
+                    'profession': user_profile.get('profession', 'не указана'),
+                    'position': user_profile.get('job_position', 'не указана'),
+                    'city': user_profile.get('current_city', 'не указан'),
+                    'gender': user_profile.get('gender', 'не указан')
+                },
+                'experience_level': self._estimate_experience_level(age, user_profile.get('profession')),
+                'request_count': user_profile.get('request_count', 0)
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка получения контекста пользователя {telegram_id}: {e}")
+            return {}
+
+    def _calculate_age(self, birth_date: date) -> int:
+        """Расчет возраста"""
+        if not birth_date:
+            return 0
+        today = date.today()
+        age = today.year - birth_date.year
+        if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day):
+            age -= 1
+        return age
+
+    def _estimate_experience_level(self, age: int, profession: str) -> str:
+        """Оценка уровня опыта"""
+        if not profession or profession.lower() in ['не указана', 'нет', '']:
+            return "неизвестно"
+
+        if age < 22:
+            return "начинающий"
+        elif age < 30:
+            return "опытный"
+        elif age < 45:
+            return "профессионал"
+        else:
+            return "эксперт"
+
+    def _get_used_sources(self, biorhythms: dict, astrology: dict, matrix: dict) -> List[str]:
+        """Определение использованных источников данных"""
+        sources = []
+
+        if biorhythms and not biorhythms.get('error'):
+            sources.append('biorhythms')
+        if astrology and not astrology.get('error'):
+            sources.append('astrology')
+        if matrix and not matrix.get('error'):
+            sources.append('psychomatrix')
+
+        return sources
+
+    async def _get_cached_calculation(self, telegram_id: int, target_date: date, data_type: str) -> Optional[
+        Dict[str, Any]]:
+        """Получение данных из кэша"""
+        try:
+            async with async_session() as session:
+                result = await session.execute(
+                    select(CalculationCache).where(
+                        and_(
+                            CalculationCache.telegram_id == telegram_id,
+                            CalculationCache.target_date == target_date,
+                            CalculationCache.data_type == data_type,
+                            CalculationCache.expires_at > datetime.now()
+                        )
+                    )
+                )
+                cached = result.scalar_one_or_none()
+
+                if cached:
+                    return cached.calculation_data
+                return None
+
+        except Exception as e:
+            logger.debug(f"⚠️ Ошибка получения из кэша: {e}")
+            return None
+
+    async def _save_to_cache(self, telegram_id: int, target_date: date, data_type: str, data: Dict[str, Any]):
+        """Сохранение данных в кэш"""
+        try:
+            expires_at = datetime.now() + timedelta(hours=self.cache_ttl_hours)
+
+            async with async_session() as session:
+                # Удаляем старую запись
+                await session.execute(
+                    CalculationCache.__table__.delete().where(
+                        and_(
+                            CalculationCache.telegram_id == telegram_id,
+                            CalculationCache.target_date == target_date,
+                            CalculationCache.data_type == data_type
+                        )
+                    )
+                )
+
+                # Создаем новую запись
+                cache_entry = CalculationCache(
+                    telegram_id=telegram_id,
+                    target_date=target_date,
+                    data_type=data_type,
+                    calculation_data=data,
+                    expires_at=expires_at
+                )
+                session.add(cache_entry)
+
+                await session.commit()
+                logger.debug(f"💾 Данные сохранены в кэш для {telegram_id}")
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка сохранения в кэш: {e}")
+            # Не прерываем выполнение при ошибке кэширования
+
+
+class CalculationOptimizer:
+    """
+    Сервис для оптимизации и управления расчетами
+    """
+
+    def __init__(self):
+        self.calculation_service = CalculationService()
+
+    async def get_optimized_calculations(self, telegram_id: int, target_date: date,
+                                         include_types: List[str] = None) -> Dict[str, Any]:
+        """
+        Оптимизированное получение расчетов с фильтрацией по типам
+        """
+        if include_types is None:
+            include_types = ['biorhythms', 'astrology', 'psychomatrix']
+
+        try:
+            # Получаем полный пакет
+            full_package = await self.calculation_service.get_full_calculation_package(telegram_id, target_date)
+
+            if not full_package.get('success'):
+                return full_package
+
+            # Фильтруем данные по запрошенным типам
+            filtered_calculations = {}
+            for calc_type in include_types:
+                if calc_type in full_package['calculations']:
+                    filtered_calculations[calc_type] = full_package['calculations'][calc_type]
+
+            # Формируем оптимизированный ответ
+            optimized_response = {
+                'success': True,
+                'user_id': telegram_id,
+                'target_date': target_date.isoformat(),
+                'calculations': filtered_calculations,
+                'user_context': full_package.get('user_context', {}),
+                'included_types': include_types,
+                'timestamp': datetime.now().isoformat()
+            }
+
+            logger.info(f"🎯 Оптимизированные расчеты подготовлены для {telegram_id}")
+            return optimized_response
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка оптимизированных расчетов для {telegram_id}: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'user_id': telegram_id,
+                'target_date': target_date.isoformat()
+            }
+
+    async def get_calculation_health_check(self, telegram_id: int) -> Dict[str, Any]:
+        """
+        Проверка здоровья расчетных данных пользователя
+        """
+        try:
+            checks = await asyncio.gather(
+                self._check_biorhythm_health(telegram_id),
+                self._check_astrology_health(telegram_id),
+                self._check_matrix_health(telegram_id),
+                self._check_user_data_health(telegram_id)
+            )
+
+            health_status = {
+                'user_id': telegram_id,
+                'check_timestamp': datetime.now().isoformat(),
+                'overall_status': 'healthy',
+                'detailed_checks': {
+                    'biorhythms': checks[0],
+                    'astrology': checks[1],
+                    'psychomatrix': checks[2],
+                    'user_data': checks[3]
+                }
+            }
+
+            # Определяем общий статус
+            all_healthy = all(check.get('status') == 'healthy' for check in checks)
+            health_status['overall_status'] = 'healthy' if all_healthy else 'degraded'
+
+            return health_status
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка проверки здоровья расчетов для {telegram_id}: {e}")
+            return {
+                'user_id': telegram_id,
+                'overall_status': 'error',
+                'error': str(e)
+            }
+
+    async def _check_biorhythm_health(self, telegram_id: int) -> Dict[str, Any]:
+        """Проверка здоровья данных биоритмов"""
+        try:
+            # Проверяем наличие свежих данных
+            today = date.today()
+            biorhythm_data = await get_user_biorhythms(telegram_id, today)
+
+            if not biorhythm_data:
+                return {
+                    'status': 'missing',
+                    'message': 'Отсутствуют данные биоритмов на сегодня',
+                    'recommendation': 'Выполнить расчет биоритмов'
+                }
+
+            # Проверяем свежесть данных
+            async with async_session() as session:
+                result = await session.execute(
+                    select(DailyCalculations.calculation_timestamp).where(
+                        and_(
+                            DailyCalculations.telegram_id == telegram_id,
+                            DailyCalculations.target_date == today
+                        )
+                    )
+                )
+                timestamp = result.scalar_one_or_none()
+
+            if timestamp:
+                data_age = (datetime.now() - timestamp).total_seconds() / 3600  # в часах
+                if data_age > 24:
+                    return {
+                        'status': 'stale',
+                        'message': f'Данные биоритмов устарели ({data_age:.1f} часов)',
+                        'recommendation': 'Обновить расчет биоритмов'
+                    }
+
+            return {
+                'status': 'healthy',
+                'message': 'Данные биоритмов актуальны',
+                'energy_level': biorhythm_data.get('overall_energy', {}).get('percentage', 0)
+            }
+
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Ошибка проверки: {str(e)}'
+            }
+
+    async def _check_astrology_health(self, telegram_id: int) -> Dict[str, Any]:
+        """Проверка здоровья астрологических данных"""
+        try:
+            natal_data = await get_user_natal_chart(telegram_id)
+
+            if not natal_data:
+                return {
+                    'status': 'missing',
+                    'message': 'Отсутствует натальная карта',
+                    'recommendation': 'Создать натальную карту'
+                }
+
+            # Проверяем полноту данных
+            planets = natal_data.get('planets', {})
+            essential_planets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars']
+            missing_planets = [p for p in essential_planets if p not in planets]
+
+            if missing_planets:
+                return {
+                    'status': 'incomplete',
+                    'message': f'Отсутствуют планеты: {", ".join(missing_planets)}',
+                    'recommendation': 'Пересчитать натальную карту'
+                }
+
+            return {
+                'status': 'healthy',
+                'message': 'Натальная карта в порядке',
+                'planets_count': len(planets)
+            }
+
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Ошибка проверки: {str(e)}'
+            }
+
+    async def _check_matrix_health(self, telegram_id: int) -> Dict[str, Any]:
+        """Проверка здоровья данных психоматрицы"""
+        try:
+            matrix_data = await get_user_matrix(telegram_id)
+
+            if not matrix_data:
+                return {
+                    'status': 'missing',
+                    'message': 'Отсутствует психоматрица',
+                    'recommendation': 'Рассчитать психоматрицу'
+                }
+
+            # Проверяем базовые числа
+            basic_numbers = matrix_data.get('basic_numbers', {})
+            if not all(key in basic_numbers for key in ['first', 'second', 'third', 'fourth']):
+                return {
+                    'status': 'incomplete',
+                    'message': 'Неполные базовые числа',
+                    'recommendation': 'Пересчитать психоматрицу'
+                }
+
+            return {
+                'status': 'healthy',
+                'message': 'Психоматрица в порядке',
+                'life_path': basic_numbers.get('first')
+            }
+
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Ошибка проверки: {str(e)}'
+            }
+
+    async def _check_user_data_health(self, telegram_id: int) -> Dict[str, Any]:
+        """Проверка здоровья пользовательских данных"""
+        try:
+            from backend.user_services import get_user_profile
+
+            user_profile = await get_user_profile(telegram_id)
+
+            if not user_profile:
+                return {
+                    'status': 'missing',
+                    'message': 'Отсутствуют основные данные пользователя',
+                    'recommendation': 'Заполнить профиль'
+                }
+
+            # Проверяем обязательные поля
+            missing_fields = []
+            if not user_profile.get('birth_date'):
+                missing_fields.append('дата рождения')
+            if not user_profile.get('birth_time'):
+                missing_fields.append('время рождения')
+            if not user_profile.get('birth_city'):
+                missing_fields.append('город рождения')
+
+            if missing_fields:
+                return {
+                    'status': 'incomplete',
+                    'message': f'Отсутствуют поля: {", ".join(missing_fields)}',
+                    'recommendation': 'Дополнить профиль'
+                }
+
+            return {
+                'status': 'healthy',
+                'message': 'Данные пользователя полные',
+                'profession': user_profile.get('profession', 'не указана')
+            }
+
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Ошибка проверки: {str(e)}'
+            }
+
+    async def cleanup_old_calculations(self, days_old: int = 30) -> Dict[str, int]:
+        """
+        Очистка устаревших расчетов и кэша
+        """
+        try:
+            cutoff_date = date.today() - timedelta(days=days_old)
+
+            async with async_session() as session:
+                # Очищаем устаревшие daily calculations
+                daily_result = await session.execute(
+                    DailyCalculations.__table__.delete().where(
+                        DailyCalculations.target_date < cutoff_date
+                    )
+                )
+                daily_deleted = daily_result.rowcount
+
+                # Очищаем просроченный кэш
+                cache_result = await session.execute(
+                    CalculationCache.__table__.delete().where(
+                        CalculationCache.expires_at < datetime.now()
+                    )
+                )
+                cache_deleted = cache_result.rowcount
+
+                await session.commit()
+
+            logger.info(f"🧹 Очистка расчетов: {daily_deleted} daily calculations, {cache_deleted} cache entries")
+
+            return {
+                'daily_calculations_deleted': daily_deleted,
+                'cache_entries_deleted': cache_deleted,
+                'total_deleted': daily_deleted + cache_deleted
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка очистки расчетов: {e}")
+            return {
+                'daily_calculations_deleted': 0,
+                'cache_entries_deleted': 0,
+                'total_deleted': 0,
+                'error': str(e)
+            }
+
+
+# Глобальные экземпляры сервисов
+calculation_service = CalculationService()
+calculation_optimizer = CalculationOptimizer()
+
+backend.chart_services.py
+
+from backend.database import async_session, UserAstroProfile
 from backend.natal_chart import MLNatalChartCalculator
 from sqlalchemy.future import select
+from sqlalchemy import and_
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 async def create_and_save_natal_chart(telegram_id: int, city: str, birth_datetime, timezone: str):
-    """Создание и сохранение натальной карты"""
+    """Создание и сохранение натальной карты в объединенный астропрофиль"""
     try:
         calculator = MLNatalChartCalculator()
         natal_data = calculator.calculate_natal_chart_ml(city, birth_datetime, timezone)
 
-        logger.info(f"Создание натальной карты для пользователя {telegram_id}")
+        logger.info(f"🔮 Создание натальной карты для пользователя {telegram_id}")
 
         async with async_session() as session:
             result = await session.execute(
-                select(UserNatalChart).where(UserNatalChart.telegram_id == telegram_id)
+                select(UserAstroProfile).where(UserAstroProfile.telegram_id == telegram_id)
             )
-            natal_chart = result.scalar_one_or_none()
+            astro_profile = result.scalar_one_or_none()
 
-            if natal_chart:
-                # Обновляем существующую натальную карту
-                natal_chart.natal_data = natal_data
-                logger.info(f"📝 Обновлена натальная карта для {telegram_id}")
+            if astro_profile:
+                # Обновляем существующий астропрофиль
+                astro_profile.natal_chart_data = natal_data
+                # Психоматрица остается без изменений
+                logger.info(f"📝 Обновлена натальная карта в астропрофиле для {telegram_id}")
             else:
-                # Создаем новую натальную карту
-                natal_chart = UserNatalChart(
+                # Создаем новый астропрофиль с пустой психоматрицей
+                astro_profile = UserAstroProfile(
                     telegram_id=telegram_id,
-                    natal_data=natal_data
+                    natal_chart_data=natal_data,
+                    psyho_matrix_data={},  # Пустая психоматрица, будет заполнена позже
+                    dominant_energy=None,
+                    personality_traits=None
                 )
-                session.add(natal_chart)
-                logger.info(f"🆕 Создана новая натальная карта для {telegram_id}")
+                session.add(astro_profile)
+                logger.info(f"🆕 Создан новый астропрофиль с натальной картой для {telegram_id}")
 
             await session.commit()
             logger.info(f"💾 Натальная карта успешно сохранена для {telegram_id}")
-            return natal_chart
+            return astro_profile
 
     except Exception as e:
         logger.error(f"❌ Ошибка при создании натальной карты для {telegram_id}: {e}")
@@ -2242,59 +3156,430 @@ async def create_and_save_natal_chart(telegram_id: int, city: str, birth_datetim
 
 
 async def get_user_natal_chart(telegram_id: int):
-    """Получение натальной карты пользователя"""
+    """Получение натальной карты пользователя из астропрофиля"""
     try:
         async with async_session() as session:
             result = await session.execute(
-                select(UserNatalChart).where(UserNatalChart.telegram_id == telegram_id)
+                select(UserAstroProfile).where(UserAstroProfile.telegram_id == telegram_id)
             )
-            natal_chart = result.scalar_one_or_none()
+            astro_profile = result.scalar_one_or_none()
 
-            if natal_chart:
-                return natal_chart.natal_data
+            if astro_profile and astro_profile.natal_chart_data:
+                return astro_profile.natal_chart_data
             return None
 
     except Exception as e:
         logger.error(f"❌ Ошибка при получении натальной карты {telegram_id}: {e}")
         return None
 
-database.py:
+
+async def update_user_astro_profile(telegram_id: int, psyho_matrix_data: dict = None,
+                                    dominant_energy: str = None, personality_traits: list = None):
+    """Обновление астропрофиля пользователя"""
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                select(UserAstroProfile).where(UserAstroProfile.telegram_id == telegram_id)
+            )
+            astro_profile = result.scalar_one_or_none()
+
+            if astro_profile:
+                # Обновляем только переданные поля
+                if psyho_matrix_data is not None:
+                    astro_profile.psyho_matrix_data = psyho_matrix_data
+                if dominant_energy is not None:
+                    astro_profile.dominant_energy = dominant_energy
+                if personality_traits is not None:
+                    astro_profile.personality_traits = personality_traits
+
+                logger.info(f"📝 Обновлен астропрофиль для {telegram_id}")
+            else:
+                # Создаем новый астропрофиль только с психоматрицей
+                astro_profile = UserAstroProfile(
+                    telegram_id=telegram_id,
+                    natal_chart_data={},  # Пустая натальная карта
+                    psyho_matrix_data=psyho_matrix_data or {},
+                    dominant_energy=dominant_energy,
+                    personality_traits=personality_traits
+                )
+                session.add(astro_profile)
+                logger.info(f"🆕 Создан новый астропрофиль для {telegram_id}")
+
+            await session.commit()
+            return astro_profile
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка обновления астропрофиля для {telegram_id}: {e}")
+        raise
+
+
+async def get_user_astro_profile(telegram_id: int):
+    """Получение полного астропрофиля пользователя"""
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                select(UserAstroProfile).where(UserAstroProfile.telegram_id == telegram_id)
+            )
+            astro_profile = result.scalar_one_or_none()
+
+            if astro_profile:
+                return {
+                    'telegram_id': astro_profile.telegram_id,
+                    'natal_chart': astro_profile.natal_chart_data,
+                    'psyho_matrix': astro_profile.psyho_matrix_data,
+                    'dominant_energy': astro_profile.dominant_energy,
+                    'personality_traits': astro_profile.personality_traits,
+                    'created_at': astro_profile.created_at.isoformat() if astro_profile.created_at else None,
+                    'updated_at': astro_profile.updated_at.isoformat() if astro_profile.updated_at else None
+                }
+            return None
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка при получении астропрофиля {telegram_id}: {e}")
+        return None
+
+
+async def validate_natal_chart_data(telegram_id: int) -> bool:
+    """Проверка корректности данных натальной карты"""
+    try:
+        natal_data = await get_user_natal_chart(telegram_id)
+
+        if not natal_data:
+            return False
+
+        # Проверяем обязательные поля
+        required_fields = ['metadata', 'planets', 'houses', 'angles']
+        for field in required_fields:
+            if field not in natal_data:
+                logger.warning(f"⚠️ Отсутствует поле {field} в натальной карте {telegram_id}")
+                return False
+
+        # Проверяем наличие основных планет
+        planets = natal_data.get('planets', {})
+        essential_planets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars']
+        for planet in essential_planets:
+            if planet not in planets:
+                logger.warning(f"⚠️ Отсутствует планета {planet} в натальной карте {telegram_id}")
+                return False
+
+        logger.info(f"✅ Данные натальной карты валидны для {telegram_id}")
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка валидации натальной карты для {telegram_id}: {e}")
+        return False
+
+
+async def get_natal_chart_summary(telegram_id: int) -> dict:
+    """Получение краткой сводки натальной карты"""
+    try:
+        natal_data = await get_user_natal_chart(telegram_id)
+
+        if not natal_data:
+            return {}
+
+        planets = natal_data.get('planets', {})
+        houses = natal_data.get('houses', {})
+        angles = natal_data.get('angles', {})
+
+        # Анализ доминирующих знаков
+        sign_distribution = {}
+        for planet_data in planets.values():
+            sign = planet_data.get('sign', 'Unknown')
+            sign_distribution[sign] = sign_distribution.get(sign, 0) + 1
+
+        dominant_sign = max(sign_distribution.items(), key=lambda x: x[1])[0] if sign_distribution else "Unknown"
+
+        # Анализ аспектов
+        aspects = natal_data.get('aspects', [])
+        aspect_patterns = {
+            'conjunctions': len([a for a in aspects if a.get('aspect') == 'conjunction']),
+            'squares': len([a for a in aspects if a.get('aspect') == 'square']),
+            'trines': len([a for a in aspects if a.get('aspect') == 'trine']),
+            'oppositions': len([a for a in aspects if a.get('aspect') == 'opposition'])
+        }
+
+        summary = {
+            'basic_info': {
+                'planets_count': len(planets),
+                'houses_count': len(houses),
+                'aspects_count': len(aspects),
+                'dominant_sign': dominant_sign
+            },
+            'key_placements': {
+                'sun_sign': planets.get('Sun', {}).get('sign', 'Unknown'),
+                'moon_sign': planets.get('Moon', {}).get('sign', 'Unknown'),
+                'ascendant': angles.get('ascendant', {}).get('sign', 'Unknown'),
+                'midheaven': angles.get('midheaven', {}).get('sign', 'Unknown')
+            },
+            'aspect_analysis': aspect_patterns,
+            'element_balance': natal_data.get('ml_features', {}).get('element_balance', {})
+        }
+
+        return summary
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения сводки натальной карты для {telegram_id}: {e}")
+        return {}
+
+
+async def calculate_dominant_energy(telegram_id: int) -> str:
+    """Расчет доминирующей энергии на основе натальной карты"""
+    try:
+        natal_data = await get_user_natal_chart(telegram_id)
+
+        if not natal_data:
+            return "неизвестно"
+
+        planets = natal_data.get('planets', {})
+        element_balance = natal_data.get('ml_features', {}).get('element_balance', {})
+
+        # Простой анализ на основе элементов
+        if not element_balance:
+            return "сбалансированная"
+
+        max_element = max(element_balance.items(), key=lambda x: x[1])
+        element_energy_map = {
+            'fire': 'активная',
+            'air': 'интеллектуальная',
+            'water': 'эмоциональная',
+            'earth': 'практическая'
+        }
+
+        dominant_energy = element_energy_map.get(max_element[0], "сбалансированная")
+
+        # Сохраняем результат в астропрофиль
+        await update_user_astro_profile(telegram_id, dominant_energy=dominant_energy)
+
+        logger.info(f"✅ Рассчитана доминирующая энергия для {telegram_id}: {dominant_energy}")
+        return dominant_energy
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка расчета доминирующей энергии для {telegram_id}: {e}")
+        return "неизвестно"
+
+
+async def get_planet_positions(telegram_id: int, planet_names: list = None) -> dict:
+    """Получение позиций конкретных планет"""
+    try:
+        natal_data = await get_user_natal_chart(telegram_id)
+
+        if not natal_data:
+            return {}
+
+        planets = natal_data.get('planets', {})
+
+        if planet_names:
+            # Фильтруем по запрошенным планетам
+            positions = {name: planets.get(name) for name in planet_names if name in planets}
+        else:
+            # Возвращаем все планеты
+            positions = planets
+
+        return positions
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения позиций планет для {telegram_id}: {e}")
+        return {}
+
+
+async def get_house_placements(telegram_id: int) -> dict:
+    """Получение размещения планет по домам"""
+    try:
+        natal_data = await get_user_natal_chart(telegram_id)
+
+        if not natal_data:
+            return {}
+
+        placements = natal_data.get('placements', {})
+        houses = natal_data.get('houses', {})
+
+        # Группируем планеты по домам
+        house_planets = {}
+        for planet, house_num in placements.items():
+            house_key = f"house_{house_num}"
+            if house_key not in house_planets:
+                house_planets[house_key] = []
+            house_planets[house_key].append(planet)
+
+        result = {
+            'house_planets': house_planets,
+            'houses_info': houses
+        }
+
+        return result
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения размещения по домам для {telegram_id}: {e}")
+        return {}
+
+
+async def cleanup_orphaned_astro_profiles():
+    """Очистка астропрофилей без пользователей"""
+    try:
+        async with async_session() as session:
+            # Находим астропрофили, у которых нет соответствующего пользователя
+            orphan_query = """
+            DELETE FROM user_astro_profile 
+            WHERE telegram_id NOT IN (SELECT telegram_id FROM users)
+            """
+
+            result = await session.execute(orphan_query)
+            deleted_count = result.rowcount
+
+            await session.commit()
+
+            if deleted_count > 0:
+                logger.warning(f"🗑️ Удалено {deleted_count} orphaned астропрофилей")
+            else:
+                logger.info("✅ Orphaned астропрофилей не найдено")
+
+            return deleted_count
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка очистки orphaned астропрофилей: {e}")
+        return 0
+
+
+class NatalChartService:
+    """Сервис для работы с натальными картами"""
+
+    def __init__(self):
+        self.calculator = MLNatalChartCalculator()
+
+    async def create_complete_astro_profile(self, telegram_id: int, city: str,
+                                            birth_datetime, timezone: str, psyho_matrix_data: dict = None):
+        """Создание полного астропрофиля (натальная карта + психоматрица)"""
+        try:
+            # Создаем натальную карту
+            natal_data = self.calculator.calculate_natal_chart_ml(city, birth_datetime, timezone)
+
+            # Рассчитываем доминирующую энергию
+            element_balance = natal_data.get('ml_features', {}).get('element_balance', {})
+            dominant_energy = self._calculate_dominant_energy_from_elements(element_balance)
+
+            # Создаем/обновляем астропрофиль
+            async with async_session() as session:
+                result = await session.execute(
+                    select(UserAstroProfile).where(UserAstroProfile.telegram_id == telegram_id)
+                )
+                astro_profile = result.scalar_one_or_none()
+
+                if astro_profile:
+                    # Обновляем существующий
+                    astro_profile.natal_chart_data = natal_data
+                    astro_profile.psyho_matrix_data = psyho_matrix_data or astro_profile.psyho_matrix_data
+                    astro_profile.dominant_energy = dominant_energy
+                else:
+                    # Создаем новый
+                    astro_profile = UserAstroProfile(
+                        telegram_id=telegram_id,
+                        natal_chart_data=natal_data,
+                        psyho_matrix_data=psyho_matrix_data or {},
+                        dominant_energy=dominant_energy,
+                        personality_traits=None
+                    )
+                    session.add(astro_profile)
+
+                await session.commit()
+                logger.info(f"✅ Полный астропрофиль создан для {telegram_id}")
+                return astro_profile
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка создания полного астропрофиля для {telegram_id}: {e}")
+            raise
+
+    def _calculate_dominant_energy_from_elements(self, element_balance: dict) -> str:
+        """Расчет доминирующей энергии на основе баланса элементов"""
+        if not element_balance:
+            return "сбалансированная"
+
+        max_element = max(element_balance.items(), key=lambda x: x[1])
+        element_energy_map = {
+            'fire': 'активная',
+            'air': 'интеллектуальная',
+            'water': 'эмоциональная',
+            'earth': 'практическая'
+        }
+
+        return element_energy_map.get(max_element[0], "сбалансированная")
+
+    async def get_chart_complexity(self, telegram_id: int) -> str:
+        """Оценка сложности натальной карты"""
+        try:
+            natal_data = await get_user_natal_chart(telegram_id)
+
+            if not natal_data:
+                return "неизвестно"
+
+            aspects = natal_data.get('aspects', [])
+            strong_aspects = len([a for a in aspects if a.get('strength', 0) > 0.7])
+
+            if strong_aspects > 8:
+                return "очень сложная"
+            elif strong_aspects > 5:
+                return "сложная"
+            elif strong_aspects > 2:
+                return "средняя"
+            else:
+                return "простая"
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка оценки сложности карты для {telegram_id}: {e}")
+            return "неизвестно"
+
+
+# Глобальный экземпляр сервиса
+natal_chart_service = NatalChartService()
+
+backend.database.py
 
 import os
+from datetime import date, datetime
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy import Column, BigInteger, JSON, TIMESTAMP, String, Date, Time, Text
-from sqlalchemy.sql import func
-from sqlalchemy import ForeignKey
 from sqlalchemy import Column, BigInteger, JSON, TIMESTAMP, String, Date, Time, Text, ForeignKey, Integer
+from sqlalchemy import select, and_
 from sqlalchemy.sql import func
+from sqlalchemy import Index
 import logging
 
 logger = logging.getLogger(__name__)
 
+# Настройка подключения к базе данных
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://pers_assist:astra123@localhost:5432/p_assistant_bd"
+    "postgresql+asyncpg://astra_user:astra_password_2024@localhost:5435/astra_db"
 )
 
-logger.info(f"Подключаемся к БД: postgresql+asyncpg://pers_assist:******@localhost:5432/p_assistant_bd")
+logger.info(f"🔗 Подключаемся к БД Astra: postgresql+asyncpg://astra_user:******@localhost:5435/astra_db")
 
+# Создание асинхронного движка
 async_engine = create_async_engine(
     DATABASE_URL,
-    echo=True,
+    echo=False,  # Отключаем подробное логирование в продакшене
     pool_pre_ping=True,
-    pool_recycle=300
+    pool_recycle=300,
+    pool_size=10,
+    max_overflow=20,
+    echo_pool=False
 )
 
+# Создание асинхронной сессии
 async_session = sessionmaker(
     async_engine,
     expire_on_commit=False,
     class_=AsyncSession
 )
 
+# Базовый класс для моделей
 Base = declarative_base()
 
+
 class User(Base):
+    """
+    Основная таблица пользователей проекта Astra
+    """
     __tablename__ = 'users'
 
     telegram_id = Column(BigInteger, primary_key=True, index=True)
@@ -2304,115 +3589,417 @@ class User(Base):
     profession = Column(String(100), nullable=True)
     job_position = Column(String(100), nullable=True)
     current_city = Column(String(100), nullable=True)
-    created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     gender = Column(String(10), nullable=True)  # 'male', 'female', None
     request_count = Column(Integer, default=0)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     def __repr__(self):
         return f"<User(telegram_id={self.telegram_id}, birth_date={self.birth_date})>"
 
-class UserNatalChart(Base):
-    __tablename__ = 'user_natal_charts'
+    def to_dict(self):
+        """Конвертация в словарь для API"""
+        return {
+            'telegram_id': self.telegram_id,
+            'birth_date': self.birth_date.isoformat() if self.birth_date else None,
+            'birth_time': self.birth_time.isoformat() if self.birth_time else None,
+            'birth_city': self.birth_city,
+            'profession': self.profession,
+            'job_position': self.job_position,
+            'current_city': self.current_city,
+            'gender': self.gender,
+            'request_count': self.request_count,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class UserAstroProfile(Base):
+    """
+    Статические астрологические данные пользователя
+    Объединяет натальную карту и психоматрицу
+    """
+    __tablename__ = 'user_astro_profile'
 
     telegram_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete='CASCADE'), primary_key=True, index=True)
-    natal_data = Column(JSON, nullable=False)
+    natal_chart_data = Column(JSON, nullable=False)
+    psyho_matrix_data = Column(JSON, nullable=False)
+    dominant_energy = Column(String(50), nullable=True)
+    personality_traits = Column(JSON, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     def __repr__(self):
-        return f"<UserNatalChart(telegram_id={self.telegram_id})>"
+        return f"<UserAstroProfile(telegram_id={self.telegram_id})>"
 
-class PsyhoMatrix(Base):
-    __tablename__ = 'psyho_matrix'
+    def to_dict(self):
+        """Конвертация в словарь для API"""
+        return {
+            'telegram_id': self.telegram_id,
+            'natal_chart_summary': {
+                'planets_count': len(self.natal_chart_data.get('planets', {})),
+                'dominant_element': self._get_dominant_element(),
+                'ascendant': self.natal_chart_data.get('angles', {}).get('ascendant', {}).get('sign', 'неизвестно')
+            },
+            'psyho_matrix_summary': {
+                'life_path_number': self.psyho_matrix_data.get('basic_numbers', {}).get('first'),
+                'matrix_complexity': self._calculate_matrix_complexity()
+            },
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
-    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete='CASCADE'), primary_key=True, index=True)
-    matrix_data = Column(JSON, nullable=False)
-    created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    def _get_dominant_element(self):
+        """Определение доминирующего элемента"""
+        try:
+            element_balance = self.natal_chart_data.get('ml_features', {}).get('element_balance', {})
+            if element_balance:
+                return max(element_balance.items(), key=lambda x: x[1])[0]
+            return 'неизвестно'
+        except Exception:
+            return 'неизвестно'
 
-    def __repr__(self):
-        return f"<PsyhoMatrix(telegram_id={self.telegram_id})>"
-
-class NatalPredictions(Base):
-    __tablename__ = 'natal_predictions'
-
-    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete='CASCADE'), primary_key=True, index=True)
-    predictions = Column(JSON, nullable=False)
-    assistant_data = Column(JSON, nullable=False, default={})
-    created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-
-    def __repr__(self):
-        return f"<NatalPredictions(telegram_id={self.telegram_id})>"
-
-
-class Biorhythms(Base):
-    __tablename__ = 'biorhythms'
-
-    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete='CASCADE'), primary_key=True, index=True)
-    biorhythm_data = Column(JSON, nullable=False)
-    calculation_date = Column(Date, nullable=False)
-    created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-
-    def __repr__(self):
-        return f"<Biorhythms(telegram_id={self.telegram_id}, date={self.calculation_date})>"
+    def _calculate_matrix_complexity(self):
+        """Оценка сложности психоматрицы"""
+        try:
+            matrix_data = self.psyho_matrix_data.get('pythagoras_matrix', {})
+            total_digits = sum(matrix_data.values())
+            if total_digits >= 15:
+                return "сложная"
+            elif total_digits >= 10:
+                return "средняя"
+            else:
+                return "простая"
+        except Exception:
+            return "неизвестно"
 
 
+class DailyCalculations(Base):
+    """
+    Ежедневные расчеты для конкретных дат
+    Оптимизированная таблица для частых запросов
+    """
+    __tablename__ = 'daily_calculations'
 
-# Добавить недостающие модели для AI рекомендаций:
-class AIRecommendations(Base):
-    __tablename__ = 'ai_recommendations'
-    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id'), primary_key=True)
+    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete='CASCADE'), primary_key=True)
     target_date = Column(Date, primary_key=True)
+    biorhythm_data = Column(JSON, nullable=False)
+    astro_transits_data = Column(JSON, nullable=False)
+    calculation_metadata = Column(JSON, nullable=False, default={})
     data_hash = Column(String(64), nullable=False)
-    recommendations = Column(Text, nullable=False)
-    model_version = Column(String(20), default='gemma:2b')
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    calculation_timestamp = Column(TIMESTAMP, server_default=func.now())
 
-class AstroInsights(Base):
-    __tablename__ = 'astro_insights'
-    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id'), primary_key=True)
-    dominant_energy = Column(JSON, nullable=False)
-    personality_traits = Column(JSON, nullable=False)
-    planetary_strengths = Column(JSON, nullable=False)
+    def __repr__(self):
+        return f"<DailyCalculations(telegram_id={self.telegram_id}, date={self.target_date})>"
 
-
-async def get_db():
-    async with async_session() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+    def to_dict(self):
+        """Конвертация в словарь для API"""
+        return {
+            'telegram_id': self.telegram_id,
+            'target_date': self.target_date.isoformat(),
+            'biorhythm_data': self.biorhythm_data,
+            'astro_transits_data': self.astro_transits_data,
+            'calculation_metadata': self.calculation_metadata,
+            'data_hash': self.data_hash,
+            'calculation_timestamp': self.calculation_timestamp.isoformat() if self.calculation_timestamp else None
+        }
 
 
 class Biorhythms(Base):
+    """
+    Исторические данные биоритмов
+    Сохранена для обратной совместимости
+    """
     __tablename__ = 'biorhythms'
 
-    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete='CASCADE'), primary_key=True, index=True)
+    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete='CASCADE'), primary_key=True)
     biorhythm_data = Column(JSON, nullable=False)
-    calculation_date = Column(Date, nullable=False)
+    calculation_date = Column(Date, primary_key=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     def __repr__(self):
         return f"<Biorhythms(telegram_id={self.telegram_id}, date={self.calculation_date})>"
 
+    def to_dict(self):
+        """Конвертация в словарь"""
+        return {
+            'telegram_id': self.telegram_id,
+            'calculation_date': self.calculation_date.isoformat(),
+            'biorhythm_data': self.biorhythm_data,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class CalculationCache(Base):
+    """
+    Кэш расчетов для оптимизации производительности
+    """
+    __tablename__ = 'calculation_cache'
+
+    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete='CASCADE'), primary_key=True)
+    target_date = Column(Date, primary_key=True)
+    data_type = Column(String(20), primary_key=True)  # 'biorhythm', 'transits', 'combined'
+    calculation_data = Column(JSON, nullable=False)
+    expires_at = Column(TIMESTAMP, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    def __repr__(self):
+        return f"<CalculationCache(telegram_id={self.telegram_id}, date={self.target_date}, type={self.data_type})>"
+
+    def is_expired(self):
+        """Проверка истечения срока действия кэша"""
+        from datetime import datetime
+        return datetime.now() > self.expires_at
+
+    def to_dict(self):
+        """Конвертация в словарь"""
+        return {
+            'telegram_id': self.telegram_id,
+            'target_date': self.target_date.isoformat(),
+            'data_type': self.data_type,
+            'calculation_data': self.calculation_data,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'is_expired': self.is_expired()
+        }
+
+
+# Создание индексов для оптимизации производительности
+Index('idx_users_telegram_id', User.telegram_id)
+Index('idx_users_birth_date', User.birth_date)
+Index('idx_users_profession', User.profession)
+Index('idx_users_gender', User.gender)
+Index('idx_users_created_at', User.created_at)
+
+Index('idx_astro_profile_telegram_id', UserAstroProfile.telegram_id)
+
+Index('idx_daily_calc_telegram_id', DailyCalculations.telegram_id)
+Index('idx_daily_calc_target_date', DailyCalculations.target_date)
+Index('idx_daily_calc_composite', DailyCalculations.telegram_id, DailyCalculations.target_date)
+Index('idx_daily_calc_hash', DailyCalculations.data_hash)
+Index('idx_daily_calc_timestamp', DailyCalculations.calculation_timestamp)
+
+Index('idx_biorhythms_telegram_id', Biorhythms.telegram_id)
+Index('idx_biorhythms_calculation_date', Biorhythms.calculation_date)
+Index('idx_biorhythms_composite', Biorhythms.telegram_id, Biorhythms.calculation_date)
+
+Index('idx_cache_telegram_date', CalculationCache.telegram_id, CalculationCache.target_date)
+Index('idx_cache_expires', CalculationCache.expires_at)
+Index('idx_cache_type', CalculationCache.data_type)
+Index('idx_cache_composite', CalculationCache.telegram_id, CalculationCache.target_date, CalculationCache.data_type)
 
 
 async def get_db():
+    """
+    Dependency для получения сессии БД
+    Используется в FastAPI endpoints
+    """
     async with async_session() as session:
         try:
             yield session
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            logger.error(f"❌ Ошибка в сессии БД: {e}")
+            raise
         finally:
             await session.close()
 
 
+async def init_db():
+    """
+    Инициализация базы данных
+    Создание таблиц при первом запуске
+    """
+    try:
+        async with async_engine.begin() as conn:
+            # Создаем все таблицы
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("✅ База данных инициализирована успешно")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Ошибка инициализации БД: {e}")
+        return False
+
+
+async def check_db_connection():
+    """
+    Проверка подключения к базе данных
+    """
+    try:
+        async with async_session() as session:
+            await session.execute("SELECT 1")
+        logger.info("✅ Подключение к БД успешно")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Ошибка подключения к БД: {e}")
+        return False
+
+
+async def get_database_stats():
+    """
+    Получение статистики базы данных
+    """
+    try:
+        async with async_session() as session:
+            # Статистика пользователей
+            users_count = await session.execute("SELECT COUNT(*) FROM users")
+            users_count = users_count.scalar()
+
+            # Статистика астропрофилей
+            profiles_count = await session.execute("SELECT COUNT(*) FROM user_astro_profile")
+            profiles_count = profiles_count.scalar()
+
+            # Статистика daily calculations
+            calc_count = await session.execute("SELECT COUNT(*) FROM daily_calculations")
+            calc_count = calc_count.scalar()
+
+            # Статистика биоритмов
+            bio_count = await session.execute("SELECT COUNT(*) FROM biorhythms")
+            bio_count = bio_count.scalar()
+
+            # Размер базы данных
+            db_size = await session.execute("SELECT pg_size_pretty(pg_database_size('astra_db'))")
+            db_size = db_size.scalar()
+
+            return {
+                'users_count': users_count,
+                'profiles_count': profiles_count,
+                'daily_calculations_count': calc_count,
+                'biorhythms_count': bio_count,
+                'database_size': db_size,
+                'timestamp': func.now()
+            }
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения статистики БД: {e}")
+        return {}
+
+
+async def cleanup_expired_cache():
+    """
+    Очистка просроченного кэша
+    """
+    try:
+        from datetime import datetime
+
+        async with async_session() as session:
+            result = await session.execute(
+                CalculationCache.__table__.delete().where(
+                    CalculationCache.expires_at < datetime.now()
+                )
+            )
+            deleted_count = result.rowcount
+
+            await session.commit()
+
+            if deleted_count > 0:
+                logger.info(f"🗑️ Удалено {deleted_count} просроченных записей кэша")
+            else:
+                logger.debug("✅ Просроченных записей кэша не найдено")
+
+            return deleted_count
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка очистки кэша: {e}")
+        return 0
+
+
+class DatabaseManager:
+    """
+    Менеджер для работы с базой данных
+    Предоставляет высокоуровневые методы для часто используемых операций
+    """
+
+    def __init__(self):
+        self.session = None
+
+    async def __aenter__(self):
+        self.session = async_session()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.session:
+            if exc_type:
+                await self.session.rollback()
+            else:
+                await self.session.commit()
+            await self.session.close()
+
+    async def get_user_with_profile(self, telegram_id: int) -> dict:
+        """Получение пользователя с астропрофилем"""
+        try:
+            user_result = await self.session.execute(
+                select(User).where(User.telegram_id == telegram_id)
+            )
+            user = user_result.scalar_one_or_none()
+
+            if not user:
+                return None
+
+            profile_result = await self.session.execute(
+                select(UserAstroProfile).where(UserAstroProfile.telegram_id == telegram_id)
+            )
+            profile = profile_result.scalar_one_or_none()
+
+            return {
+                'user': user.to_dict() if user else None,
+                'astro_profile': profile.to_dict() if profile else None
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка получения пользователя с профилем: {e}")
+            return None
+
+    async def get_user_calculations_for_period(self, telegram_id: int, start_date: date, end_date: date) -> list:
+        """Получение расчетов пользователя за период"""
+        try:
+            result = await self.session.execute(
+                select(DailyCalculations)
+                .where(
+                    and_(
+                        DailyCalculations.telegram_id == telegram_id,
+                        DailyCalculations.target_date >= start_date,
+                        DailyCalculations.target_date <= end_date
+                    )
+                )
+                .order_by(DailyCalculations.target_date)
+            )
+            calculations = result.scalars().all()
+
+            return [calc.to_dict() for calc in calculations]
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка получения расчетов за период: {e}")
+            return []
+
+    async def increment_user_request_count(self, telegram_id: int) -> bool:
+        """Увеличение счетчика запросов пользователя"""
+        try:
+            result = await self.session.execute(
+                select(User).where(User.telegram_id == telegram_id)
+            )
+            user = result.scalar_one_or_none()
+
+            if user:
+                user.request_count = (user.request_count or 0) + 1
+                return True
+            return False
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка увеличения счетчика запросов: {e}")
+            return False
+
+
+# Глобальный экземпляр для быстрого доступа
+db_manager = DatabaseManager()
 
 
 
-db_connection.py:
+
+backend.db_connection.py
 
 from backend.database import async_session
 from sqlalchemy import text
@@ -2431,11 +4018,12 @@ async def check_db_connection():
         logger.error(f"❌ Ошибка подключения к БД: {e}")
         return False
 
-matrix_services.py:
+backend.__init__.py
 
-from backend.database import async_session, PsyhoMatrix
+backend.matrix_services.py
+
+from backend.database import async_session, UserAstroProfile
 from backend.psyho_matrix import PsyhoMatrixCalculator
-from backend.user_services import get_user_profile
 from sqlalchemy.future import select
 import logging
 
@@ -2443,35 +4031,40 @@ logger = logging.getLogger(__name__)
 
 
 async def calculate_and_save_psyho_matrix(telegram_id: int):
-    """Расчет и сохранение психоматрицы"""
+    """Расчет и сохранение психоматрицы в объединенный астропрофиль"""
     try:
-        # Получаем данные пользователя
+        # Получаем данные пользователя для расчета даты рождения
+        from backend.user_services import get_user_profile
         user_profile = await get_user_profile(telegram_id)
         if not user_profile:
-            raise ValueError("Пользователь не найден")
+            raise ValueError(f"Пользователь {telegram_id} не найден")
 
         calculator = PsyhoMatrixCalculator()
         matrix_data = calculator.calculate_matrix(user_profile['birth_date'])
 
-        # Сохраняем психоматрицу
+        # Сохраняем психоматрицу в астропрофиль
         async with async_session() as session:
             result = await session.execute(
-                select(PsyhoMatrix).where(PsyhoMatrix.telegram_id == telegram_id)
+                select(UserAstroProfile).where(UserAstroProfile.telegram_id == telegram_id)
             )
-            psyho_matrix = result.scalar_one_or_none()
+            astro_profile = result.scalar_one_or_none()
 
-            if psyho_matrix:
-                # Обновляем существующую психоматрицу
-                psyho_matrix.matrix_data = matrix_data
-                logger.info(f"📝 Обновлена психоматрица для {telegram_id}")
+            if astro_profile:
+                # Обновляем существующий астропрофиль
+                astro_profile.psyho_matrix_data = matrix_data
+                # Натальная карта остается без изменений
+                logger.info(f"📝 Обновлена психоматрица в астропрофиле для {telegram_id}")
             else:
-                # Создаем новую психоматрицу
-                psyho_matrix = PsyhoMatrix(
+                # Создаем новый астропрофиль с пустой натальной картой
+                astro_profile = UserAstroProfile(
                     telegram_id=telegram_id,
-                    matrix_data=matrix_data
+                    natal_chart_data={},  # Пустая натальная карта
+                    psyho_matrix_data=matrix_data,
+                    dominant_energy=None,
+                    personality_traits=None
                 )
-                session.add(psyho_matrix)
-                logger.info(f"🆕 Создана новая психоматрица для {telegram_id}")
+                session.add(astro_profile)
+                logger.info(f"🆕 Создан новый астропрофиль с психоматрицей для {telegram_id}")
 
             await session.commit()
             logger.info(f"✅ Психоматрица рассчитана и сохранена для {telegram_id}")
@@ -2484,23 +4077,566 @@ async def calculate_and_save_psyho_matrix(telegram_id: int):
 
 
 async def get_user_matrix(telegram_id: int):
-    """Получение психоматрицы пользователя"""
+    """Получение психоматрицы пользователя из астропрофиля"""
     try:
         async with async_session() as session:
             result = await session.execute(
-                select(PsyhoMatrix).where(PsyhoMatrix.telegram_id == telegram_id)
+                select(UserAstroProfile).where(UserAstroProfile.telegram_id == telegram_id)
             )
-            matrix = result.scalar_one_or_none()
+            astro_profile = result.scalar_one_or_none()
 
-            if matrix:
-                return matrix.matrix_data
+            if astro_profile and astro_profile.psyho_matrix_data:
+                return astro_profile.psyho_matrix_data
             return None
 
     except Exception as e:
         logger.error(f"❌ Ошибка при получении психоматрицы {telegram_id}: {e}")
         return None
 
-natal_chart.py:
+
+async def get_matrix_summary(telegram_id: int) -> dict:
+    """Получение краткой сводки психоматрицы"""
+    try:
+        matrix_data = await get_user_matrix(telegram_id)
+
+        if not matrix_data:
+            return {}
+
+        basic_numbers = matrix_data.get('basic_numbers', {})
+        pythagoras_matrix = matrix_data.get('pythagoras_matrix', {})
+        digit_counts = matrix_data.get('digit_counts', {})
+
+        # Анализ основных чисел
+        life_path = basic_numbers.get('first')
+        destiny_number = basic_numbers.get('second')
+        personality_number = basic_numbers.get('third')
+
+        # Анализ матрицы Пифагора
+        strong_digits = digit_counts.get('strong_digits', [])
+        missing_digits = digit_counts.get('missing_digits', [])
+        total_digits = digit_counts.get('total_digits', 0)
+
+        # Определение типа матрицы по сложности
+        if total_digits >= 15:
+            matrix_type = "сложная"
+        elif total_digits >= 10:
+            matrix_type = "средняя"
+        else:
+            matrix_type = "простая"
+
+        summary = {
+            'basic_numbers': {
+                'life_path': life_path,
+                'destiny_number': destiny_number,
+                'personality_number': personality_number
+            },
+            'matrix_analysis': {
+                'matrix_type': matrix_type,
+                'strong_digits': strong_digits,
+                'missing_digits': missing_digits,
+                'total_digits': total_digits
+            },
+            'key_characteristics': _analyze_matrix_characteristics(pythagoras_matrix)
+        }
+
+        return summary
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения сводки психоматрицы для {telegram_id}: {e}")
+        return {}
+
+
+def _analyze_matrix_characteristics(pythagoras_matrix: dict) -> dict:
+    """Анализ характеристик матрицы Пифагора"""
+    characteristics = {
+        'willpower': 0,  # Цифра 1
+        'energy': 0,  # Цифра 2
+        'interest': 0,  # Цифра 3
+        'health': 0,  # Цифра 4
+        'logic': 0,  # Цифра 5
+        'labor': 0,  # Цифра 6
+        'luck': 0,  # Цифра 7
+        'duty': 0,  # Цифра 8
+        'memory': 0  # Цифра 9
+    }
+
+    # Сопоставление цифр с характеристиками
+    digit_characteristics = {
+        '1': 'willpower',
+        '2': 'energy',
+        '3': 'interest',
+        '4': 'health',
+        '5': 'logic',
+        '6': 'labor',
+        '7': 'luck',
+        '8': 'duty',
+        '9': 'memory'
+    }
+
+    for digit, count in pythagoras_matrix.items():
+        char_key = digit_characteristics.get(digit)
+        if char_key:
+            characteristics[char_key] = count
+
+    return characteristics
+
+
+async def calculate_personality_traits(telegram_id: int) -> list:
+    """Расчет личностных черт на основе психоматрицы"""
+    try:
+        matrix_data = await get_user_matrix(telegram_id)
+
+        if not matrix_data:
+            return []
+
+        basic_numbers = matrix_data.get('basic_numbers', {})
+        pythagoras_matrix = matrix_data.get('pythagoras_matrix', {})
+
+        traits = []
+
+        # Анализ по числу жизненного пути
+        life_path = basic_numbers.get('first')
+        if life_path:
+            life_path_traits = {
+                1: ["лидер", "амбициозный", "независимый"],
+                2: ["дипломатичный", "чувствительный", "интуитивный"],
+                3: ["творческий", "общительный", "оптимистичный"],
+                4: ["практичный", "организованный", "надежный"],
+                5: ["свободолюбивый", "авантюрный", "адаптивный"],
+                6: ["ответственный", "заботливый", "гармоничный"],
+                7: ["аналитический", "духовный", "интроспективный"],
+                8: ["целеустремленный", "материалистичный", "властный"],
+                9: ["гуманитарный", "сострадательный", "идеалистичный"]
+            }
+            traits.extend(life_path_traits.get(life_path, []))
+
+        # Анализ по сильным цифрам в матрице
+        strong_digits = []
+        for digit, count in pythagoras_matrix.items():
+            if count >= 2:
+                strong_digits.append(int(digit))
+
+        # Добавляем черты на основе сильных цифр
+        digit_traits = {
+            1: ["решительный", "инициативный"],
+            2: ["эмпатичный", "тактичный"],
+            3: ["артистичный", "выразительный"],
+            4: ["трудолюбивый", "дисциплинированный"],
+            5: ["любознательный", "гибкий"],
+            6: ["семейный", "заботливый"],
+            7: ["мудрый", "проницательный"],
+            8: ["амбициозный", "практичный"],
+            9: ["идеалистичный", "щедрый"]
+        }
+
+        for digit in strong_digits:
+            if digit in digit_traits:
+                traits.extend(digit_traits[digit])
+
+        # Убираем дубликаты
+        traits = list(set(traits))
+
+        # Сохраняем черты в астропрофиль
+        await update_personality_traits(telegram_id, traits)
+
+        logger.info(f"✅ Рассчитаны личностные черты для {telegram_id}: {traits}")
+        return traits
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка расчета личностных черт для {telegram_id}: {e}")
+        return []
+
+
+async def update_personality_traits(telegram_id: int, traits: list):
+    """Обновление личностных черт в астропрофиле"""
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                select(UserAstroProfile).where(UserAstroProfile.telegram_id == telegram_id)
+            )
+            astro_profile = result.scalar_one_or_none()
+
+            if astro_profile:
+                astro_profile.personality_traits = traits
+                await session.commit()
+                logger.info(f"📝 Обновлены личностные черты для {telegram_id}")
+            else:
+                logger.warning(f"⚠️ Астропрофиль не найден для обновления черт {telegram_id}")
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка обновления личностных черт для {telegram_id}: {e}")
+        raise
+
+
+async def validate_matrix_data(telegram_id: int) -> bool:
+    """Проверка корректности данных психоматрицы"""
+    try:
+        matrix_data = await get_user_matrix(telegram_id)
+
+        if not matrix_data:
+            return False
+
+        # Проверяем обязательные поля
+        required_fields = ['basic_numbers', 'pythagoras_matrix', 'digit_counts']
+        for field in required_fields:
+            if field not in matrix_data:
+                logger.warning(f"⚠️ Отсутствует поле {field} в психоматрице {telegram_id}")
+                return False
+
+        # Проверяем базовые числа
+        basic_numbers = matrix_data.get('basic_numbers', {})
+        if not all(key in basic_numbers for key in ['first', 'second', 'third', 'fourth']):
+            logger.warning(f"⚠️ Неполные базовые числа в психоматрице {telegram_id}")
+            return False
+
+        # Проверяем матрицу Пифагора
+        pythagoras_matrix = matrix_data.get('pythagoras_matrix', {})
+        if not all(str(i) in pythagoras_matrix for i in range(1, 10)):
+            logger.warning(f"⚠️ Неполная матрица Пифагора {telegram_id}")
+            return False
+
+        logger.info(f"✅ Данные психоматрицы валидны для {telegram_id}")
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка валидации психоматрицы для {telegram_id}: {e}")
+        return False
+
+
+async def get_matrix_compatibility(user1_id: int, user2_id: int) -> dict:
+    """Анализ совместимости по психоматрицам"""
+    try:
+        matrix1 = await get_user_matrix(user1_id)
+        matrix2 = await get_user_matrix(user2_id)
+
+        if not matrix1 or not matrix2:
+            return {"error": "Не найдены данные психоматриц"}
+
+        matrix1_data = matrix1.get('pythagoras_matrix', {})
+        matrix2_data = matrix2.get('pythagoras_matrix', {})
+
+        # Анализ совместимости по цифрам
+        compatibility_score = 0
+        max_score = 9  # Максимально возможный счет
+
+        for digit in range(1, 10):
+            digit_str = str(digit)
+            count1 = matrix1_data.get(digit_str, 0)
+            count2 = matrix2_data.get(digit_str, 0)
+
+            # Чем ближе количество цифр, тем выше совместимость
+            digit_compatibility = 1 - abs(count1 - count2) / 3  # Нормализуем до 0-1
+            compatibility_score += digit_compatibility
+
+        # Нормализуем общий счет
+        overall_compatibility = (compatibility_score / max_score) * 100
+
+        # Определяем уровень совместимости
+        if overall_compatibility >= 80:
+            level = "отличная"
+        elif overall_compatibility >= 60:
+            level = "хорошая"
+        elif overall_compatibility >= 40:
+            level = "средняя"
+        else:
+            level = "низкая"
+
+        # Анализ сильных и слабых сторон совместимости
+        strengths = []
+        challenges = []
+
+        # Анализ по конкретным цифрам
+        for digit in range(1, 10):
+            digit_str = str(digit)
+            count1 = matrix1_data.get(digit_str, 0)
+            count2 = matrix2_data.get(digit_str, 0)
+
+            if count1 == count2 and count1 > 0:
+                digit_meanings = {
+                    1: "схожая воля и лидерские качества",
+                    2: "совместимая энергия и чувствительность",
+                    3: "общие творческие интересы",
+                    4: "похожее отношение к здоровью",
+                    5: "схожая логика и мышление",
+                    6: "совместимость в трудовой деятельности",
+                    7: "общая удача и везение",
+                    8: "похожее чувство долга",
+                    9: "схожие ментальные способности"
+                }
+                strengths.append(digit_meanings.get(digit, ""))
+
+            elif abs(count1 - count2) >= 2:
+                digit_challenges = {
+                    1: "разные подходы к лидерству",
+                    2: "разный уровень энергии",
+                    3: "разные творческие интересы",
+                    4: "разное отношение к здоровью",
+                    5: "разные стили мышления",
+                    6: "разное отношение к работе",
+                    7: "разная удачливость",
+                    8: "разное понимание долга",
+                    9: "разные ментальные способности"
+                }
+                challenges.append(digit_challenges.get(digit, ""))
+
+        return {
+            'compatibility_score': round(overall_compatibility, 2),
+            'compatibility_level': level,
+            'strengths': [s for s in strengths if s],  # Убираем пустые строки
+            'challenges': [c for c in challenges if c],
+            'analysis_timestamp': await get_current_timestamp()
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка анализа совместимости для {user1_id} и {user2_id}: {e}")
+        return {"error": str(e)}
+
+
+async def get_current_timestamp():
+    """Вспомогательная функция для получения текущего времени"""
+    from datetime import datetime
+    return datetime.now().isoformat()
+
+
+async def get_matrix_energy_level(telegram_id: int) -> str:
+    """Оценка уровня энергии по психоматрице"""
+    try:
+        matrix_data = await get_user_matrix(telegram_id)
+
+        if not matrix_data:
+            return "неизвестно"
+
+        pythagoras_matrix = matrix_data.get('pythagoras_matrix', {})
+
+        # Считаем общее количество цифр
+        total_digits = sum(pythagoras_matrix.values())
+
+        # Анализируем энергетические цифры (2, 5, 8)
+        energy_digits = sum(pythagoras_matrix.get(str(digit), 0) for digit in [2, 5, 8])
+
+        if total_digits >= 15 and energy_digits >= 4:
+            return "очень высокий"
+        elif total_digits >= 12 and energy_digits >= 3:
+            return "высокий"
+        elif total_digits >= 8 and energy_digits >= 2:
+            return "средний"
+        else:
+            return "низкий"
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка оценки уровня энергии для {telegram_id}: {e}")
+        return "неизвестно"
+
+
+class MatrixAnalysisService:
+    """Сервис для углубленного анализа психоматриц"""
+
+    def __init__(self):
+        self.calculator = PsyhoMatrixCalculator()
+
+    async def create_complete_matrix_profile(self, telegram_id: int, birth_date):
+        """Создание полного профиля психоматрицы с расширенным анализом"""
+        try:
+            # Рассчитываем базовую матрицу
+            matrix_data = self.calculator.calculate_matrix(birth_date)
+
+            # Добавляем расширенный анализ
+            extended_analysis = self._perform_extended_analysis(matrix_data)
+            matrix_data['extended_analysis'] = extended_analysis
+
+            # Сохраняем в астропрофиль
+            async with async_session() as session:
+                result = await session.execute(
+                    select(UserAstroProfile).where(UserAstroProfile.telegram_id == telegram_id)
+                )
+                astro_profile = result.scalar_one_or_none()
+
+                if astro_profile:
+                    astro_profile.psyho_matrix_data = matrix_data
+                else:
+                    astro_profile = UserAstroProfile(
+                        telegram_id=telegram_id,
+                        natal_chart_data={},
+                        psyho_matrix_data=matrix_data,
+                        dominant_energy=None,
+                        personality_traits=None
+                    )
+                    session.add(astro_profile)
+
+                await session.commit()
+                logger.info(f"✅ Полный профиль психоматрицы создан для {telegram_id}")
+                return matrix_data
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка создания полного профиля матрицы для {telegram_id}: {e}")
+            raise
+
+    def _perform_extended_analysis(self, matrix_data: dict) -> dict:
+        """Расширенный анализ психоматрицы"""
+        pythagoras_matrix = matrix_data.get('pythagoras_matrix', {})
+        basic_numbers = matrix_data.get('basic_numbers', {})
+
+        analysis = {
+            'energy_centers': self._analyze_energy_centers(pythagoras_matrix),
+            'life_periods': self._analyze_life_periods(basic_numbers.get('first')),
+            'karmic_lessons': self._analyze_karmic_lessons(pythagoras_matrix),
+            'talents_abilities': self._analyze_talents(pythagoras_matrix)
+        }
+
+        return analysis
+
+    def _analyze_energy_centers(self, matrix: dict) -> dict:
+        """Анализ энергетических центров"""
+        centers = {
+            'practical_center': sum(matrix.get(str(digit), 0) for digit in [4, 5, 6]),
+            'spiritual_center': sum(matrix.get(str(digit), 0) for digit in [7, 8, 9]),
+            'will_center': sum(matrix.get(str(digit), 0) for digit in [1, 2, 3])
+        }
+
+        return centers
+
+    def _analyze_life_periods(self, life_path: int) -> list:
+        """Анализ жизненных периодов"""
+        if not life_path:
+            return []
+
+        periods = []
+        base_age = 36  # Базовый возраст для расчета периодов
+
+        for i in range(3):  # 3 основных периода
+            period_number = (life_path + i) % 9 or 9
+            start_age = i * 12
+            end_age = (i + 1) * 12
+
+            period_info = {
+                'period': i + 1,
+                'number': period_number,
+                'age_range': f"{start_age}-{end_age}",
+                'focus': self._get_period_focus(period_number)
+            }
+            periods.append(period_info)
+
+        return periods
+
+    def _get_period_focus(self, period_number: int) -> str:
+        """Определение фокуса жизненного периода"""
+        focuses = {
+            1: "самоопределение и инициатива",
+            2: "партнерство и сотрудничество",
+            3: "творчество и самовыражение",
+            4: "стабильность и организация",
+            5: "свобода и изменения",
+            6: "ответственность и служение",
+            7: "анализ и духовность",
+            8: "достижения и власть",
+            9: "завершение и мудрость"
+        }
+        return focuses.get(period_number, "неопределенный период")
+
+    def _analyze_karmic_lessons(self, matrix: dict) -> list:
+        """Анализ кармических уроков (отсутствующие цифры)"""
+        lessons = []
+        digit_lessons = {
+            1: "урок независимости и уверенности",
+            2: "урок чувствительности и сотрудничества",
+            3: "урок творчества и радости",
+            4: "урок дисциплины и практичности",
+            5: "урок свободы и адаптации",
+            6: "урок ответственности и заботы",
+            7: "урок мудрости и интуиции",
+            8: "урок власти и изобилия",
+            9: "урок сострадания и завершения"
+        }
+
+        for digit in range(1, 10):
+            if matrix.get(str(digit), 0) == 0:
+                lessons.append(digit_lessons.get(digit, f"урок цифры {digit}"))
+
+        return lessons
+
+    def _analyze_talents(self, matrix: dict) -> list:
+        """Анализ талантов и способностей (сильные цифры)"""
+        talents = []
+        digit_talents = {
+            1: "лидерские способности",
+            2: "дипломатические навыки",
+            3: "творческие таланты",
+            4: "организаторские способности",
+            5: "адаптивность и коммуникабельность",
+            6: "педагогические способности",
+            7: "аналитическое мышление",
+            8: "бизнес-способности",
+            9: "гуманитарные таланты"
+        }
+
+        for digit in range(1, 10):
+            if matrix.get(str(digit), 0) >= 2:
+                talents.append(digit_talents.get(digit, f"талант цифры {digit}"))
+
+        return talents
+
+    async def get_detailed_matrix_report(self, telegram_id: int) -> dict:
+        """Получение детального отчета по психоматрице"""
+        try:
+            matrix_data = await get_user_matrix(telegram_id)
+
+            if not matrix_data:
+                return {"error": "Данные психоматрицы не найдены"}
+
+            summary = await get_matrix_summary(telegram_id)
+            traits = await calculate_personality_traits(telegram_id)
+            energy_level = await get_matrix_energy_level(telegram_id)
+
+            report = {
+                'basic_info': summary,
+                'personality_traits': traits,
+                'energy_level': energy_level,
+                'extended_analysis': matrix_data.get('extended_analysis', {}),
+                'calculation_date': matrix_data.get('calculated_at'),
+                'report_timestamp': await get_current_timestamp()
+            }
+
+            return report
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка создания детального отчета для {telegram_id}: {e}")
+            return {"error": str(e)}
+
+
+# Глобальный экземпляр сервиса
+matrix_service = MatrixAnalysisService()
+
+backend.moon.py
+
+# backend/moon.py
+from datetime import date
+import math
+
+def calculate_lunar_phase(target_date: date = None) -> str:
+    """Вычисляет фазу луны для заданной даты.
+    Возвращает строковое описание фазы луны."""
+    if target_date is None:
+        target_date = date.today()
+
+    # Используем известный алгоритм расчёта фаз луны
+    # 2001-01-01 - базовая дата нового месяца
+    diff = (target_date - date(2001, 1, 1)).days
+    lunations = 0.20439731 + (diff * 0.03386319269)
+    lunation = lunations % 1
+    index = int((lunation * 8) + 0.5) & 7
+    phases = [
+        "New Moon",
+        "Waxing Crescent",
+        "First Quarter",
+        "Waxing Gibbous",
+        "Full Moon",
+        "Waning Gibbous",
+        "Last Quarter",
+        "Waning Crescent",
+    ]
+    return phases[index]
+
+backend.natal_chart.py
 
 import os
 import pytz
@@ -2513,7 +4649,7 @@ import requests
 import time
 from urllib.parse import quote
 
-from backend.database import async_session, UserNatalChart
+#from backend.database import async_session, UserNatalChart
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -2918,7 +5054,7 @@ class MLNatalChartCalculator:
             json.dump(natal_chart, f, ensure_ascii=False, indent=2, separators=(',', ':'))
         logger.info(f"ML-натальная карта сохранена: {filename}")
 
-predictions.py:
+backend.predictions.py
 
 from math import floor
 import json
@@ -3078,11 +5214,10 @@ class AstroPredictor:
 
             await session.commit()
         return prediction
-        
-        
-prediction_services.py:
 
-from backend.database import async_session, NatalPredictions
+backend.prediction_services.py
+
+from backend.database import async_session, DailyCalculations, UserAstroProfile
 from backend.predictions import AstroPredictor
 from backend.chart_services import get_user_natal_chart
 from backend.matrix_services import get_user_matrix
@@ -3092,8 +5227,9 @@ from sqlalchemy.future import select
 from sqlalchemy import func, and_
 import logging
 import json
-from datetime import datetime, date
-from typing import List, Dict, Any  # ✅ ДОБАВЛЕННЫЙ ИМПОРТ
+from datetime import datetime, date, timedelta
+from typing import List, Dict, Any, Optional
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -3115,20 +5251,22 @@ class DataCombiner:
                 'aspects_count': astro_prediction.get('aspects_count', 0),
                 'strong_aspects_count': astro_prediction.get('strong_aspects_count', 0),
                 'retrograde_planets': astro_prediction.get('retrograde_planets', []),
-                'key_aspects': astro_prediction.get('aspects', [])[:5]  # ✅ ТЕПЕРЬ СОДЕРЖИТ ДАННЫЕ ДЛЯ СИЛЬНЫХ АСПЕКТОВ
+                'key_aspects': astro_prediction.get('aspects', [])[:5],
+                'calculation_error': astro_prediction.get('calculation_error', False),
+                'error_message': astro_prediction.get('error_message')
             },
             'biorhythm_data': {
                 'overall_energy': biorhythm_data.get('overall_energy', {}),
-                'physical_cycle': biorhythm_data.get('cycles', {}).get('physical', {}),
-                'emotional_cycle': biorhythm_data.get('cycles', {}).get('emotional', {}),
-                'intellectual_cycle': biorhythm_data.get('cycles', {}).get('intellectual', {}),
+                'cycles': biorhythm_data.get('cycles', {}),
                 'critical_days_count': len(biorhythm_data.get('critical_days', [])),
-                'peak_days_count': len(biorhythm_data.get('peak_days', []))
+                'peak_days_count': len(biorhythm_data.get('peak_days', [])),
+                'days_lived': biorhythm_data.get('days_lived', 0)
             },
             'calculation_metadata': {
                 'calculation_timestamp': datetime.now().isoformat(),
                 'data_sources': ['astrology', 'biorhythms'],
-                'calculation_methods': ['swiss_ephemeris', 'sine_wave_analysis']
+                'calculation_methods': ['swiss_ephemeris', 'sine_wave_analysis'],
+                'data_version': '2.0'
             }
         }
 
@@ -3183,13 +5321,18 @@ def _extract_strong_aspects(astro_data: dict) -> List[str]:
         return []
 
 
-# Добавить в начало файла:
-from backend.aspect_recommendations import aspect_recommendations
+def _generate_data_hash(telegram_id: int, target_date: date, calculation_data: dict) -> str:
+    """Генерация хэша данных для кэширования"""
+    try:
+        data_str = f"{telegram_id}_{target_date.isoformat()}_{json.dumps(calculation_data, sort_keys=True)}"
+        return hashlib.sha256(data_str.encode()).hexdigest()
+    except Exception as e:
+        logger.error(f"❌ Ошибка генерации хэша: {e}")
+        return "fallback_hash"
 
 
-# Обновить функцию format_data_for_user:
 async def format_data_for_user(prediction: dict) -> str:
-    """Форматирование данных для отображения пользователю"""
+    """Форматирование данных для отображения пользователю в боте"""
     if not prediction:
         return "❌ Не удалось получить данные расчетов"
 
@@ -3215,9 +5358,10 @@ async def format_data_for_user(prediction: dict) -> str:
             lines.append(
                 f"⚡ **Общая энергия:** {overall_energy.get('percentage', 0):.1f}%")
 
-            physical = biorhythms.get('physical_cycle', {})
-            emotional = biorhythms.get('emotional_cycle', {})
-            intellectual = biorhythms.get('intellectual_cycle', {})
+            cycles = biorhythms.get('cycles', {})
+            physical = cycles.get('physical', {})
+            emotional = cycles.get('emotional', {})
+            intellectual = cycles.get('intellectual', {})
 
             lines.append(
                 f"💪 **Физический цикл:** {physical.get('percentage', 0):.1f}% ({physical.get('phase', 'нейтральная')})")
@@ -3233,7 +5377,7 @@ async def format_data_for_user(prediction: dict) -> str:
             lines.append(
                 f"🌟 **Астрология:** {astro_data.get('aspects_count', 0)} аспектов, {astro_data.get('strong_aspects_count', 0)} сильных")
 
-            # ✅ ДОБАВЛЕНО: ПРОСТЫЕ РЕКОМЕНДАЦИИ ПО АСПЕКТАМ
+            # Рекомендации по аспектам
             key_aspects = astro_data.get('key_aspects', [])
             aspect_recommendations_list = aspect_recommendations.generate_aspect_recommendations(key_aspects)
 
@@ -3262,6 +5406,11 @@ async def format_data_for_user(prediction: dict) -> str:
                 retrograde_ru = [planet_names.get(p, p) for p in retrograde_planets]
                 lines.append(f"🔄 **Ретроградные планеты:** {', '.join(retrograde_ru)}")
 
+        # Критические дни
+        if biorhythms and biorhythms.get('critical_days_count', 0) > 0:
+            lines.append("")
+            lines.append("⚠️ **Критический день** - будьте осторожны в принятии решений")
+
         lines.append("")
         lines.append("🎯 *Используйте эти данные для планирования своего дня*")
 
@@ -3272,9 +5421,8 @@ async def format_data_for_user(prediction: dict) -> str:
         return "❌ Произошла ошибка при формировании данных расчетов"
 
 
-# ОСТАЛЬНЫЕ ФУНКЦИИ ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ
-async def generate_and_save_prediction(telegram_id: int, target_date: date):
-    """Генерация и сохранение данных для конкретной даты (перезапись существующих)"""
+async def generate_and_save_prediction(telegram_id: int, target_date: date) -> Dict[str, Any]:
+    """Генерация и сохранение данных для конкретной даты"""
     try:
         logger.info(f"🔮 Генерация данных для пользователя {telegram_id} на {target_date}")
 
@@ -3305,39 +5453,19 @@ async def generate_and_save_prediction(telegram_id: int, target_date: date):
 
         logger.info(f"✅ Комбинированные данные созданы для {telegram_id}")
 
-        # Сохраняем данные в БД с ПЕРЕЗАПИСЬЮ
-        async with async_session() as session:
-            result = await session.execute(
-                select(NatalPredictions).where(NatalPredictions.telegram_id == telegram_id)
-            )
-            existing_record = result.scalar_one_or_none()
+        # Сохраняем в daily_calculations
+        await save_daily_calculations(telegram_id, target_date, combined_data)
 
-            # Структура данных для сохранения
-            prediction_data = {
-                'calculation_date': datetime.now().isoformat(),
-                'target_date': target_date.isoformat(),
-                'natal_chart': natal_data,
-                'psyho_matrix': matrix_data,
-                'daily_calculations': combined_data
-            }
+        # Структура данных для возврата
+        prediction_data = {
+            'calculation_date': datetime.now().isoformat(),
+            'target_date': target_date.isoformat(),
+            'natal_chart': natal_data,
+            'psyho_matrix': matrix_data,
+            'daily_calculations': combined_data
+        }
 
-            if existing_record:
-                # ПЕРЕЗАПИСЫВАЕМ существующую запись
-                existing_record.predictions = prediction_data
-                existing_record.updated_at = func.now()
-                logger.info(f"📝 Перезаписаны данные для {telegram_id} на {target_date}")
-            else:
-                # Создаем новую запись
-                new_record = NatalPredictions(
-                    telegram_id=telegram_id,
-                    predictions=prediction_data,
-                    assistant_data={},
-                )
-                session.add(new_record)
-                logger.info(f"🆕 Созданы новые данные для {telegram_id} на {target_date}")
-
-            await session.commit()
-            logger.info(f"💾 Данные успешно сохранены в БД для {telegram_id}")
+        logger.info(f"💾 Все данные сохранены для {telegram_id} на {target_date}")
 
         return prediction_data
 
@@ -3349,108 +5477,144 @@ async def generate_and_save_prediction(telegram_id: int, target_date: date):
         raise Exception(f"Не удалось сгенерировать данные на основе расчетов: {str(e)}")
 
 
-
-async def format_data_for_model(telegram_id: int, user_profile: dict, prediction: dict) -> str:
-    """Форматирование данных для модели ИИ"""
-    if not prediction:
-        return "❌ No calculation data available"
-
+async def save_daily_calculations(telegram_id: int, target_date: date, calculation_data: dict) -> bool:
+    """Сохранение ежедневных расчетов в оптимизированную таблицу"""
     try:
-        model_data = {
-            'user_profile': {
-                'telegram_id': telegram_id,
-                'gender': user_profile.get('gender'),
-                'profession': user_profile.get('profession'),
-                'job_position': user_profile.get('job_position'),
-                'current_city': user_profile.get('current_city'),
-                'birth_date': user_profile.get('birth_date').isoformat() if user_profile.get('birth_date') else None,
-                'birth_city': user_profile.get('birth_city')
-            },
-            'natal_chart': prediction.get('natal_chart', {}),
-            'psyho_matrix': prediction.get('psyho_matrix', {}),
-            'daily_calculations': prediction.get('daily_calculations', {}),
-            'target_date': prediction.get('target_date'),
-            'timestamp': datetime.now().isoformat()
-        }
+        data_hash = _generate_data_hash(telegram_id, target_date, calculation_data)
 
-        # Красивый вывод для отладки
-        print("\n" + "=" * 80)
-        print("🤖 DATA FOR AI MODEL:")
-        print("=" * 80)
-        print(f"👤 User ID: {telegram_id}")
-        print(f"📅 Target Date: {prediction.get('target_date', 'Unknown')}")
-        print(f"💼 Profession: {user_profile.get('profession', 'Not specified')}")
-        print(f"📋 Position: {user_profile.get('job_position', 'Not specified')}")
-        print(f"🏙️ City: {user_profile.get('current_city', 'Not specified')}")
+        async with async_session() as session:
+            # Проверяем существующую запись
+            result = await session.execute(
+                select(DailyCalculations).where(
+                    and_(
+                        DailyCalculations.telegram_id == telegram_id,
+                        DailyCalculations.target_date == target_date
+                    )
+                )
+            )
+            existing_record = result.scalar_one_or_none()
 
-        # Натальная карта
-        natal_chart = prediction.get('natal_chart', {})
-        if natal_chart:
-            planets = natal_chart.get('planets', {})
-            print(f"\n🌟 Natal Chart: {len(planets)} planets calculated")
-            print(f"   📍 Birth location: {natal_chart.get('metadata', {}).get('location', {}).get('city', 'Unknown')}")
+            if existing_record:
+                # Обновляем существующую запись
+                existing_record.biorhythm_data = calculation_data.get('biorhythm_data', {})
+                existing_record.astro_transits_data = calculation_data.get('astro_data', {})
+                existing_record.calculation_metadata = calculation_data.get('calculation_metadata', {})
+                existing_record.data_hash = data_hash
+                existing_record.calculation_timestamp = datetime.now()
+                logger.info(f"📝 Обновлены daily calculations для {telegram_id} на {target_date}")
+            else:
+                # Создаем новую запись
+                new_record = DailyCalculations(
+                    telegram_id=telegram_id,
+                    target_date=target_date,
+                    biorhythm_data=calculation_data.get('biorhythm_data', {}),
+                    astro_transits_data=calculation_data.get('astro_data', {}),
+                    calculation_metadata=calculation_data.get('calculation_metadata', {}),
+                    data_hash=data_hash,
+                    calculation_timestamp=datetime.now()
+                )
+                session.add(new_record)
+                logger.info(f"🆕 Созданы daily calculations для {telegram_id} на {target_date}")
 
-        # Психоматрица
-        matrix = prediction.get('psyho_matrix', {})
-        if matrix:
-            basic_numbers = matrix.get('basic_numbers', {})
-            print(f"🔢 Psyho Matrix: First number: {basic_numbers.get('first', 'N/A')}")
-
-        # Ежедневные расчеты
-        daily = prediction.get('daily_calculations', {})
-        if daily:
-            biorhythms = daily.get('biorhythm_data', {})
-            astro = daily.get('astro_data', {})
-            print(f"📊 Daily Calculations:")
-            print(f"   ⚡ Energy: {biorhythms.get('overall_energy', {}).get('percentage', 0):.1f}%")
-            print(f"   🌟 Aspects: {astro.get('aspects_count', 0)}")
-
-        print("=" * 80)
-        print("JSON Data for AI Model:")
-        print("=" * 80)
-        print(json.dumps(model_data, ensure_ascii=False, indent=2))
-        print("=" * 80 + "\n")
-
-        return json.dumps(model_data, ensure_ascii=False)
+            await session.commit()
+            return True
 
     except Exception as e:
-        logger.error(f"❌ Error formatting data for model: {e}")
-        return json.dumps({'error': str(e)})
+        logger.error(f"❌ Ошибка сохранения daily calculations для {telegram_id}: {e}")
+        await session.rollback()
+        return False
 
 
-
-async def get_user_predictions(telegram_id: int):
-    """Получение последних данных пользователя"""
+async def get_daily_calculations(telegram_id: int, target_date: date) -> Optional[Dict[str, Any]]:
+    """Получение ежедневных расчетов для конкретной даты"""
     try:
         async with async_session() as session:
             result = await session.execute(
-                select(NatalPredictions).where(NatalPredictions.telegram_id == telegram_id)
+                select(DailyCalculations).where(
+                    and_(
+                        DailyCalculations.telegram_id == telegram_id,
+                        DailyCalculations.target_date == target_date
+                    )
+                )
             )
-            predictions = result.scalar_one_or_none()
+            daily_calc = result.scalar_one_or_none()
 
-            if predictions:
-                return predictions.predictions
+            if daily_calc:
+                return {
+                    'biorhythm_data': daily_calc.biorhythm_data,
+                    'astro_transits_data': daily_calc.astro_transits_data,
+                    'calculation_metadata': daily_calc.calculation_metadata,
+                    'calculation_timestamp': daily_calc.calculation_timestamp.isoformat(),
+                    'data_hash': daily_calc.data_hash
+                }
             return None
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения daily calculations для {telegram_id}: {e}")
+        return None
+
+
+async def get_user_predictions(telegram_id: int) -> Optional[Dict[str, Any]]:
+    """Получение последних данных пользователя (для обратной совместимости)"""
+    try:
+        # Получаем статические данные
+        async with async_session() as session:
+            result = await session.execute(
+                select(UserAstroProfile).where(UserAstroProfile.telegram_id == telegram_id)
+            )
+            astro_profile = result.scalar_one_or_none()
+
+            if not astro_profile:
+                return None
+
+            # Получаем последние daily calculations
+            today = date.today()
+            daily_calc = await get_daily_calculations(telegram_id, today)
+
+            return {
+                'calculation_date': datetime.now().isoformat(),
+                'target_date': today.isoformat(),
+                'natal_chart': astro_profile.natal_chart_data,
+                'psyho_matrix': astro_profile.psyho_matrix_data,
+                'daily_calculations': daily_calc or {}
+            }
 
     except Exception as e:
         logger.error(f"❌ Ошибка при получении данных {telegram_id}: {e}")
         return None
 
 
-
 async def get_prediction_statistics(telegram_id: int) -> dict:
     """Получение статистики данных пользователя"""
     try:
-        prediction = await get_user_predictions(telegram_id)
-        if not prediction:
-            return {}
+        # Получаем количество записей daily calculations
+        async with async_session() as session:
+            count_result = await session.execute(
+                select(func.count(DailyCalculations.telegram_id)).where(
+                    DailyCalculations.telegram_id == telegram_id
+                )
+            )
+            total_calculations = count_result.scalar() or 0
 
-        daily_data = prediction.get('daily_calculations', {})
+            # Получаем даты первой и последней записи
+            dates_result = await session.execute(
+                select(
+                    func.min(DailyCalculations.target_date),
+                    func.max(DailyCalculations.target_date)
+                ).where(DailyCalculations.telegram_id == telegram_id)
+            )
+            min_date, max_date = dates_result.first() or (None, None)
+
+        # Получаем последние расчеты
+        latest_calc = await get_daily_calculations(telegram_id, date.today())
+
         return {
-            'last_calculation_date': prediction.get('calculation_date'),
-            'target_date': prediction.get('target_date'),
-            'biorhythm_energy': daily_data.get('biorhythm_data', {}).get('overall_energy', {}).get('percentage', 0),
-            'astro_aspects_count': daily_data.get('astro_data', {}).get('aspects_count', 0)
+            'total_calculations': total_calculations,
+            'first_calculation_date': min_date.isoformat() if min_date else None,
+            'last_calculation_date': max_date.isoformat() if max_date else None,
+            'calculation_range_days': (max_date - min_date).days if min_date and max_date else 0,
+            'latest_energy_level': latest_calc.get('biorhythm_data', {}).get('overall_energy', {}).get('percentage', 0) if latest_calc else 0,
+            'latest_aspects_count': latest_calc.get('astro_transits_data', {}).get('aspects_count', 0) if latest_calc else 0
         }
 
     except Exception as e:
@@ -3461,164 +5625,117 @@ async def get_prediction_statistics(telegram_id: int) -> dict:
 async def validate_prediction_data(telegram_id: int) -> bool:
     """Проверка корректности данных"""
     try:
-        prediction = await get_user_predictions(telegram_id)
-        if not prediction:
-            return False
+        # Проверяем наличие астропрофиля
+        async with async_session() as session:
+            result = await session.execute(
+                select(UserAstroProfile).where(UserAstroProfile.telegram_id == telegram_id)
+            )
+            astro_profile = result.scalar_one_or_none()
 
-        # Проверяем наличие обязательных полей
-        required_fields = ['natal_chart', 'psyho_matrix', 'daily_calculations', 'target_date']
-        for field in required_fields:
-            if field not in prediction:
+            if not astro_profile:
                 return False
 
-        return True
+            # Проверяем наличие основных данных
+            if not astro_profile.natal_chart_data or not astro_profile.psyho_matrix_data:
+                return False
+
+            # Проверяем наличие хотя бы одной записи daily calculations
+            today = date.today()
+            daily_calc = await get_daily_calculations(telegram_id, today)
+
+            return daily_calc is not None
 
     except Exception as e:
         logger.error(f"❌ Ошибка валидации данных для {telegram_id}: {e}")
         return False
 
 
-async def cleanup_old_predictions():
-    """Очистка устаревших данных"""
+async def cleanup_old_predictions(days_old: int = 30) -> int:
+    """Очистка устаревших данных daily calculations"""
     try:
-        logger.info("🔄 Очистка устаревших данных не требуется в текущей структуре")
-        return 0
+        cutoff_date = date.today() - timedelta(days=days_old)
+
+        async with async_session() as session:
+            result = await session.execute(
+                DailyCalculations.__table__.delete().where(
+                    DailyCalculations.target_date < cutoff_date
+                )
+            )
+            deleted_count = result.rowcount
+
+            await session.commit()
+
+            if deleted_count > 0:
+                logger.info(f"🗑️ Удалено {deleted_count} устаревших записей daily calculations (старше {days_old} дней)")
+            else:
+                logger.info("✅ Устаревших записей daily calculations для удаления не найдено")
+
+            return deleted_count
 
     except Exception as e:
-        logger.error(f"❌ Ошибка при очистке данных: {e}")
+        logger.error(f"❌ Ошибка при очистке устаревших данных: {e}")
         return 0
-        
-        
-prompt_builder.py
-
-import logging
-from typing import Dict, Any
-from datetime import datetime
-
-logger = logging.getLogger(__name__)
 
 
-class PromptBuilder:
-    """
-    Оптимизированный построитель промптов для AI рекомендаций
-    """
+async def get_user_calculation_history(telegram_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+    """Получение истории расчетов пользователя"""
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                select(DailyCalculations)
+                .where(DailyCalculations.telegram_id == telegram_id)
+                .order_by(DailyCalculations.target_date.desc())
+                .limit(limit)
+            )
+            calculations = result.scalars().all()
 
-    def __init__(self):
-        self.templates = {
-            'daily_recommendations': self._daily_recommendations_template,
-            'professional_focus': self._professional_focus_template,
-            'energy_management': self._energy_management_template
+            history = []
+            for calc in calculations:
+                history.append({
+                    'target_date': calc.target_date.isoformat(),
+                    'energy_level': calc.biorhythm_data.get('overall_energy', {}).get('percentage', 0),
+                    'aspects_count': calc.astro_transits_data.get('aspects_count', 0),
+                    'calculation_timestamp': calc.calculation_timestamp.isoformat()
+                })
+
+            return history
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения истории расчетов для {telegram_id}: {e}")
+        return []
+
+
+async def calculate_data_freshness(telegram_id: int, target_date: date) -> Dict[str, Any]:
+    """Проверка свежести данных"""
+    try:
+        daily_calc = await get_daily_calculations(telegram_id, target_date)
+
+        if not daily_calc:
+            return {
+                'is_fresh': False,
+                'age_hours': None,
+                'status': 'NO_DATA'
+            }
+
+        calc_timestamp = datetime.fromisoformat(daily_calc['calculation_timestamp'])
+        age_hours = (datetime.now() - calc_timestamp).total_seconds() / 3600
+
+        return {
+            'is_fresh': age_hours < 24,  # Считаем свежими данные младше 24 часов
+            'age_hours': round(age_hours, 2),
+            'calculation_timestamp': daily_calc['calculation_timestamp'],
+            'status': 'FRESH' if age_hours < 24 else 'STALE'
         }
 
-    def build_prompt(self, data: Dict[str, Any], prompt_type: str = 'daily_recommendations') -> str:
-        """
-        Строит оптимизированный промпт на основе данных пользователя
-        """
-        template = self.templates.get(prompt_type, self._daily_recommendations_template)
-        return template(data)
+    except Exception as e:
+        logger.error(f"❌ Ошибка проверки свежести данных для {telegram_id}: {e}")
+        return {
+            'is_fresh': False,
+            'age_hours': None,
+            'status': 'ERROR'
+        }
 
-    def _daily_recommendations_template(self, data: Dict[str, Any]) -> str:
-        """Шаблон для ежедневных рекомендаций"""
-        user_context = data.get('user_context', {})
-        energy_state = data.get('energy_state', {})
-        astro_highlights = data.get('astro_highlights', {})
-
-        # Ключевые инсайты из астроданных
-        key_insights = self._extract_key_insights(astro_highlights)
-
-        prompt = f"""На основе индивидуальных расчетов предоставь КОНКРЕТНЫЕ практические рекомендации на день.
-
-КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ:
-• Профессия: {user_context.get('profession', 'не указана')}
-• Должность: {user_context.get('position', 'не указана')}
-• Город: {user_context.get('current_city', 'не указан')}
-
-ЭНЕРГЕТИЧЕСКИЙ ПРОФИЛЬ:
-{self._format_energy_state(energy_state)}
-
-АСТРОЛОГИЧЕСКИЕ ИНСАЙТЫ:
-{key_insights}
-
-СФОРМУЛИРУЙ 3-5 КОНКРЕТНЫХ РЕКОМЕНДАЦИЙ:
-1. 💼 Профессиональный фокус (что делать на работе)
-2. 🏃 Личная эффективность (как организовать день)  
-3. ❤️ Эмоциональный баланс (на что обратить внимание)
-4. 🎯 Ключевая задача дня (самое важное)
-
-ОТВЕТ (только рекомендации, без пояснений):"""
-
-        return prompt
-
-    def _professional_focus_template(self, data: Dict[str, Any]) -> str:
-        """Шаблон для профессиональных рекомендаций"""
-        user_context = data.get('user_context', {})
-
-        return f"""Сфокусируйся на профессиональных рекомендациях для:
-
-Профессия: {user_context.get('profession', 'не указана')}
-Должность: {user_context.get('position', 'не указана')}
-
-Дай 3 конкретных совета по:
-1. Оптимизации рабочего процесса
-2. Решению профессиональных задач
-3. Развитию навыков
-
-ОТВЕТ:"""
-
-    def _energy_management_template(self, data: Dict[str, Any]) -> str:
-        """Шаблон для управления энергией"""
-        energy_state = data.get('energy_state', {})
-
-        return f"""Дай рекомендации по управлению энергией на основе:
-
-{self._format_energy_state(energy_state)}
-
-Советы по:
-1. Распределению нагрузки
-2. Восстановлению сил
-3. Пикам продуктивности
-
-ОТВЕТ:"""
-
-    def _format_energy_state(self, energy_state: Dict[str, Any]) -> str:
-        """Форматирование данных об энергии"""
-        overall = energy_state.get('overall_energy', {})
-        physical = energy_state.get('physical_cycle', {})
-        emotional = energy_state.get('emotional_cycle', {})
-        intellectual = energy_state.get('intellectual_cycle', {})
-
-        return f"""• Общая энергия: {overall.get('percentage', 0)}% ({overall.get('level', 'средний')})
-• Физический цикл: {physical.get('percentage', 0)}% ({physical.get('phase', 'нейтральный')})
-• Эмоциональный цикл: {emotional.get('percentage', 0)}% ({emotional.get('phase', 'нейтральный')})
-• Интеллектуальный цикл: {intellectual.get('percentage', 0)}% ({intellectual.get('phase', 'нейтральный')})"""
-
-    def _extract_key_insights(self, astro_highlights: Dict[str, Any]) -> str:
-        """Извлечение ключевых астрологических инсайтов"""
-        if not astro_highlights:
-            return "• Стабильный астрологический фон"
-
-        insights = []
-
-        # Сильные аспекты
-        strong_aspects = astro_highlights.get('strong_aspects_count', 0)
-        if strong_aspects > 3:
-            insights.append(f"• {strong_aspects} сильных аспектов - день важных событий")
-        elif strong_aspects > 0:
-            insights.append(f"• {strong_aspects} значимых аспекта")
-
-        # Ретроградные планеты
-        retrograde = astro_highlights.get('retrograde_planets', [])
-        if retrograde:
-            insights.append(f"• Ретроградные: {', '.join(retrograde)} - время пересмотра")
-
-        return '\n'.join(insights) if insights else "• Благоприятный день для плановых задач"
-
-
-# Глобальный экземпляр
-prompt_builder = PromptBuilder()
-
-
-psyho_matrix.py:
+backend.psyho_matrix.py
 
 from datetime import datetime
 import logging
@@ -3693,7 +5810,7 @@ class PsyhoMatrixCalculator:
             'missing_digits': [digit for digit in map(str, range(1, 10)) if matrix.get(digit, 0) == 0]
         }
 
-user_services.py:  
+backend.user_services.py
 
 from backend.database import async_session, User
 from sqlalchemy.future import select
@@ -3913,887 +6030,1189 @@ async def get_users_statistics():
             'average_requests': 0,
             'error': str(e)
         }
-        
-ai_engine.py:
 
-import aiohttp
-import asyncio
-import logging
+
+bot:
+
+bot.config.py
+
 import os
-import time
-import hashlib
-import json
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
+
+TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+
+bot.handlers.py
+
+from aiogram import Router, types
+from aiogram.filters import Command, StateFilter
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from datetime import datetime, date, timedelta
+import logging
+
+from backend.assistant import assistant
 
 logger = logging.getLogger(__name__)
 
+# Создаем роутер
+router = Router()
 
-class AIPredictionEngine:
+
+# Определяем состояния для сбора данных
+class DataCollectionStates(StatesGroup):
+    waiting_for_birth_date = State()
+    waiting_for_birth_time = State()
+    waiting_for_birth_city = State()
+    waiting_for_current_city = State()
+    waiting_for_profession = State()
+    waiting_for_job_position = State()
+    waiting_for_gender = State()
+
+
+# Состояние для ввода даты
+class DateSelectionStates(StatesGroup):
+    waiting_for_custom_date = State()
+
+
+# Основная клавиатура
+def get_main_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📊 Расчет натальной карты")],
+            [KeyboardButton(text="📅 Получить данные на сегодня")],
+            [KeyboardButton(text="🔮 Получить данные на завтра")],
+            [KeyboardButton(text="📋 Статус данных"), KeyboardButton(text="ℹ️ Помощь")]
+        ],
+        resize_keyboard=True
+    )
+
+
+# Клавиатура для выбора даты
+def get_date_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📅 Сегодня"), KeyboardButton(text="📅 Завтра")],
+            [KeyboardButton(text="📅 Выбрать дату")],
+            [KeyboardButton(text="🔙 Назад")]
+        ],
+        resize_keyboard=True
+    )
+
+
+# Клавиатура для выбора пола
+def get_gender_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="👨 Мужской"), KeyboardButton(text="👩 Женский")],
+            [KeyboardButton(text="🤷 Не указывать")]
+        ],
+        resize_keyboard=True
+    )
+
+
+@router.message(Command("start"))
+async def cmd_start(message: types.Message):
+    """Команда начала работы с ботом"""
+    welcome_text = """
+👋 Добро пожаловать в ваш персональный ассистент Astra!
+
+Я помогу вам получать персонализированные данные на основе:
+• 🌟 Натальной карты и астрологических транзитов
+• 🔢 Психоматрицы по дате рождения  
+• ⚡ Биоритмов на каждый день
+• 💼 Вашей профессиональной деятельности
+
+Выберите действие из меню ниже:
     """
-    Оптимизированный движок для работы с Ollama API с одной моделью (gemma:2b)
-    Интегрирован с prompt_builder и recommendation_service
-    """
 
-    def __init__(self, base_url: str = None):
-        self.base_url = base_url or os.getenv('OLLAMA_URL', 'http://localhost:11435')
+    await message.answer(welcome_text, reply_markup=get_main_keyboard())
 
-        # Фиксированная модель - gemma:2b
-        #self.model = "gemma:2b"
-        self.model = "tinyllama:1.1b"
 
-        # Оптимизированные таймауты
-        self.timeout = aiohttp.ClientTimeout(total=600)  # 180 секунд
-        self.max_retries = 2
-        self.retry_delay = 2
+@router.message(lambda message: message.text == "📊 Расчет натальной карты")
+async def start_data_collection(message: types.Message, state: FSMContext):
+    """Начало сбора данных пользователя"""
 
-        # Инициализация зависимостей
-        self.prompt_builder = None
-        self.recommendation_service = None
-        self._dependencies_initialized = False
+    # Проверяем статус данных пользователя
+    status = await assistant.get_user_data_status(message.from_user.id)
 
-        # Статистика использования
-        self.stats = {
-            "total_requests": 0,
-            "successful_requests": 0,
-            "failed_requests": 0,
-            "average_response_time": 0,
-            "current_model": self.model,
-            "last_health_check": None,
-            "service_available": False
-        }
+    if status['is_complete']:
+        await message.answer(
+            "✅ Ваши основные данные уже собраны!\n"
+            "Если хотите обновить профессию или город, используйте соответствующую команду.\n\n"
+            "Выберите действие из меню:",
+            reply_markup=get_main_keyboard()
+        )
+    else:
+        await message.answer(
+            "📊 Начнем сбор данных для персонализированных расчетов!\n\n"
+            "Пожалуйста, введите вашу дату рождения в формате ГГГГ-ММ-ДД:\n"
+            "Например: 1990-05-15",
+            reply_markup=types.ReplyKeyboardRemove()
+        )
+        await state.set_state(DataCollectionStates.waiting_for_birth_date)
 
-        logger.info(f"🤖 AI движок инициализирован: {self.base_url}, модель: {self.model}")
 
-    async def _initialize_dependencies(self):
-        """Ленивая инициализация зависимостей"""
-        if not self._dependencies_initialized:
-            try:
-                from backend.prompt_builder import prompt_builder
-                from backend.recommendation_service import recommendation_service
+@router.message(DataCollectionStates.waiting_for_birth_date)
+async def process_birth_date(message: types.Message, state: FSMContext):
+    """Обработка даты рождения"""
+    try:
+        birth_date = datetime.strptime(message.text, "%Y-%m-%d").date()
 
-                self.prompt_builder = prompt_builder
-                self.recommendation_service = recommendation_service
-                self._dependencies_initialized = True
-                logger.info("✅ Зависимости AI движка инициализированы")
-            except ImportError as e:
-                logger.warning(f"⚠️ Не удалось инициализировать зависимости: {e}")
-                self._dependencies_initialized = True  # Помечаем как инициализированные, даже если есть ошибки
+        # Проверяем что дата не в будущем
+        if birth_date > date.today():
+            await message.answer(
+                "❌ Дата рождения не может быть в будущем!\n"
+                "Пожалуйста, введите корректную дату в формате ГГГГ-ММ-ДД:"
+            )
+            return
 
-    def _generate_data_hash(self, data: Dict[str, Any]) -> str:
-        """Генерация хэша данных для кэширования"""
-        try:
-            # Создаем стабильное представление данных для хэширования
-            stable_data = {
-                'user_context': data.get('user_context', {}),
-                'energy_state': data.get('energy_state', {}),
-                'target_date': data.get('target_date'),
-                'telegram_id': data.get('user_profile', {}).get('telegram_id')
-            }
+        await state.update_data(birth_date=birth_date)
 
-            data_str = json.dumps(stable_data, sort_keys=True, ensure_ascii=False)
-            return hashlib.sha256(data_str.encode()).hexdigest()
-        except Exception as e:
-            logger.error(f"❌ Ошибка генерации хэша данных: {e}")
-            return "fallback_hash"
+        await message.answer(
+            "✅ Дата рождения сохранена!\n\n"
+            "Теперь введите время рождения в формате ЧЧ:ММ (24 часа):\n"
+            "Например: 14:30"
+        )
+        await state.set_state(DataCollectionStates.waiting_for_birth_time)
 
-    async def test_connection(self) -> Dict[str, Any]:
-        """
-        Быстрая проверка подключения и доступности модели
-        """
-        test_result = {
-            "ollama_available": False,
-            "model_loaded": False,
-            "test_passed": False,
-            "response_time": None,
-            "error": None,
-            "details": {
-                "available_models": [],
-                "test_response": None,
-                "model_details": {}
-            }
-        }
+    except ValueError:
+        await message.answer(
+            "❌ Неверный формат даты.\n"
+            "Используйте формат ГГГГ-ММ-ДД:\n"
+            "Например: 1990-05-15"
+        )
 
-        try:
-            start_time = time.time()
 
-            # Проверяем доступность Ollama
-            test_result["ollama_available"] = await self.check_health()
+@router.message(DataCollectionStates.waiting_for_birth_time)
+async def process_birth_time(message: types.Message, state: FSMContext):
+    """Обработка времени рождения"""
+    try:
+        birth_time = datetime.strptime(message.text, "%H:%M").time()
+        await state.update_data(birth_time=birth_time)
 
-            if test_result["ollama_available"]:
-                # Проверяем наличие конкретной модели
-                available_models = await self.get_available_models()
-                test_result["model_loaded"] = self.model in available_models
-                test_result["details"]["available_models"] = available_models
+        await message.answer(
+            "✅ Время рождения сохранено!\n\n"
+            "Введите город рождения:"
+        )
+        await state.set_state(DataCollectionStates.waiting_for_birth_city)
 
-                # Получаем детали модели
-                if test_result["model_loaded"]:
-                    model_details = await self.get_model_details()
-                    test_result["details"]["model_details"] = model_details
+    except ValueError:
+        await message.answer(
+            "❌ Неверный формат времени.\n"
+            "Используйте формат ЧЧ:ММ (24 часа):\n"
+            "Например: 14:30"
+        )
 
-                # Быстрый тестовый запрос
-                if test_result["model_loaded"]:
-                    test_data = {
-                        "user_context": {"profession": "тест", "position": "тест"},
-                        "energy_state": {
-                            "overall_energy": {"percentage": 75},
-                            "physical_cycle": {"phase": "высокая активность"},
-                            "emotional_cycle": {"phase": "нейтральная"}
-                        },
-                        "target_date": datetime.now().date().isoformat()
-                    }
 
-                    test_response = await self.generate_recommendations(test_data)
-                    test_result["test_passed"] = test_response["success"]
-                    test_result["response_time"] = test_response.get("response_time_seconds")
+@router.message(DataCollectionStates.waiting_for_birth_city)
+async def process_birth_city(message: types.Message, state: FSMContext):
+    """Обработка города рождения"""
+    birth_city = message.text.strip()
 
-            test_result["response_time"] = time.time() - start_time
-            self.stats["service_available"] = test_result["ollama_available"]
-            self.stats["last_health_check"] = datetime.now().isoformat()
+    if len(birth_city) < 2:
+        await message.answer(
+            "❌ Название города слишком короткое.\n"
+            "Пожалуйста, введите корректное название города:"
+        )
+        return
 
-        except Exception as e:
-            test_result["error"] = str(e)
-            logger.error(f"❌ Ошибка тестирования подключения: {e}")
-            self.stats["service_available"] = False
+    await state.update_data(birth_city=birth_city)
 
-        return test_result
+    await message.answer(
+        "✅ Город рождения сохранен!\n\n"
+        "Теперь введите город проживания:"
+    )
+    await state.set_state(DataCollectionStates.waiting_for_current_city)
 
-    async def get_available_models(self) -> List[str]:
-        """Получение списка доступных моделей"""
-        try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
-                async with session.get(f"{self.base_url}/api/tags") as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        return [model["name"] for model in data.get("models", [])]
-                    else:
-                        logger.warning(f"❌ Ошибка получения моделей: {response.status}")
-                        return []
-        except Exception as e:
-            logger.debug(f"Не удалось получить список моделей: {e}")
-            return []
 
-    async def get_model_details(self) -> Dict[str, Any]:
-        """Получение деталей текущей модели"""
-        try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
-                async with session.post(f"{self.base_url}/api/show", json={"name": self.model}) as response:
-                    if response.status == 200:
-                        return await response.json()
-                    else:
-                        return {"error": f"Status {response.status}"}
-        except Exception as e:
-            return {"error": str(e)}
+@router.message(DataCollectionStates.waiting_for_current_city)
+async def process_current_city(message: types.Message, state: FSMContext):
+    """Обработка города проживания"""
+    current_city = message.text.strip()
 
-    async def check_health(self) -> bool:
-        """Проверка доступности Ollama сервиса"""
-        try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
-                async with session.get(f"{self.base_url}/api/tags") as response:
-                    if response.status == 200:
-                        self.stats["service_available"] = True
-                        return True
-        except Exception as e:
-            logger.debug(f"❌ Ollama недоступен: {e}")
+    if len(current_city) < 2:
+        await message.answer(
+            "❌ Название города слишком короткое.\n"
+            "Пожалуйста, введите корректное название города:"
+        )
+        return
 
-        self.stats["service_available"] = False
-        return False
+    await state.update_data(current_city=current_city)
 
-    async def ensure_model_loaded(self) -> bool:
-        """Проверка и при необходимости загрузка модели"""
-        try:
-            available_models = await self.get_available_models()
-            if self.model not in available_models:
-                logger.info(f"🔄 Модель {self.model} не найдена, пытаюсь загрузить...")
-                return await self.pull_model()
-            return True
-        except Exception as e:
-            logger.error(f"❌ Ошибка проверки модели: {e}")
-            return False
+    await message.answer(
+        "✅ Город проживания сохранен!\n\n"
+        "Введите вашу специальность или профессию:"
+    )
+    await state.set_state(DataCollectionStates.waiting_for_profession)
 
-    async def pull_model(self) -> bool:
-        """Загрузка модели"""
-        try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=300)) as session:
-                async with session.post(f"{self.base_url}/api/pull", json={"name": self.model}) as response:
-                    if response.status == 200:
-                        logger.info(f"✅ Модель {self.model} успешно загружена")
-                        return True
-                    else:
-                        logger.error(f"❌ Ошибка загрузки модели: {response.status}")
-                        return False
-        except Exception as e:
-            logger.error(f"❌ Ошибка при загрузке модели: {e}")
-            return False
 
-    async def generate_recommendations(self, prepared_data: Dict) -> Dict[str, Any]:
-        """
-        Основной метод генерации рекомендаций с кэшированием
-        """
-        start_time = time.time()
-        self.stats["total_requests"] += 1
+@router.message(DataCollectionStates.waiting_for_profession)
+async def process_profession(message: types.Message, state: FSMContext):
+    """Обработка профессии"""
+    profession = message.text.strip()
 
-        # Инициализируем зависимости
-        await self._initialize_dependencies()
+    if len(profession) < 2:
+        await message.answer(
+            "❌ Название профессии слишком короткое.\n"
+            "Пожалуйста, введите корректное название профессии:"
+        )
+        return
 
-        # ПРОВЕРЯЕМ КЭШ
-        try:
-            if self.recommendation_service:
-                data_hash = self._generate_data_hash(prepared_data)
-                telegram_id = prepared_data.get('user_profile', {}).get('telegram_id')
-                target_date_str = prepared_data.get('target_date')
+    await state.update_data(profession=profession)
 
-                if telegram_id and target_date_str:
-                    target_date = datetime.fromisoformat(target_date_str).date()
-                    cached = await self.recommendation_service.get_cached_recommendations(
-                        telegram_id, target_date, data_hash
-                    )
-                    if cached:
-                        logger.info(f"✅ Использованы кэшированные рекомендации для {telegram_id}")
-                        return {
-                            "success": True,
-                            "recommendations": cached['recommendations'],
-                            "from_cache": True,
-                            "model_used": cached.get('model_version', self.model),
-                            "response_time_seconds": 0.1,
-                            "timestamp": datetime.now().isoformat()
-                        }
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка проверки кэша: {e}")
+    await message.answer(
+        "✅ Профессия сохранена!\n\n"
+        "Введите вашу должность (если нет - напишите 'нет'):"
+    )
+    await state.set_state(DataCollectionStates.waiting_for_job_position)
 
-        # Проверяем доступность сервиса
-        if not await self.check_health():
-            return self._get_fallback_response(prepared_data, "Сервис AI недоступен")
 
-        # Проверяем наличие модели
-        if not await self.ensure_model_loaded():
-            return self._get_fallback_response(prepared_data, "Модель AI не загружена")
+@router.message(DataCollectionStates.waiting_for_job_position)
+async def process_job_position(message: types.Message, state: FSMContext):
+    """Обработка должности и переход к выбору пола"""
+    job_position = message.text.strip()
+    if job_position.lower() == 'нет':
+        job_position = None
 
-        try:
-            # Формируем промпт с использованием prompt_builder
-            prompt = await self._build_prompt_optimized(prepared_data)
-            response_text = await self._make_ollama_request(prompt)
-            recommendations = self._parse_response(response_text)
+    await state.update_data(job_position=job_position)
 
-            # Сохраняем в кэш
-            try:
-                if self.recommendation_service and telegram_id and target_date_str:
-                    await self.recommendation_service.save_recommendations(
-                        telegram_id,
-                        datetime.fromisoformat(target_date_str).date(),
-                        data_hash,
-                        response_text,
-                        self.model
-                    )
-            except Exception as e:
-                logger.warning(f"⚠️ Ошибка сохранения в кэш: {e}")
+    await message.answer(
+        "✅ Должность сохранена!\n\n"
+        "Укажите ваш пол:",
+        reply_markup=get_gender_keyboard()
+    )
+    await state.set_state(DataCollectionStates.waiting_for_gender)
 
-            # Обновляем статистику
-            response_time = time.time() - start_time
-            self.stats["successful_requests"] += 1
 
-            # Обновляем среднее время ответа
-            prev_avg = self.stats["average_response_time"]
-            prev_count = self.stats["successful_requests"] - 1
-            self.stats["average_response_time"] = (
-                (prev_avg * prev_count + response_time) / self.stats["successful_requests"]
-                if self.stats["successful_requests"] > 0 else response_time
+@router.message(DataCollectionStates.waiting_for_gender)
+async def process_gender(message: types.Message, state: FSMContext):
+    """Обработка пола и завершение сбора данных"""
+    gender_map = {
+        "👨 Мужской": "male",
+        "👩 Женский": "female",
+        "🤷 Не указывать": None
+    }
+
+    gender_text = message.text.lower()
+    gender = None
+
+    # Определяем пол по тексту
+    for key, value in gender_map.items():
+        if key.lower() in gender_text:
+            gender = value
+            break
+
+    # Если пол не распознан, используем текст как есть
+    if gender is None:
+        if any(word in gender_text for word in ["муж", "male", "м"]):
+            gender = "male"
+        elif any(word in gender_text for word in ["жен", "female", "ж"]):
+            gender = "female"
+        else:
+            gender = None
+
+    await state.update_data(gender=gender)
+    user_data = await state.get_data()
+
+    try:
+        # Сохраняем все данные через ассистента
+        result = await assistant.collect_user_data(
+            telegram_id=message.from_user.id,
+            birth_date=user_data['birth_date'],
+            birth_time=user_data['birth_time'],
+            birth_city=user_data['birth_city'],
+            current_city=user_data['current_city'],
+            profession=user_data['profession'],
+            job_position=user_data.get('job_position'),
+            gender=gender
+        )
+
+        if result['success']:
+            await message.answer(
+                "🎉 Поздравляем! Все данные успешно собраны!\n\n"
+                "Теперь вы можете получать персонализированные расчеты:",
+                reply_markup=get_main_keyboard()
+            )
+        else:
+            await message.answer(
+                f"❌ {result['message']}\n\n"
+                "Попробуйте начать сбор данных заново.",
+                reply_markup=get_main_keyboard()
             )
 
-            logger.info(f"✅ Рекомендации сгенерированы за {response_time:.2f}с")
+    except Exception as e:
+        logger.error(f"Ошибка при сохранении данных: {e}")
+        await message.answer(
+            f"❌ Произошла ошибка при сохранении данных: {str(e)}\n\n"
+            "Попробуйте начать сбор данных заново.",
+            reply_markup=get_main_keyboard()
+        )
 
-            return {
-                "success": True,
-                "recommendations": recommendations,
-                "response_text": response_text,
-                "model_used": self.model,
-                "response_time_seconds": round(response_time, 2),
-                "timestamp": datetime.now().isoformat(),
-                "from_cache": False
-            }
+    await state.clear()
 
-        except Exception as e:
-            self.stats["failed_requests"] += 1
-            logger.error(f"❌ Ошибка генерации рекомендаций: {e}")
-            return self._get_fallback_response(prepared_data, str(e))
 
-    async def _build_prompt_optimized(self, data: Dict) -> str:
-        """Оптимизированное построение промпта с использованием prompt_builder"""
-        try:
-            if self.prompt_builder:
-                return self.prompt_builder.build_prompt(data)
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка prompt_builder, используем fallback: {e}")
+@router.message(lambda message: message.text == "📅 Получить данные на сегодня")
+async def get_todays_data(message: types.Message):
+    """Получение данных на сегодня"""
+    await process_date_selection(message, date.today())
 
-        # Fallback промпт
-        user_context = data.get("user_context", {})
-        energy_state = data.get("energy_state", {})
 
-        return f"""На основе индивидуальных данных предоставь краткие практические рекомендации на день.
+@router.message(lambda message: message.text == "🔮 Получить данные на завтра")
+async def get_tomorrows_data(message: types.Message):
+    """Получение данных на завтра"""
+    tomorrow = date.today() + timedelta(days=1)
+    await process_date_selection(message, tomorrow)
 
-ПРОФИЛЬ:
-• Профессия: {user_context.get('profession', 'не указана')}
-• Должность: {user_context.get('position', 'не указана')}
 
-СОСТОЯНИЕ:
-• Общая энергия: {energy_state.get('overall_energy', {}).get('percentage', 0)}%
-• Физический цикл: {energy_state.get('physical_cycle', {}).get('phase', 'нейтральный')}
-• Эмоциональный цикл: {energy_state.get('emotional_cycle', {}).get('phase', 'нейтральный')}
+@router.message(lambda message: message.text == "📅 Выбрать дату")
+async def request_custom_date(message: types.Message, state: FSMContext):
+    """Запрос произвольной даты"""
+    await message.answer(
+        "📅 Введите дату в формате ГГГГ-ММ-ДД:\n"
+        "Например: 2024-12-25",
+        reply_markup=types.ReplyKeyboardRemove()
+    )
+    await state.set_state(DateSelectionStates.waiting_for_custom_date)
 
-СФОРМУЛИРУЙ КРАТКИЕ РЕКОМЕНДАЦИИ:
-1. 💼 Профессиональная деятельность
-2. 🏃 Личная эффективность  
-3. ❤️ Эмоциональное состояние
 
-ОТВЕТ:"""
+@router.message(DateSelectionStates.waiting_for_custom_date)
+async def process_custom_date(message: types.Message, state: FSMContext):
+    """Обработка введенной пользователем даты"""
+    try:
+        target_date = datetime.strptime(message.text, "%Y-%m-%d").date()
 
-    async def _make_ollama_request(self, prompt: str) -> str:
-        """Оптимизированный запрос к Ollama API"""
-        last_exception = None
+        # Проверяем что дата не в прошлом
+        if target_date < date.today():
+            await message.answer(
+                "❌ Можно получить данные только на сегодня или будущие даты",
+                reply_markup=get_date_keyboard()
+            )
+            return
 
-        for attempt in range(self.max_retries):
-            try:
-                async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                    # Оптимальные настройки для gemma:2b
-                    options = {
-                        "temperature": 0.7,
-                        "top_p": 0.9,
-                        "num_predict": 250,
-                        "num_thread": 2,
-                        "repeat_penalty": 1.1,
-                        "top_k": 40
-                    }
+        await process_date_selection(message, target_date)
 
-                    request_data = {
-                        "model": self.model,
-                        "prompt": prompt,
-                        "stream": False,
-                        "options": options
-                    }
+    except ValueError:
+        await message.answer(
+            "❌ Неверный формат даты.\n"
+            "Используйте ГГГГ-ММ-ДД:\n"
+            "Например: 2024-12-25",
+            reply_markup=get_date_keyboard()
+        )
 
-                    logger.info(f"🔄 Запрос к {self.model} (попытка {attempt + 1}/{self.max_retries})")
+    await state.clear()
 
-                    async with session.post(f"{self.base_url}/api/generate", json=request_data) as response:
-                        if response.status == 200:
-                            result = await response.json()
-                            response_text = result.get("response", "").strip()
 
-                            # Логируем производительность
-                            if "eval_duration" in result:
-                                eval_time = result["eval_duration"] / 1_000_000_000
-                                logger.debug(f"⏱️ Время генерации модели: {eval_time:.2f}с")
+@router.message(lambda message: message.text == "🔙 Назад")
+async def go_back_to_main(message: types.Message):
+    """Возврат в главное меню"""
+    await message.answer(
+        "Возвращаемся в главное меню:",
+        reply_markup=get_main_keyboard()
+    )
 
-                            return response_text
-                        else:
-                            error_text = await response.text()
-                            raise Exception(f"Ollama API error {response.status}: {error_text}")
 
-            except asyncio.TimeoutError:
-                last_exception = Exception(f"Таймаут запроса (попытка {attempt + 1})")
-                logger.warning(f"⏰ Таймаут запроса, попытка {attempt + 1}")
+async def process_date_selection(message: types.Message, target_date: date):
+    """Общая обработка выбранной даты"""
+    # Проверяем наличие данных пользователя
+    status = await assistant.get_user_data_status(message.from_user.id)
+    if not status['is_complete']:
+        await message.answer(
+            "❌ Сначала необходимо собрать данные!\n"
+            "Нажмите '📊 Расчет натальной карты' для сбора данных",
+            reply_markup=get_main_keyboard()
+        )
+        return
 
-            except Exception as e:
-                last_exception = e
-                logger.warning(f"⚠️ Ошибка запроса (попытка {attempt + 1}): {e}")
+    processing_msg = await message.answer(
+        f"🔄 Формирую расчеты на {target_date.strftime('%d.%m.%Y')}...\n"
+        "Это может занять несколько секунд"
+    )
 
-            # Задержка перед повторной попыткой
-            if attempt < self.max_retries - 1:
-                await asyncio.sleep(self.retry_delay * (attempt + 1))
+    try:
+        result = await assistant.get_recommendations(message.from_user.id, target_date)
 
-        raise last_exception or Exception("Не удалось выполнить запрос к AI")
+        if result['success']:
+            # Отправляем пользователю форматированные данные
+            await message.answer(result['user_data'], parse_mode="Markdown")
 
-    def _parse_response(self, response_text: str) -> Dict[str, Any]:
-        """Упрощенный парсинг ответа модели"""
-        try:
-            # Базовая структура для категорий
-            categories = {
-                "professional": [],
-                "personal_effectiveness": [],
-                "emotional": [],
-                "daily_focus": []
-            }
+            # Дополнительная информация
+            additional_info = (
+                f"\n📊 *Расчеты на {target_date.strftime('%d.%m.%Y')} готовы!*\n\n"
+                "💡 *Используйте эти данные для:*\n"
+                "• Планирования важных дел\n"
+                "• Оптимизации рабочего графика\n"
+                "• Принятия взвешенных решений\n"
+                "• Поддержания энергетического баланса\n\n"
+                "Выберите следующее действие из меню 👇"
+            )
 
-            lines = [line.strip() for line in response_text.split('\n') if line.strip()]
-            current_category = None
-
-            for line in lines:
-                # Определяем категорию по маркерам
-                line_lower = line.lower()
-                if any(marker in line_lower for marker in ['💼', 'работа', 'професси', 'professional']):
-                    current_category = "professional"
-                elif any(marker in line_lower for marker in ['🏃', 'личн', 'эффектив', 'personal']):
-                    current_category = "personal_effectiveness"
-                elif any(marker in line_lower for marker in ['❤️', 'эмоц', 'настроен', 'emotional']):
-                    current_category = "emotional"
-                elif any(marker in line_lower for marker in ['🎯', 'акцент', 'фокус', 'focus']):
-                    current_category = "daily_focus"
-
-                # Добавляем пункты в текущую категорию
-                elif current_category and line.startswith(('•', '-', '—', '1.', '2.', '3.')):
-                    clean_line = line.lstrip('•-—123456789. ').strip()
-                    if clean_line and len(clean_line) > 5:  # Минимальная длина
-                        categories[current_category].append(clean_line)
-
-            # Если не удалось выделить структурированные данные, возвращаем как есть
-            if not any(categories.values()):
-                return {"raw_recommendations": response_text}
-
-            return categories
-
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка парсинга ответа: {e}")
-            return {"raw_recommendations": response_text}
-
-    def _get_fallback_response(self, data: Dict, error: str) -> Dict[str, Any]:
-        """Резервный ответ при недоступности AI"""
-        logger.warning(f"🔄 Используется fallback из-за: {error}")
-
-        return {
-            "success": False,
-            "error": error,
-            "is_fallback": True,
-            "recommendations": self._get_fallback_recommendations(data),
-            "timestamp": datetime.now().isoformat(),
-            "model_used": self.model
-        }
-
-    def _get_fallback_recommendations(self, data: Dict) -> Dict[str, Any]:
-        """Умные резервные рекомендации на основе данных"""
-        energy_state = data.get("energy_state", {})
-        overall_energy = energy_state.get("overall_energy", {}).get("percentage", 50)
-        user_context = data.get("user_context", {})
-
-        # Персонализированные рекомендации на основе энергии
-        if overall_energy > 75:
-            energy_advice = "Идеальный день для сложных задач и важных решений."
-            professional_tip = "Беритесь за амбициозные проекты"
-        elif overall_energy > 50:
-            energy_advice = "Хороший уровень энергии для продуктивной работы."
-            professional_tip = "Сфокусируйтесь на текущих задачах"
-        elif overall_energy > 25:
-            energy_advice = "Энергии достаточно для рутинных задач."
-            professional_tip = "Планируйте работу небольшими блоками"
+            await message.answer(
+                additional_info,
+                parse_mode="Markdown",
+                reply_markup=get_main_keyboard()
+            )
         else:
-            energy_advice = "Рекомендуется беречь силы и делать перерывы."
-            professional_tip = "Отложите сложные задачи на другой день"
+            await message.answer(
+                f"❌ {result['message']}",
+                reply_markup=get_main_keyboard()
+            )
 
-        # Учитываем профессию пользователя
-        profession = user_context.get('profession', '').lower()
-        if any(word in profession for word in ['разработ', 'программ', 'техн']):
-            professional_tip += ", уделите время техническим задачам"
-        elif any(word in profession for word in ['управл', 'менедж', 'руковод']):
-            professional_tip += ", проведите планерки и встречи"
+    except Exception as e:
+        logger.error(f"Ошибка получения данных на сегодня: {e}")
+        await message.answer(
+            "❌ Произошла ошибка при формировании расчетов\n"
+            "Попробуйте позже или обратитесь в поддержку.",
+            reply_markup=get_main_keyboard()
+        )
 
-        return {
-            "professional": [
-                professional_tip,
-                "Расставьте приоритеты в задачах"
+    await processing_msg.delete()
+
+
+@router.message(Command("status"))
+async def cmd_status(message: types.Message):
+    """Проверка статуса данных пользователя"""
+    try:
+        status = await assistant.get_user_data_status(message.from_user.id)
+
+        status_text = "📊 **Статус ваших данных:**\n\n"
+
+        if status['is_complete']:
+            status_text += "✅ Все данные собраны и готовы к использованию\n\n"
+        else:
+            status_text += "❌ Не все данные собраны\n\n"
+
+        status_text += f"• Основные данные: {'✅' if status['has_basic_data'] else '❌'}\n"
+        status_text += f"• Натальная карта: {'✅' if status['has_natal_chart'] else '❌'}\n"
+        status_text += f"• Психоматрица: {'✅' if status['has_psyho_matrix'] else '❌'}\n"
+        status_text += f"• Биоритмы: {'✅' if status['has_biorhythms'] else '❌'}\n\n"
+
+        if status['is_complete']:
+            # Показываем статистику если данные есть
+            stats = await assistant.get_user_statistics(message.from_user.id)
+            if stats.get('request_count', 0) > 0:
+                status_text += f"📈 **Статистика:**\n"
+                status_text += f"• Запросов расчетов: {stats['request_count']}\n"
+
+                if stats.get('prediction_stats', {}).get('total_calculations', 0) > 0:
+                    status_text += f"• Всего расчетов: {stats['prediction_stats']['total_calculations']}\n"
+
+                if stats.get('biorhythm_stats', {}).get('total_records', 0) > 0:
+                    status_text += f"• Записей биоритмов: {stats['biorhythm_stats']['total_records']}\n"
+
+        if not status['is_complete']:
+            status_text += "Нажмите '📊 Расчет натальной карты' для сбора недостающих данных"
+
+        await message.answer(status_text, parse_mode="Markdown")
+
+    except Exception as e:
+        logger.error(f"Ошибка проверки статуса: {e}")
+        await message.answer(
+            "❌ Не удалось проверить статус данных",
+            reply_markup=get_main_keyboard()
+        )
+
+
+@router.message(Command("help"))
+async def cmd_help(message: types.Message):
+    """Справка по командам бота"""
+    help_text = """
+📋 **Доступные команды:**
+
+/start - Начать работу с ботом
+/status - Проверить статус ваших данных  
+/help - Показать эту справку
+
+**Основные действия:**
+
+📊 Расчет натальной карты - Собрать или обновить ваши данные
+📅 Получить данные на сегодня - Расчеты на текущий день
+🔮 Получить данные на завтра - Расчеты на следующий день
+
+**Что рассчитывается:**
+• ⚡ Биоритмы (физический, эмоциональный, интеллектуальный)
+• 🌟 Астрологические транзиты и аспекты  
+• 🔢 Нумерологическая психоматрица
+• 💼 Профессиональные рекомендации
+
+**Как использовать:**
+1. Сначала соберите данные через '📊 Расчет натальной карты'
+2. Получайте ежедневные расчеты через меню
+3. Используйте данные для планирования своего дня
+
+Все расчеты выполняются на основе научных методов и проверенных алгоритмов.
+    """
+
+    await message.answer(help_text, parse_mode="Markdown", reply_markup=get_main_keyboard())
+
+
+@router.message(Command("stats"))
+async def cmd_stats(message: types.Message):
+    """Показать детальную статистику"""
+    try:
+        stats = await assistant.get_user_statistics(message.from_user.id)
+
+        stats_text = "📈 **Детальная статистика:**\n\n"
+
+        # Основная статистика
+        stats_text += f"• Запросов расчетов: {stats.get('request_count', 0)}\n"
+
+        # Статистика расчетов
+        prediction_stats = stats.get('prediction_stats', {})
+        if prediction_stats:
+            stats_text += f"• Всего расчетов: {prediction_stats.get('total_calculations', 0)}\n"
+            if prediction_stats.get('first_calculation_date'):
+                stats_text += f"• Первый расчет: {prediction_stats['first_calculation_date'][:10]}\n"
+            if prediction_stats.get('latest_energy_level', 0) > 0:
+                stats_text += f"• Последняя энергия: {prediction_stats['latest_energy_level']}%\n"
+
+        # Статистика биоритмов
+        biorhythm_stats = stats.get('biorhythm_stats', {})
+        if biorhythm_stats:
+            stats_text += f"• Записей биоритмов: {biorhythm_stats.get('total_records', 0)}\n"
+            if biorhythm_stats.get('average_energy_level', 0) > 0:
+                stats_text += f"• Средняя энергия: {biorhythm_stats['average_energy_level']}%\n"
+
+        stats_text += f"\n📅 Статистика обновлена: {stats.get('calculated_at', '')[:16]}"
+
+        await message.answer(stats_text, parse_mode="Markdown", reply_markup=get_main_keyboard())
+
+    except Exception as e:
+        logger.error(f"Ошибка получения статистики: {e}")
+        await message.answer(
+            "❌ Не удалось получить статистику",
+            reply_markup=get_main_keyboard()
+        )
+
+
+@router.message(Command("cleanup"))
+async def cmd_cleanup(message: types.Message):
+    """Очистка данных пользователя (только для отладки)"""
+    try:
+        # Проверяем что пользователь существует
+        status = await assistant.get_user_data_status(message.from_user.id)
+        if not status['has_basic_data']:
+            await message.answer(
+                "❌ У вас нет данных для очистки",
+                reply_markup=get_main_keyboard()
+            )
+            return
+
+        # Запрашиваем подтверждение
+        confirm_keyboard = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="✅ Да, очистить"), KeyboardButton(text="❌ Нет, отменить")],
             ],
-            "personal_effectiveness": [
-                energy_advice,
-                "Соблюдайте баланс работы и отдыха",
-                "Делайте регулярные перерывы"
-            ],
-            "emotional": [
-                "Сохраняйте эмоциональное равновесие",
-                "Избегайте импульсивных решений"
-            ],
-            "daily_focus": [
-                "Баланс между продуктивностью и восстановлением"
-            ]
-        }
+            resize_keyboard=True
+        )
 
-    def get_stats(self) -> Dict[str, Any]:
-        """Получение текущей статистики использования"""
-        return self.stats.copy()
+        await message.answer(
+            "⚠️ **Внимание!**\n\n"
+            "Вы собираетесь очистить все ваши данные:\n"
+            "• Профиль пользователя\n"
+            "• Натальную карту\n"
+            "• Психоматрицу\n"
+            "• Историю расчетов\n\n"
+            "Это действие нельзя отменить!\n"
+            "Вы уверены что хотите продолжить?",
+            parse_mode="Markdown",
+            reply_markup=confirm_keyboard
+        )
 
-    async def cleanup(self):
-        """Очистка ресурсов"""
-        try:
-            # Здесь можно добавить очистку кэша или других ресурсов
-            logger.info("🧹 Ресурсы AI движка очищены")
-        except Exception as e:
-            logger.error(f"❌ Ошибка очистки ресурсов: {e}")
+    except Exception as e:
+        logger.error(f"Ошибка подготовки очистки: {e}")
+        await message.answer(
+            "❌ Ошибка подготовки очистки",
+            reply_markup=get_main_keyboard()
+        )
 
 
-# Глобальный экземпляр движка
-ai_engine = AIPredictionEngine()
+@router.message(lambda message: message.text == "✅ Да, очистить")
+async def confirm_cleanup(message: types.Message):
+    """Подтверждение очистки данных"""
+    try:
+        result = await assistant.cleanup_user_data(message.from_user.id)
+
+        if result['success']:
+            await message.answer(
+                "🧹 Все ваши данные успешно очищены!\n\n"
+                "Вы можете начать заново с команды /start",
+                reply_markup=get_main_keyboard()
+            )
+        else:
+            await message.answer(
+                f"❌ {result['message']}",
+                reply_markup=get_main_keyboard()
+            )
+
+    except Exception as e:
+        logger.error(f"Ошибка очистки данных: {e}")
+        await message.answer(
+            "❌ Произошла ошибка при очистке данных",
+            reply_markup=get_main_keyboard()
+        )
 
 
+@router.message(lambda message: message.text == "❌ Нет, отменить")
+async def cancel_cleanup(message: types.Message):
+    """Отмена очистки данных"""
+    await message.answer(
+        "✅ Очистка данных отменена",
+        reply_markup=get_main_keyboard()
+    )
 
-aspect_recommendations.py
 
+@router.message(Command("validate"))
+async def cmd_validate(message: types.Message):
+    """Проверка корректности данных"""
+    try:
+        validation = await assistant.validate_user_data(message.from_user.id)
+
+        if validation['is_valid']:
+            await message.answer(
+                "✅ Все данные корректны и готовы к использованию!",
+                reply_markup=get_main_keyboard()
+            )
+        else:
+            issues_text = "❌ Обнаружены проблемы в данных:\n\n"
+            for issue in validation['issues']:
+                issues_text += f"• {issue}\n"
+
+            issues_text += "\nИспользуйте '📊 Расчет натальной карты' для исправления"
+
+            await message.answer(
+                issues_text,
+                reply_markup=get_main_keyboard()
+            )
+
+    except Exception as e:
+        logger.error(f"Ошибка валидации данных: {e}")
+        await message.answer(
+            "❌ Не удалось проверить данные",
+            reply_markup=get_main_keyboard()
+        )
+
+
+@router.message()
+async def handle_other_messages(message: types.Message):
+    """Обработка всех остальных сообщений"""
+    # Проверяем если это текстовая команда
+    text = message.text.lower()
+
+    if any(word in text for word in ['привет', 'hello', 'start', 'начать']):
+        await cmd_start(message)
+    elif any(word in text for word in ['статус', 'status', 'данные']):
+        await cmd_status(message)
+    elif any(word in text for word in ['помощь', 'help', 'команды']):
+        await cmd_help(message)
+    else:
+        await message.answer(
+            "🤔 Я не понял ваше сообщение.\n\n"
+            "Используйте меню ниже или команду /help для справки:",
+            reply_markup=get_main_keyboard()
+        )
+
+bot.__init__.py
+
+bot.main.py
+
+from aiogram import Bot, Dispatcher
+import asyncio
 import logging
-from typing import Dict, List, Any
-import random
 
+from bot.config import TOKEN
+from bot.handlers import router
+from backend.db_connection import check_db_connection
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('bot.log', encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 
-class AspectRecommendationEngine:
+async def setup_bot() -> tuple[Bot, Dispatcher]:
     """
-    Простой движок рекомендаций на основе астрологических аспектов
-    Использует шаблоны для генерации понятных рекомендаций
+    Инициализация и настройка бота
+    Returns:
+        Кортеж (Bot, Dispatcher)
     """
+    try:
+        bot = Bot(token=TOKEN)
+        dp = Dispatcher()
 
-    def __init__(self):
-        # Шаблоны рекомендаций по типам аспектов
-        self.aspect_templates = {
-            'conjunction': {
-                'positive': [
-                    "Энергия {transit} и {natal} объединяется - идеальное время для начала новых проектов",
-                    "Соединение {transit} с {natal} дает мощный импульс для действий",
-                    "Используйте объединенную энергию {transit} и {natal} для решительных шагов"
-                ],
-                'challenge': [
-                    "Соединение {transit} и {natal} может создавать напряжение - будьте внимательны в общении",
-                    "Энергия аспекта очень концентрированная - избегайте поспешных решений",
-                    "Сфокусируйте мощную энергию соединения на одной важной задаче"
-                ]
-            },
-            'opposition': {
-                'positive': [
-                    "Оппозиция {transit} и {natal} помогает увидеть разные точки зрения",
-                    "Идеальное время для переговоров и поиска компромиссов",
-                    "Используйте противостояние энергий для баланса в отношениях"
-                ],
-                'challenge': [
-                    "Оппозиция {transit}-{natal} может создавать конфликты - проявляйте гибкость",
-                    "Возможны противоречия - ищите золотую середину",
-                    "Избегайте категоричных решений при этом аспекте"
-                ]
-            },
-            'square': {
-                'positive': [
-                    "Квадрат {transit} и {natal} дает энергию для преодоления препятствий",
-                    "Используйте напряжение аспекта для мобилизации сил",
-                    "Это время активных действий и решения накопившихся проблем"
-                ],
-                'challenge': [
-                    "Квадратура {transit}-{natal} требует осторожности в действиях",
-                    "Возможны непредвиденные сложности - имейте запасной план",
-                    "Избегайте конфронтации, решайте вопросы дипломатично"
-                ]
-            },
-            'trine': {
-                'positive': [
-                    "Трин {transit} и {natal} приносит гармонию и удачные возможности",
-                    "Благоприятное время для творчества и сотрудничества",
-                    "Энергия течет легко - доверяйте интуиции и действуйте"
-                ],
-                'challenge': [
-                    "При легкой энергии трина важно не упускать возможности",
-                    "Не расслабляйтесь слишком - используйте благоприятный период",
-                    "Сохраняйте активность, даже когда все дается легко"
-                ]
-            },
-            'sextile': {
-                'positive': [
-                    "Секстиль {transit} и {natal} открывает новые перспективы",
-                    "Идеальное время для установления полезных связей",
-                    "Используйте возможности для профессионального роста"
-                ],
-                'challenge': [
-                    "При множестве возможностей важно правильно расставить приоритеты",
-                    "Не распыляйтесь - выберите самые перспективные направления",
-                    "Уделите внимание планированию на будущее"
-                ]
-            }
-        }
+        # Подключаем роутер
+        dp.include_router(router)
 
-        # Рекомендации по конкретным планетам
-        self.planet_recommendations = {
-            'Sun': {
-                'focus': "личная энергия, уверенность, творчество",
-                'action': "проявляйте инициативу, будьте в центре внимания"
-            },
-            'Moon': {
-                'focus': "эмоции, интуиция, домашние дела",
-                'action': "прислушивайтесь к чувствам, заботьтесь о комфорте"
-            },
-            'Mercury': {
-                'focus': "общение, обучение, информация",
-                'action': "учитесь, договаривайтесь, планируйте"
-            },
-            'Venus': {
-                'focus': "отношения, красота, финансы",
-                'action': "укрепляйте связи, создавайте гармонию"
-            },
-            'Mars': {
-                'focus': "действия, энергия, конкуренция",
-                'action': "будьте активны, решайте задачи"
-            },
-            'Jupiter': {
-                'focus': "рост, возможности, путешествия",
-                'action': "расширяйте горизонты, учитесь новому"
-            },
-            'Saturn': {
-                'focus': "ответственность, структура, дисциплина",
-                'action': "планируйте, организуйте, завершайте дела"
-            },
-            'Uranus': {
-                'focus': "изменения, инновации, свобода",
-                'action': "будьте гибкими, экспериментируйте"
-            },
-            'Neptune': {
-                'focus': "интуиция, творчество, духовность",
-                'action': "мечтайте, творите, доверяйте внутреннему голосу"
-            },
-            'Pluto': {
-                'focus': "трансформация, глубина, власть",
-                'action': "избавляйтесь от старого, обновляйтесь"
-            }
-        }
+        logger.info("✅ Бот инициализирован успешно")
+        return bot, dp
 
-        # Русские названия планет
-        self.planet_names_ru = {
-            'Sun': 'Солнца', 'Moon': 'Луны', 'Mercury': 'Меркурия',
-            'Venus': 'Венеры', 'Mars': 'Марса', 'Jupiter': 'Юпитера',
-            'Saturn': 'Сатурна', 'Uranus': 'Урана', 'Neptune': 'Нептуна',
-            'Pluto': 'Плутона', 'North_Node': 'Северного Узла',
-            'Ascendant': 'Асцендента', 'Midheaven': 'Середины Неба'
-        }
-
-    def generate_aspect_recommendations(self, aspects_data: List[Dict]) -> List[str]:
-        """
-        Генерация простых рекомендаций на основе аспектов
-        """
-        recommendations = []
-
-        try:
-            # Сортируем аспекты по силе (самые сильные первые)
-            strong_aspects = [a for a in aspects_data if a.get('strength', 0) > 0.7]
-            sorted_aspects = sorted(strong_aspects, key=lambda x: x.get('strength', 0), reverse=True)
-
-            # Берем только топ-3 самых сильных аспекта
-            for aspect in sorted_aspects[:3]:
-                rec = self._generate_single_aspect_recommendation(aspect)
-                if rec:
-                    recommendations.append(rec)
-
-            # Если сильных аспектов мало, добавляем общие рекомендации
-            if len(recommendations) < 2:
-                general_recs = self._get_general_recommendations(aspects_data)
-                recommendations.extend(general_recs[:2])
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка генерации рекомендаций аспектов: {e}")
-            recommendations = ["Сегодня стабильный астрологический фон - хорошее время для плановых дел"]
-
-        return recommendations
-
-    def _generate_single_aspect_recommendation(self, aspect: Dict) -> str:
-        """Генерация рекомендации для одного аспекта"""
-        try:
-            transit_planet = aspect.get('transit_planet', '')
-            natal_planet = aspect.get('natal_planet', '')
-            aspect_type = aspect.get('aspect', '')
-            strength = aspect.get('strength', 0)
-
-            if not all([transit_planet, natal_planet, aspect_type]):
-                return None
-
-            # Получаем русские названия планет
-            transit_ru = self.planet_names_ru.get(transit_planet, transit_planet)
-            natal_ru = self.planet_names_ru.get(natal_planet, natal_planet)
-
-            # Выбираем тип рекомендации (позитивная или вызов)
-            rec_type = 'positive' if strength > 0.8 else 'challenge'
-
-            # Получаем шаблоны для этого типа аспекта
-            templates = self.aspect_templates.get(aspect_type, {}).get(rec_type, [])
-
-            if templates:
-                template = random.choice(templates)
-                recommendation = template.format(transit=transit_ru, natal=natal_ru)
-
-                # Добавляем эмодзи в зависимости от типа аспекта
-                emoji_map = {
-                    'conjunction': '⚡', 'opposition': '⚖️',
-                    'square': '🎯', 'trine': '🌟', 'sextile': '💫'
-                }
-                emoji = emoji_map.get(aspect_type, '✨')
-
-                return f"{emoji} {recommendation}"
-
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка генерации рекомендации для аспекта: {e}")
-
-        return None
-
-    def _get_general_recommendations(self, aspects_data: List[Dict]) -> List[str]:
-        """Общие рекомендации на основе общего анализа аспектов"""
-        general_recs = []
-
-        try:
-            total_aspects = len(aspects_data)
-            strong_aspects = len([a for a in aspects_data if a.get('strength', 0) > 0.7])
-
-            # Рекомендации по количеству аспектов
-            if total_aspects == 0:
-                general_recs.append("🌙 Сегодня спокойный астрологический фон - хорошее время для отдыха и рутинных дел")
-            elif total_aspects <= 3:
-                general_recs.append("⚖️ Небольшое количество аспектов - день подходит для размеренной работы")
-            elif total_aspects > 8:
-                general_recs.append("🎯 Много астрологических влияний - будьте готовы к разным событиям")
-
-            # Рекомендации по силе аспектов
-            if strong_aspects >= 3:
-                general_recs.append("💥 Несколько сильных аспектов - важный день для решений и действий")
-            elif strong_aspects == 0 and total_aspects > 0:
-                general_recs.append("🌊 Аспекты слабые - хорошее время для подготовки и планирования")
-
-            # Рекомендации по ретроградным планетам
-            retrograde_planets = self._detect_retrograde_influences(aspects_data)
-            if retrograde_planets:
-                planet_names = [self.planet_names_ru.get(p, p) for p in retrograde_planets]
-                general_recs.append(
-                    f"🔄 Влияние ретроградных планет ({', '.join(planet_names)}) - время для пересмотра и анализа")
-
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка генерации общих рекомендаций: {e}")
-
-        return general_recs
-
-    def _detect_retrograde_influences(self, aspects_data: List[Dict]) -> List[str]:
-        """Обнаружение ретроградных влияний в аспектах"""
-        retrograde_planets = set()
-
-        for aspect in aspects_data:
-            # Проверяем транзитные планеты на ретроградность
-            if aspect.get('transit_planet') in ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune',
-                                                'Pluto']:
-                # В реальной системе здесь была бы проверка на ретроградность
-                # Сейчас используем случайное определение для демонстрации
-                if random.random() < 0.3:  # 30% шанс что планета ретроградная
-                    retrograde_planets.add(aspect['transit_planet'])
-
-        return list(retrograde_planets)
+    except Exception as e:
+        logger.error(f"❌ Ошибка инициализации бота: {e}")
+        raise
 
 
-# Глобальный экземпляр движка рекомендаций
-aspect_recommendations = AspectRecommendationEngine()
-
-
-recommendation_service.py
-
-import logging
-import hashlib
-import json
-from datetime import date, datetime, timedelta
-from typing import Dict, Any, Optional
-
-from backend.database import async_session, AIRecommendations
-from sqlalchemy.future import select
-from sqlalchemy import and_
-
-logger = logging.getLogger(__name__)
-
-
-class RecommendationService:
+async def health_checks() -> bool:
     """
-    Упрощенный сервис для управления рекомендациями и кэшем
-    Объединяет логику кэширования и работы с рекомендациями
+    Проверка здоровья всех зависимостей
+    Returns:
+        bool: True если все проверки пройдены
     """
+    checks_passed = True
 
-    def __init__(self):
-        self.cache_ttl_days = 1  # Кэшируем на 1 день
+    # Проверка базы данных
+    logger.info("🔍 Проверка подключения к базе данных...")
+    db_connected = await check_db_connection()
+    if not db_connected:
+        logger.error("❌ Не удалось подключиться к базе данных")
+        checks_passed = False
+    else:
+        logger.info("✅ База данных подключена успешно")
 
-    def _generate_data_hash(self, data: Dict[str, Any]) -> str:
-        """Генерация хэша данных для кэширования"""
-        data_str = json.dumps(data, sort_keys=True, ensure_ascii=False)
-        return hashlib.sha256(data_str.encode()).hexdigest()
+    # Здесь можно добавить проверки других сервисов
+    # - Проверка подключения к Ollama
+    # - Проверка доступности эфемерид
+    # - Проверка дискового пространства
 
-    async def get_cached_recommendations(self, telegram_id: int, target_date: date, data_hash: str) -> Optional[
-        Dict[str, Any]]:
-        """Получение закэшированных рекомендаций"""
-        try:
-            async with async_session() as session:
-                result = await session.execute(
-                    select(AIRecommendations).where(
-                        and_(
-                            AIRecommendations.telegram_id == telegram_id,
-                            AIRecommendations.target_date == target_date,
-                            AIRecommendations.data_hash == data_hash
-                        )
-                    )
-                )
-                cached = result.scalar_one_or_none()
-
-                if cached:
-                    logger.info(f"✅ Найдены кэшированные рекомендации для {telegram_id} на {target_date}")
-                    return {
-                        'recommendations': cached.recommendations,
-                        'model_version': cached.model_version,
-                        'from_cache': True
-                    }
-
-                return None
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка получения кэша для {telegram_id}: {e}")
-            return None
-
-    async def save_recommendations(self, telegram_id: int, target_date: date, data_hash: str,
-                                   recommendations: str, model_version: str = 'gemma:2b') -> bool:
-        """Сохранение рекомендаций в кэш"""
-        try:
-            async with async_session() as session:
-                # Удаляем старые записи для этой даты
-                await session.execute(
-                    AIRecommendations.__table__.delete().where(
-                        and_(
-                            AIRecommendations.telegram_id == telegram_id,
-                            AIRecommendations.target_date == target_date
-                        )
-                    )
-                )
-
-                # Сохраняем новые рекомендации
-                new_recommendation = AIRecommendations(
-                    telegram_id=telegram_id,
-                    target_date=target_date,
-                    data_hash=data_hash,
-                    recommendations=recommendations,
-                    model_version=model_version,
-                    created_at=datetime.now()
-                )
-
-                session.add(new_recommendation)
-                await session.commit()
-
-                logger.info(f"💾 Рекомендации сохранены в кэш для {telegram_id} на {target_date}")
-                return True
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка сохранения рекомендаций для {telegram_id}: {e}")
-            return False
-
-    async def cleanup_old_recommendations(self, days_old: int = 7) -> int:
-        """Очистка устаревших рекомендаций"""
-        try:
-            cutoff_date = date.today() - timedelta(days=days_old)
-
-            async with async_session() as session:
-                result = await session.execute(
-                    AIRecommendations.__table__.delete().where(
-                        AIRecommendations.target_date < cutoff_date
-                    )
-                )
-                deleted_count = result.rowcount
-                await session.commit()
-
-                if deleted_count > 0:
-                    logger.info(f"🗑️ Удалено {deleted_count} устаревших рекомендаций")
-
-                return deleted_count
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка очистки рекомендаций: {e}")
-            return 0
+    return checks_passed
 
 
-# Глобальный экземпляр
-recommendation_service = RecommendationService()
+async def start_polling(bot: Bot, dp: Dispatcher):
+    """
+    Запуск поллинга бота с обработкой ошибок
+    """
+    try:
+        logger.info("🔄 Запуск поллинга бота...")
+        await dp.start_polling(bot)
+
+    except Exception as e:
+        logger.error(f"❌ Критическая ошибка при работе бота: {e}")
+        raise
+
+    finally:
+        logger.info("🛑 Завершение работы бота...")
+
+
+async def graceful_shutdown(bot: Bot):
+    """
+    Корректное завершение работы бота
+    """
+    try:
+        await bot.close()
+        logger.info("✅ Бот корректно остановлен")
+    except Exception as e:
+        logger.error(f"❌ Ошибка при остановке бота: {e}")
+
+
+async def main():
+    """
+    Главная функция запуска приложения
+    """
+    bot = None
+    try:
+        logger.info("🚀 Запуск Personal Assistant...")
+
+        # Проверка здоровья системы
+        if not await health_checks():
+            logger.error("❌ Проверки здоровья не пройдены. Завершение работы.")
+            return
+
+        # Инициализация бота
+        bot, dp = await setup_bot()
+
+        logger.info("""
+✅ Personal Assistant успешно запущен!
+
+📊 Статус системы:
+• База данных: ✅ подключена
+• Telegram Bot: ✅ инициализирован
+• Обработчики: ✅ загружены
+• Готов к работе!
+        """)
+
+        # Запуск поллинга
+        await start_polling(bot, dp)
+
+    except KeyboardInterrupt:
+        logger.info("⏹️ Получен сигнал прерывания (Ctrl+C)")
+
+    except Exception as e:
+        logger.error(f"❌ Непредвиденная ошибка в главном процессе: {e}")
+
+    finally:
+        # Корректное завершение
+        if bot:
+            await graceful_shutdown(bot)
+
+        logger.info("👋 Personal Assistant завершил работу")
+
+
+if __name__ == "__main__":
+    # Запуск асинхронного приложения
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n👋 Демон остановлен пользователем")
+    except Exception as e:
+        print(f"❌ Критическая ошибка: {e}")
+
+bot..env
+
+TELEGRAM_BOT_TOKEN = 7900025353:AAE4PznooxoJazUuQihtPspWG41ylwo9SEk
+
+
+
+ephe
+
+init-scripts:
+
+init-scripts.01-init-tables.sql
+
+-- Инициализация оптимизированной схемы БД для проекта Astra
+
+-- Таблица пользователей (без изменений)
+CREATE TABLE IF NOT EXISTS users (
+    telegram_id BIGINT PRIMARY KEY,
+    birth_date DATE NOT NULL,
+    birth_time TIME NOT NULL,
+    birth_city VARCHAR(100) NOT NULL,
+    profession VARCHAR(100),
+    job_position VARCHAR(100),
+    current_city VARCHAR(100),
+    gender VARCHAR(10),
+    request_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица натальных карт (переименована для ясности)
+CREATE TABLE IF NOT EXISTS user_astro_profile (
+    telegram_id BIGINT PRIMARY KEY REFERENCES users(telegram_id) ON DELETE CASCADE,
+    natal_chart_data JSONB NOT NULL,
+    psyho_matrix_data JSONB NOT NULL,
+    dominant_energy VARCHAR(50),
+    personality_traits JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- УДАЛЕНА: Таблица психоматриц (данные перенесены в user_astro_profile)
+
+-- ОПТИМИЗИРОВАННАЯ: Таблица ежедневных расчетов (вместо natal_predictions)
+CREATE TABLE IF NOT EXISTS daily_calculations (
+    telegram_id BIGINT REFERENCES users(telegram_id) ON DELETE CASCADE,
+    target_date DATE NOT NULL,
+    biorhythm_data JSONB NOT NULL,
+    astro_transits_data JSONB NOT NULL,
+    calculation_metadata JSONB NOT NULL DEFAULT '{}',
+    data_hash VARCHAR(64) NOT NULL,
+    calculation_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (telegram_id, target_date)
+);
+
+-- Таблица биоритмов (сохранена для обратной совместимости)
+CREATE TABLE IF NOT EXISTS biorhythms (
+    telegram_id BIGINT REFERENCES users(telegram_id) ON DELETE CASCADE,
+    biorhythm_data JSONB NOT NULL,
+    calculation_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (telegram_id, calculation_date)
+);
+
+-- НОВАЯ: Таблица кэша расчетов для производительности
+CREATE TABLE IF NOT EXISTS calculation_cache (
+    telegram_id BIGINT REFERENCES users(telegram_id) ON DELETE CASCADE,
+    target_date DATE NOT NULL,
+    data_type VARCHAR(20) NOT NULL,
+    calculation_data JSONB NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (telegram_id, target_date, data_type)
+);
+
+-- УДАЛЕНЫ: Таблицы AI рекомендаций и астрологических инсайтов
+-- DROP TABLE IF EXISTS ai_recommendations;
+-- DROP TABLE IF EXISTS astro_insights;
+
+-- ОПТИМИЗИРОВАННЫЕ ИНДЕКСЫ:
+
+-- Индексы для users
+CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id);
+CREATE INDEX IF NOT EXISTS idx_users_birth_date ON users(birth_date);
+CREATE INDEX IF NOT EXISTS idx_users_profession ON users(profession);
+CREATE INDEX IF NOT EXISTS idx_users_gender ON users(gender);
+
+-- Индексы для астропрофиля
+CREATE INDEX IF NOT EXISTS idx_astro_profile_telegram_id ON user_astro_profile(telegram_id);
+
+-- ВЫСОКОЭФФЕКТИВНЫЕ индексы для daily_calculations
+CREATE INDEX IF NOT EXISTS idx_daily_calc_target_date ON daily_calculations(target_date);
+CREATE INDEX IF NOT EXISTS idx_daily_calc_telegram_date ON daily_calculations(telegram_id, target_date);
+CREATE INDEX IF NOT EXISTS idx_daily_calc_hash ON daily_calculations(data_hash);
+CREATE INDEX IF NOT EXISTS idx_daily_calc_timestamp ON daily_calculations(calculation_timestamp);
+
+-- Индексы для биоритмов
+CREATE INDEX IF NOT EXISTS idx_biorhythms_telegram_id ON biorhythms(telegram_id);
+CREATE INDEX IF NOT EXISTS idx_biorhythms_calculation_date ON biorhythms(calculation_date);
+CREATE INDEX IF NOT EXISTS idx_biorhythms_composite ON biorhythms(telegram_id, calculation_date);
+
+-- Индексы для кэша
+CREATE INDEX IF NOT EXISTS idx_cache_telegram_date ON calculation_cache(telegram_id, target_date);
+CREATE INDEX IF NOT EXISTS idx_cache_expires ON calculation_cache(expires_at);
+CREATE INDEX IF NOT EXISTS idx_cache_type ON calculation_cache(data_type);
+
+-- Права для пользователя
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO pers_assist;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO pers_assist;
+
+-- Комментарии к таблицам
+COMMENT ON TABLE users IS 'Основная таблица пользователей проекта Astra';
+COMMENT ON TABLE user_astro_profile IS 'Статические астрологические данные пользователя (натальная карта + психоматрица)';
+COMMENT ON TABLE daily_calculations IS 'Ежедневные расчеты для конкретных дат (биоритмы + транзиты)';
+COMMENT ON TABLE biorhythms IS 'Исторические данные биоритмов (для обратной совместимости)';
+COMMENT ON TABLE calculation_cache IS 'Кэш расчетов для оптимизации производительности';
+
+-- Миграция данных из старых таблиц (если существуют)
+DO $$ 
+BEGIN
+    -- Миграция натальных карт
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'user_natal_charts') THEN
+        INSERT INTO user_astro_profile (telegram_id, natal_chart_data, psyho_matrix_data)
+        SELECT 
+            unc.telegram_id,
+            unc.natal_data as natal_chart_data,
+            COALESCE(pm.matrix_data, '{}'::JSONB) as psyho_matrix_data
+        FROM user_natal_charts unc
+        LEFT JOIN psyho_matrix pm ON unc.telegram_id = pm.telegram_id
+        ON CONFLICT (telegram_id) DO NOTHING;
+        
+        RAISE NOTICE '✅ Данные натальных карт и психоматриц мигрированы в user_astro_profile';
+    END IF;
+
+    -- Миграция предсказаний в daily_calculations
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'natal_predictions') THEN
+        INSERT INTO daily_calculations (telegram_id, target_date, biorhythm_data, astro_transits_data, data_hash)
+        SELECT 
+            np.telegram_id,
+            (np.predictions->>'target_date')::DATE as target_date,
+            COALESCE(np.predictions->'daily_calculations'->'biorhythm_data', '{}'::JSONB) as biorhythm_data,
+            COALESCE(np.predictions->'daily_calculations'->'astro_data', '{}'::JSONB) as astro_transits_data,
+            COALESCE(np.data_hash, md5(np.predictions::text)) as data_hash
+        FROM natal_predictions np
+        WHERE np.predictions ? 'target_date'
+        ON CONFLICT (telegram_id, target_date) DO NOTHING;
+        
+        RAISE NOTICE '✅ Данные предсказаний мигрированы в daily_calculations';
+    END IF;
+
+EXCEPTION
+    WHEN others THEN
+        RAISE NOTICE '⚠️ Миграция данных пропущена: %', SQLERRM;
+END $$;
+
+-- Удаление старых таблиц после успешной миграции
+DROP TABLE IF EXISTS psyho_matrix CASCADE;
+DROP TABLE IF EXISTS user_natal_charts CASCADE;
+DROP TABLE IF EXISTS natal_predictions CASCADE;
+DROP TABLE IF EXISTS ai_recommendations CASCADE;
+DROP TABLE IF EXISTS astro_insights CASCADE;
+
+-- Логирование успешной инициализации
+DO $$ 
+BEGIN
+    RAISE NOTICE '🎉 База данных Astra успешно инициализирована с оптимизированной схемой';
+    RAISE NOTICE '📊 Таблицы: users, user_astro_profile, daily_calculations, biorhythms, calculation_cache';
+    RAISE NOTICE '⚡ Индексы оптимизированы для быстрых запросов по датам';
+END $$;
+
+
+
+
+docker-compose.override.yml
+
+version: '3.8'
+
+services:
+  postgres:
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+
+  astra_api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api.dev
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - RELOAD=true
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "python -m uvicorn backend.api_entrypoint:app 
+             --host 0.0.0.0 
+             --port 8000 
+             --reload 
+             --log-level debug"
+
+  astra_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot.dev
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    command: >
+      sh -c "python -m bot.main --debug"
+
+  pgadmin:
+    profiles: ["admin-tools", "default"]
+
+
+docker-compose.yml
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres_astra
+    environment:
+      POSTGRES_DB: astra_db
+      POSTGRES_USER: astra_user
+      POSTGRES_PASSWORD: astra_password_2024
+    ports:
+      - "5435:5432"  # Пробуем порт 5435
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts/01-init-tables.sql:/docker-entrypoint-initdb.d/01-init-tables.sql
+    restart: unless-stopped
+
+  astra_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    container_name: astra_bot
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://astra_user:astra_password_2024@postgres:5432/astra_db
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+
+Dockerfile.api.dev
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Копирование requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копирование исходного кода
+COPY backend/ ./backend/
+COPY ephe/ ./ephe/
+
+# Создание директории для логов
+RUN mkdir -p /app/logs
+
+# Порт приложения
+EXPOSE 8000
+
+# Запуск приложения
+CMD ["python", "-m", "uvicorn", "backend.api_entrypoint:app", "--host", "0.0.0.0", "--port", "8000"]
+
+
+Dockerfile.bot.dev
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Копирование requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копирование исходного кода
+COPY backend/ ./backend/
+COPY bot/ ./bot/
+COPY ephe/ ./ephe/
+
+# Создание директории для логов
+RUN mkdir -p /app/logs
+
+# Запуск бота
+CMD ["python", "-m", "bot.main"]
+
+requirements.txt
+
+.env
+
+# Telegram Bot Token
+TELEGRAM_BOT_TOKEN='7900025353:AAE4PznooxoJazUuQihtPspWG41ylwo9SEk'
+
+# Database Configuration
+DATABASE_URL=postgresql+asyncpg://astra_user:astra_password_2024@localhost:5432/astra_db
+
+# API Configuration
+API_BASE_URL=http://localhost:8000
+API_HOST=0.0.0.0
+API_PORT=8000
+
+# Environment
+ENVIRONMENT=production
+LOG_LEVEL=INFO
+
+# Redis (опционально)
+REDIS_URL=redis://:redis_astra_2024@localhost:6379/0
+
+# Ephemeris Data
+EPHE_PATH=/app/ephe
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
