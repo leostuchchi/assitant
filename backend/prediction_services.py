@@ -184,112 +184,411 @@ def _format_aspect_recommendation(aspect: Dict) -> str:
 
 
 async def format_data_for_user(prediction: dict) -> str:
-    """Форматирование данных для отображения пользователю в боте"""
-    if not prediction:
-        return "❌ Не удалось получить данные расчетов"
-
+    """
+    Форматирование данных для отображения пользователю в боте
+    ОПТИМИЗИРОВАН: Понятный язык, практические рекомендации, стабильная работа
+    """
     try:
-        daily_data = prediction.get('daily_calculations', {})
-        target_date_str = daily_data.get('target_date', 'сегодня')
+        # Базовые проверки стабильности
+        if not prediction or not isinstance(prediction, dict):
+            return "❌ Не удалось получить данные расчетов. Попробуйте позже."
 
-        # Преобразуем строку даты в читаемый формат
+        daily_data = prediction.get('daily_calculations', {})
+        if not daily_data:
+            return "📊 Данные для сегодняшнего дня еще не сгенерированы. Используйте /start для расчета."
+
+        # Безопасное извлечение даты
         try:
-            target_date = datetime.fromisoformat(target_date_str).date()
-            formatted_date = target_date.strftime('%d.%m.%Y')
+            target_date_str = daily_data.get('target_date', 'сегодня')
+            if target_date_str != 'сегодня':
+                target_date = datetime.fromisoformat(target_date_str).date()
+                formatted_date = target_date.strftime('%d.%m.%Y')
+            else:
+                formatted_date = 'сегодня'
         except:
-            formatted_date = target_date_str
+            formatted_date = 'сегодня'
 
         lines = []
-        lines.append(f"📊 **Результаты расчетов на {formatted_date}**")
+
+        # 📅 ЗАГОЛОВОК
+        lines.append(f"📊 **Ваш персональный прогноз на {formatted_date}**")
         lines.append("")
 
-        # Биоритмы
-        biorhythms = daily_data.get('biorhythm_data', {})
-        if biorhythms:
-            overall_energy = biorhythms.get('overall_energy', {})
-            lines.append(
-                f"⚡ **Общая энергия:** {overall_energy.get('percentage', 0):.1f}%")
+        # ⚡ БИОРИТМЫ - понятное отображение
+        biorhythm_data = daily_data.get('biorhythm_data', {})
+        if biorhythm_data and isinstance(biorhythm_data, dict):
+            lines.append("⚡ **ЭНЕРГЕТИЧЕСКИЕ ПОКАЗАТЕЛИ:**")
 
-            cycles = biorhythms.get('cycles', {})
-            physical = cycles.get('physical', {})
-            emotional = cycles.get('emotional', {})
-            intellectual = cycles.get('intellectual', {})
+            # Общая энергия
+            overall_energy = biorhythm_data.get('overall_energy', {})
+            energy_percent = overall_energy.get('percentage', 0)
+            energy_description = _get_energy_description(energy_percent)
+            lines.append(f"• **Общий тонус:** {energy_percent:.1f}% - {energy_description}")
 
-            lines.append(
-                f"💪 **Физический цикл:** {physical.get('percentage', 0):.1f}% ({physical.get('phase', 'нейтральная')})")
-            lines.append(
-                f"😊 **Эмоциональный цикл:** {emotional.get('percentage', 0):.1f}% ({emotional.get('phase', 'нейтральная')})")
-            lines.append(
-                f"🧠 **Интеллектуальный цикл:** {intellectual.get('percentage', 0):.1f}% ({intellectual.get('phase', 'нейтральная')})")
+            # Циклы
+            cycles = biorhythm_data.get('cycles', {})
+            if cycles:
+                physical = cycles.get('physical', {})
+                emotional = cycles.get('emotional', {})
+                intellectual = cycles.get('intellectual', {})
+
+                if physical:
+                    lines.append(
+                        f"• **Физическое состояние:** {physical.get('percentage', 0):.1f}% - {_get_cycle_description(physical)}")
+                if emotional:
+                    lines.append(
+                        f"• **Эмоциональный фон:** {emotional.get('percentage', 0):.1f}% - {_get_cycle_description(emotional)}")
+                if intellectual:
+                    lines.append(
+                        f"• **Умственная активность:** {intellectual.get('percentage', 0):.1f}% - {_get_cycle_description(intellectual)}")
+
+            # Критические дни
+            critical_days = biorhythm_data.get('critical_days', [])
+            if critical_days:
+                lines.append("")
+                lines.append("⚠️ **Внимание! Критический день** - будьте осторожны в принятии решений")
+
             lines.append("")
 
-        # Астрологические данные
+        # 🌌 АСТРОЛОГИЯ - понятная интерпретация
         astro_data = daily_data.get('astro_data', {})
-        if astro_data:
-            lines.append(
-                f"🌟 **Астрология:** {astro_data.get('aspects_count', 0)} аспектов, {astro_data.get('strong_aspects_count', 0)} сильных")
+        if astro_data and isinstance(astro_data, dict):
+            lines.append("🌌 **АСТРОЛОГИЧЕСКИЙ ПРОГНОЗ:**")
 
-            # Рекомендации по аспектам
+            # Общий обзор
+            aspects_count = astro_data.get('aspects_count', 0)
+            strong_aspects = astro_data.get('strong_aspects_count', 0)
+            retrograde_count = len(astro_data.get('retrograde_planets', []))
+
+            overview = _get_astro_overview(aspects_count, strong_aspects, retrograde_count)
+            lines.append(f"• {overview}")
+
+            # Ключевые аспекты (максимум 2 самых важных)
             key_aspects = astro_data.get('key_aspects', [])
-            aspect_recommendations_list = _generate_aspect_recommendations(key_aspects)
+            if key_aspects and len(key_aspects) > 0:
+                # Фильтруем только сильные аспекты и сортируем по силе
+                strong_aspects_list = [a for a in key_aspects if a.get('strength', 0) > 0.6]
+                strong_aspects_list.sort(key=lambda x: x.get('strength', 0), reverse=True)
 
-            if aspect_recommendations_list:
-                lines.append("🔮 **Астрологические рекомендации:**")
-                for rec in aspect_recommendations_list[:3]:  # Максимум 3 рекомендации
-                    lines.append(f"   • {rec}")
-                lines.append("")
+                if strong_aspects_list:
+                    lines.append("")
+                    lines.append("🔮 **Важные аспекты сегодня:**")
+                    for aspect in strong_aspects_list[:2]:  # Только 2 самых сильных
+                        aspect_text = _format_aspect_for_user(aspect)
+                        if aspect_text:
+                            lines.append(f"• {aspect_text}")
 
-            # Сильные аспекты (детальные)
-            strong_aspects = _extract_strong_aspects(astro_data)
-            if strong_aspects:
-                lines.append("📈 **Сильные аспекты:**")
-                for aspect in strong_aspects[:2]:  # Только 2 самых сильных
-                    lines.append(f"   • {aspect}")
-                lines.append("")
-
+            # Ретроградные планеты
             retrograde_planets = astro_data.get('retrograde_planets', [])
             if retrograde_planets:
+                lines.append("")
+                lines.append("🔄 **Ретроградные планеты:**")
                 planet_names = {
-                    'Sun': 'Солнце', 'Moon': 'Луна', 'Mercury': 'Меркурий',
-                    'Venus': 'Венера', 'Mars': 'Марс', 'Jupiter': 'Юпитер',
-                    'Saturn': 'Сатурн', 'Uranus': 'Уран', 'Neptune': 'Нептун',
-                    'Pluto': 'Плутон'
+                    'Mercury': 'Меркурий', 'Venus': 'Венера', 'Mars': 'Марс',
+                    'Jupiter': 'Юпитер', 'Saturn': 'Сатурн', 'Uranus': 'Уран',
+                    'Neptune': 'Нептун', 'Pluto': 'Плутон'
                 }
-                retrograde_ru = [planet_names.get(p, p) for p in retrograde_planets]
-                lines.append(f"🔄 **Ретроградные планеты:** {', '.join(retrograde_ru)}")
+                for planet in retrograde_planets[:2]:  # Максимум 2 планеты
+                    planet_ru = planet_names.get(planet, planet)
+                    advice = _get_retrograde_advice(planet)
+                    lines.append(f"• {planet_ru} - {advice}")
 
-        # ML инсайты и рекомендации (НОВАЯ ФУНКЦИОНАЛЬНОСТЬ)
+            lines.append("")
+
+        # 💡 ML ИНСАЙТЫ - практические рекомендации
         basic_insights = daily_data.get('basic_insights', [])
-        if basic_insights:
+        if basic_insights and isinstance(basic_insights, list) and len(basic_insights) > 0:
+            lines.append("💡 **PERSONAL AI РЕКОМЕНДАЦИИ:**")
+            for insight in basic_insights[:3]:  # Только 3 самых важных инсайта
+                if insight and isinstance(insight, str):
+                    lines.append(f"• {insight}")
             lines.append("")
-            lines.append("💡 **Рекомендации на день:**")
-            for insight in basic_insights[:3]:  # Только 3 основных инсайта
-                lines.append(f"   • {insight}")
 
-        # ML фичи для продвинутых пользователей
+        # 🎯 ДОПОЛНИТЕЛЬНЫЕ ДАННЫЕ
         ml_features = daily_data.get('ml_features', {})
-        if ml_features:
+        if ml_features and isinstance(ml_features, dict):
             daily_score = ml_features.get('daily_score', 0)
-            if daily_score > 0.7:
+            if daily_score > 0:
+                score_percent = int(daily_score * 100)
+                if score_percent >= 80:
+                    lines.append("🎯 **Вердикт AI:** Отличный день для продуктивной работы!")
+                elif score_percent >= 60:
+                    lines.append("🎯 **Вердикт AI:** Хороший день для активной деятельности")
+                elif score_percent <= 30:
+                    lines.append("🎯 **Вердикт AI:** Рекомендуется бережный режим")
                 lines.append("")
-                lines.append("🎯 **Отличный день для продуктивной работы!**")
-            elif daily_score < 0.3:
-                lines.append("")
-                lines.append("🌙 **Рекомендуется бережный режим и отдых**")
 
-        # Критические дни
-        if biorhythms and biorhythms.get('critical_days_count', 0) > 0:
-            lines.append("")
-            lines.append("⚠️ **Критический день** - будьте осторожны в принятии решений")
+        # 📈 СВОДКА И РЕКОМЕНДАЦИИ
+        lines.append("✨ **СВОДКА ДНЯ:**")
+
+        # Определяем общий характер дня
+        day_character = _get_day_character(biorhythm_data, astro_data, ml_features)
+        lines.append(f"• {day_character}")
+
+        # Финальные рекомендации
+        final_recommendations = _get_final_recommendations(biorhythm_data, astro_data, basic_insights)
+        for rec in final_recommendations[:2]:  # Только 2 самые важные рекомендации
+            lines.append(f"• {rec}")
 
         lines.append("")
-        lines.append("🎯 *Используйте эти данные для планирования своего дня*")
+        lines.append("🌙 *Используйте эти подсказки для гармоничного и продуктивного дня!*")
 
         return "\n".join(lines)
 
     except Exception as e:
-        logger.error(f"❌ Ошибка форматирования данных: {e}")
-        return "❌ Произошла ошибка при формировании данных расчетов"
+        logger.error(f"❌ Критическая ошибка форматирования данных: {e}")
+        # Резервный ответ при любых ошибках
+        return """📊 **Ваш персональный прогноз**
+
+⚡ **ЭНЕРГЕТИКА:** Данные временно недоступны
+🌌 **АСТРОЛОГИЯ:** Расчеты в процессе обновления
+💡 **РЕКОМЕНДАЦИИ:** Следуйте своей интуиции сегодня
+
+✨ *Используйте этот день для отдыха и внутренней гармонии!*"""
+
+
+# 📊 ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ОПТИМАЛЬНОСТИ И ПОНЯТНОСТИ
+
+def _get_energy_description(percentage: float) -> str:
+    """Описание уровня энергии понятным языком"""
+    if percentage >= 90:
+        return "отличная форма, идеально для сложных задач"
+    elif percentage >= 75:
+        return "высокий уровень, время для активной работы"
+    elif percentage >= 60:
+        return "хороший тонус, подходит для большинства дел"
+    elif percentage >= 40:
+        return "умеренная энергия, лучше рутинные задачи"
+    elif percentage >= 20:
+        return "низкий уровень, требуется бережный режим"
+    else:
+        return "критически низко, необходим отдых"
+
+
+def _get_cycle_description(cycle_data: dict) -> str:
+    """Понятное описание цикла биоритмов"""
+    if not isinstance(cycle_data, dict):
+        return "данные недоступны"
+
+    percentage = cycle_data.get('percentage', 0)
+    phase = cycle_data.get('phase', 'нейтральная')
+
+    descriptions = {
+        'пик энергии': {
+            'high': "максимальная эффективность",
+            'medium': "отличные возможности",
+            'low': "хорошая активность"
+        },
+        'высокая активность': {
+            'high': "продуктивный период",
+            'medium': "уверенные действия",
+            'low': "стабильная работа"
+        },
+        'нейтральная фаза': {
+            'high': "сбалансированное состояние",
+            'medium': "ровный фон",
+            'low': "спокойный период"
+        },
+        'низкая активность': {
+            'high': "время для отдыха",
+            'medium': "берегите силы",
+            'low': "минимальная активность"
+        },
+        'критическая точка': {
+            'high': "требуется осторожность",
+            'medium': "внимательное отношение",
+            'low': "критический период"
+        }
+    }
+
+    # Определяем уровень
+    if percentage >= 80:
+        level = 'high'
+    elif percentage >= 50:
+        level = 'medium'
+    else:
+        level = 'low'
+
+    phase_desc = descriptions.get(phase, {'high': phase, 'medium': phase, 'low': phase})
+    return phase_desc.get(level, "нормальная активность")
+
+
+def _get_astro_overview(aspects_count: int, strong_aspects: int, retrograde_count: int) -> str:
+    """Понятный обзор астрологической ситуации"""
+    if aspects_count == 0:
+        return "Спокойный астрологический фон - стабильный день"
+
+    # Определяем интенсивность
+    if strong_aspects >= 5:
+        intensity = "очень напряженный"
+        emoji = "⚡"
+    elif strong_aspects >= 3:
+        intensity = "напряженный"
+        emoji = "🎯"
+    elif strong_aspects >= 1:
+        intensity = "активный"
+        emoji = "🌟"
+    else:
+        intensity = "спокойный"
+        emoji = "😌"
+
+    # Добавляем информацию о ретроградных планетах
+    retro_info = ""
+    if retrograde_count >= 3:
+        retro_info = " Много ретроградных планет - время переосмысления."
+    elif retrograde_count >= 1:
+        retro_info = " Есть ретроградные планеты - будьте гибче."
+
+    return f"{emoji} {intensity} день. {strong_aspects} сильных аспектов из {aspects_count}.{retro_info}"
+
+
+def _format_aspect_for_user(aspect: dict) -> str:
+    """Форматирование аспекта для пользователя"""
+    if not isinstance(aspect, dict):
+        return None
+
+    try:
+        # Русские названия
+        planet_names = {
+            'Sun': 'Солнце', 'Moon': 'Луна', 'Mercury': 'Меркурий',
+            'Venus': 'Венера', 'Mars': 'Марс', 'Jupiter': 'Юпитер',
+            'Saturn': 'Сатурн', 'Uranus': 'Уран', 'Neptune': 'Нептун',
+            'Pluto': 'Плутон', 'North_Node': 'Северный узел',
+            'Ascendant': 'Асцендент', 'Midheaven': 'Середина неба'
+        }
+
+        aspect_names = {
+            'conjunction': 'соединение',
+            'opposition': 'оппозиция',
+            'square': 'квадрат',
+            'trine': 'трин',
+            'sextile': 'секстиль'
+        }
+
+        transit_planet = planet_names.get(aspect.get('transit_planet', ''), aspect.get('transit_planet', ''))
+        natal_planet = planet_names.get(aspect.get('natal_planet', ''), aspect.get('natal_planet', ''))
+        aspect_type = aspect_names.get(aspect.get('aspect', ''), aspect.get('aspect', ''))
+
+        if not transit_planet or not natal_planet or not aspect_type:
+            return None
+
+        # Описание влияния
+        influence = _get_aspect_influence(aspect.get('aspect', ''), transit_planet)
+
+        # Звездочки силы
+        strength = aspect.get('strength', 0)
+        stars = "★" * int(strength * 5) if strength > 0 else ""
+
+        return f"{transit_planet} → {natal_planet} ({aspect_type}) {stars} - {influence}"
+
+    except Exception:
+        return None
+
+
+def _get_aspect_influence(aspect_type: str, planet: str) -> str:
+    """Понятное описание влияния аспекта"""
+    influences = {
+        'conjunction': {
+            'Sun': 'усиливает уверенность и инициативу',
+            'Moon': 'обостряет интуицию и эмоции',
+            'Mercury': 'улучшает общение и мышление',
+            'Venus': 'приносит гармонию в отношения',
+            'Mars': 'дает энергию для действий',
+            'default': 'объединяет энергии для новых возможностей'
+        },
+        'opposition': {
+            'default': 'требует баланса и компромиссов'
+        },
+        'square': {
+            'default': 'создает вызовы для роста'
+        },
+        'trine': {
+            'default': 'приносит благоприятные возможности'
+        },
+        'sextile': {
+            'default': 'открывает пути для сотрудничества'
+        },
+        'default': {
+            'default': 'влияет на вашу энергию'
+        }
+    }
+
+    aspect_influences = influences.get(aspect_type, influences['default'])
+    return aspect_influences.get(planet, aspect_influences['default'])
+
+
+def _get_retrograde_advice(planet: str) -> str:
+    """Практические советы по ретроградным планетам"""
+    advice = {
+        'Mercury': 'перепроверяйте информацию, будьте внимательны в общении',
+        'Venus': 'пересмотрите отношения и финансовые вопросы',
+        'Mars': 'планируйте, а не действуйте импульсивно',
+        'Jupiter': 'время для внутреннего роста и обучения',
+        'Saturn': 'пересмотрите ответственность и долгосрочные планы',
+        'Uranus': 'будьте открыты неожиданным поворотам',
+        'Neptune': 'доверяйте интуиции, но проверяйте факты',
+        'Pluto': 'время глубоких трансформаций',
+        'default': 'подходящее время для переосмысления'
+    }
+    return advice.get(planet, advice['default'])
+
+
+def _get_day_character(biorhythm_data: dict, astro_data: dict, ml_features: dict) -> str:
+    """Определение общего характера дня"""
+    # Анализ биоритмов
+    overall_energy = biorhythm_data.get('overall_energy', {}).get('percentage', 50)
+    critical_days = len(biorhythm_data.get('critical_days', []))
+
+    # Анализ астрологии
+    strong_aspects = astro_data.get('strong_aspects_count', 0)
+    retrograde_count = len(astro_data.get('retrograde_planets', []))
+
+    # Анализ ML данных
+    daily_score = ml_features.get('daily_score', 0.5) if ml_features else 0.5
+
+    # Логика определения
+    if critical_days > 0:
+        return "Критический день - будьте особенно внимательны к здоровью и решениям"
+    elif overall_energy >= 80 and daily_score >= 0.7 and strong_aspects <= 2:
+        return "Отличный день для продуктивной работы и важных решений"
+    elif overall_energy >= 70 and daily_score >= 0.6:
+        return "Благоприятный день для активной деятельности и общения"
+    elif overall_energy < 40 or daily_score < 0.4:
+        return "День для отдыха, восстановления и рутинных задач"
+    elif strong_aspects >= 4:
+        return "Энергичный день с возможностями для прорывов"
+    elif retrograde_count >= 2:
+        return "День для планирования и переосмысления, а не активных действий"
+    else:
+        return "Сбалансированный день - следуйте своему обычному ритму"
+
+
+def _get_final_recommendations(biorhythm_data: dict, astro_data: dict, basic_insights: list) -> list:
+    """Финальные практические рекомендации"""
+    recommendations = []
+
+    # Рекомендации по биоритмам
+    overall_energy = biorhythm_data.get('overall_energy', {}).get('percentage', 50)
+    if overall_energy >= 80:
+        recommendations.append("Идеальное время для сложных задач и проектов")
+    elif overall_energy <= 30:
+        recommendations.append("Делайте перерывы и берегите силы")
+
+    # Рекомендации по астрологии
+    strong_aspects = astro_data.get('strong_aspects_count', 0)
+    if strong_aspects >= 3:
+        recommendations.append("Используйте энергию дня для важных решений")
+
+    retrograde_planets = astro_data.get('retrograde_planets', [])
+    if 'Mercury' in retrograde_planets:
+        recommendations.append("Внимательно проверяйте документы и сообщения")
+
+    # Если нет специфических рекомендаций
+    if not recommendations:
+        recommendations.append("Следуйте своему обычному распорядку дня")
+        recommendations.append("Прислушивайтесь к своей интуиции")
+
+    return recommendations
 
 
 async def generate_and_save_prediction(telegram_id: int, target_date: date) -> Dict[str, Any]:
