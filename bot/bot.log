@@ -1,0 +1,390 @@
+2025-11-28 20:45:33,326 - __main__ - INFO - 🔍 Проверка подключения к базе данных...
+2025-11-28 20:45:33,347 - sqlalchemy.engine.Engine - INFO - select pg_catalog.version()
+2025-11-28 20:45:33,347 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-28 20:45:33,353 - sqlalchemy.engine.Engine - INFO - select current_schema()
+2025-11-28 20:45:33,353 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-28 20:45:33,359 - sqlalchemy.engine.Engine - INFO - show standard_conforming_strings
+2025-11-28 20:45:33,359 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-28 20:45:33,363 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:45:33,364 - sqlalchemy.engine.Engine - INFO - SELECT 1
+2025-11-28 20:45:33,364 - sqlalchemy.engine.Engine - INFO - [generated in 0.00027s] ()
+2025-11-28 20:45:33,368 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:45:33,370 - backend.db_connection - INFO - ✅ Подключение к БД успешно
+2025-11-28 20:45:33,392 - __main__ - INFO - ✅ Бот запущен и готов к работе...
+2025-11-28 20:45:33,392 - __main__ - INFO - ✅ База данных подключена успешно
+2025-11-28 20:45:33,392 - __main__ - INFO - ✅ Personal Assistant инициализирован
+2025-11-28 20:45:33,393 - aiogram.dispatcher - INFO - Start polling
+2025-11-28 20:45:33,651 - aiogram.dispatcher - INFO - Run polling for bot @i_natal_bot id=7900025353 - 'натальная_карта'
+2025-11-28 20:45:58,801 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:45:58,817 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 20:45:58,817 - sqlalchemy.engine.Engine - INFO - [generated in 0.00058s] (5960877187,)
+2025-11-28 20:45:58,826 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:45:58,833 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:45:58,836 - sqlalchemy.engine.Engine - INFO - SELECT user_natal_charts.telegram_id, user_natal_charts.natal_data, user_natal_charts.created_at, user_natal_charts.updated_at 
+FROM user_natal_charts 
+WHERE user_natal_charts.telegram_id = $1::BIGINT
+2025-11-28 20:45:58,836 - sqlalchemy.engine.Engine - INFO - [generated in 0.00043s] (5960877187,)
+2025-11-28 20:45:58,843 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:45:58,850 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:45:58,852 - sqlalchemy.engine.Engine - INFO - SELECT psyho_matrix.telegram_id, psyho_matrix.matrix_data, psyho_matrix.created_at, psyho_matrix.updated_at 
+FROM psyho_matrix 
+WHERE psyho_matrix.telegram_id = $1::BIGINT
+2025-11-28 20:45:58,853 - sqlalchemy.engine.Engine - INFO - [generated in 0.00048s] (5960877187,)
+2025-11-28 20:45:58,860 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:45:58,867 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:45:58,870 - sqlalchemy.engine.Engine - INFO - SELECT biorhythms.telegram_id, biorhythms.biorhythm_data, biorhythms.calculation_date, biorhythms.created_at, biorhythms.updated_at 
+FROM biorhythms 
+WHERE biorhythms.telegram_id = $1::BIGINT AND biorhythms.calculation_date = $2::DATE
+2025-11-28 20:45:58,871 - sqlalchemy.engine.Engine - INFO - [generated in 0.00051s] (5960877187, datetime.date(2025, 11, 28))
+2025-11-28 20:45:58,878 - backend.biorhythm_services - INFO - ✅ Найдены сохраненные биоритмы для 5960877187 на 2025-11-28
+2025-11-28 20:45:58,879 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:45:59,201 - aiogram.event - INFO - Update id=94580125 is handled. Duration 411 ms by bot id=7900025353
+2025-11-28 20:46:02,589 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:46:02,590 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 20:46:02,590 - sqlalchemy.engine.Engine - INFO - [cached since 3.773s ago] (5960877187,)
+2025-11-28 20:46:02,594 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:46:02,601 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:46:02,602 - sqlalchemy.engine.Engine - INFO - SELECT user_natal_charts.telegram_id, user_natal_charts.natal_data, user_natal_charts.created_at, user_natal_charts.updated_at 
+FROM user_natal_charts 
+WHERE user_natal_charts.telegram_id = $1::BIGINT
+2025-11-28 20:46:02,602 - sqlalchemy.engine.Engine - INFO - [cached since 3.766s ago] (5960877187,)
+2025-11-28 20:46:02,608 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:46:02,615 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:46:02,616 - sqlalchemy.engine.Engine - INFO - SELECT psyho_matrix.telegram_id, psyho_matrix.matrix_data, psyho_matrix.created_at, psyho_matrix.updated_at 
+FROM psyho_matrix 
+WHERE psyho_matrix.telegram_id = $1::BIGINT
+2025-11-28 20:46:02,616 - sqlalchemy.engine.Engine - INFO - [cached since 3.764s ago] (5960877187,)
+2025-11-28 20:46:02,620 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:46:02,628 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:46:02,628 - sqlalchemy.engine.Engine - INFO - SELECT biorhythms.telegram_id, biorhythms.biorhythm_data, biorhythms.calculation_date, biorhythms.created_at, biorhythms.updated_at 
+FROM biorhythms 
+WHERE biorhythms.telegram_id = $1::BIGINT AND biorhythms.calculation_date = $2::DATE
+2025-11-28 20:46:02,629 - sqlalchemy.engine.Engine - INFO - [cached since 3.758s ago] (5960877187, datetime.date(2025, 11, 28))
+2025-11-28 20:46:02,633 - backend.biorhythm_services - INFO - ✅ Найдены сохраненные биоритмы для 5960877187 на 2025-11-28
+2025-11-28 20:46:02,633 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:46:02,790 - backend.assistant - INFO - 📅 Формирование рекомендаций на сегодня для 5960877187
+2025-11-28 20:46:02,791 - backend.prediction_services - INFO - 🔮 Генерация предсказания для пользователя 5960877187 на 2025-11-28
+2025-11-28 20:46:02,802 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:46:02,803 - sqlalchemy.engine.Engine - INFO - SELECT user_natal_charts.telegram_id, user_natal_charts.natal_data, user_natal_charts.created_at, user_natal_charts.updated_at 
+FROM user_natal_charts 
+WHERE user_natal_charts.telegram_id = $1::BIGINT
+2025-11-28 20:46:02,803 - sqlalchemy.engine.Engine - INFO - [cached since 3.968s ago] (5960877187,)
+2025-11-28 20:46:02,812 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:46:02,814 - backend.prediction_services - INFO - ✅ Натальная карта найдена для 5960877187
+2025-11-28 20:46:02,820 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:46:02,821 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 20:46:02,821 - sqlalchemy.engine.Engine - INFO - [cached since 4.004s ago] (5960877187,)
+2025-11-28 20:46:02,825 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:46:02,829 - backend.biorhythm_calculator - INFO - ✅ Биоритмы рассчитаны для 2025-11-28, прожито дней: 19036
+2025-11-28 20:46:02,834 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:46:02,836 - sqlalchemy.engine.Engine - INFO - DELETE FROM biorhythms WHERE biorhythms.telegram_id = $1::BIGINT AND biorhythms.calculation_date = $2::DATE
+2025-11-28 20:46:02,836 - sqlalchemy.engine.Engine - INFO - [generated in 0.00050s] (5960877187, datetime.date(2025, 11, 28))
+2025-11-28 20:46:02,843 - backend.biorhythm_services - INFO - 🆕 Созданы новые биоритмы для 5960877187 на 2025-11-28
+2025-11-28 20:46:02,848 - sqlalchemy.engine.Engine - INFO - INSERT INTO biorhythms (telegram_id, biorhythm_data, calculation_date) VALUES ($1::BIGINT, $2::JSON, $3::DATE) RETURNING biorhythms.created_at, biorhythms.updated_at
+2025-11-28 20:46:02,848 - sqlalchemy.engine.Engine - INFO - [generated in 0.00065s] (5960877187, '{"calculation_date": "2025-11-28", "days_lived": 19036, "cycles": {"physical": {"value": -0.817, "percentage": 9.15, "day_in_cycle": 15, "phase": "\\ ... (2435 characters truncated) ... 3a\\u043e\\u0440\\u043e\\u0442\\u043a\\u0438\\u0435 \\u043f\\u0435\\u0440\\u0435\\u0440\\u044b\\u0432\\u044b"], "critical_days": [], "peak_days": []}', datetime.date(2025, 11, 28))
+2025-11-28 20:46:02,856 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-28 20:46:02,876 - backend.biorhythm_services - INFO - 💾 Биоритмы успешно сохранены для 5960877187
+2025-11-28 20:46:02,879 - backend.prediction_services - INFO - ✅ Биоритмы рассчитаны для 5960877187
+2025-11-28 20:46:02,881 - backend.prediction_services - INFO - ✅ Астрологическое предсказание сгенерировано для 5960877187
+2025-11-28 20:46:02,884 - backend.prediction_services - INFO - ✅ Комбинированное предсказание создано для 5960877187
+2025-11-28 20:46:02,892 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:46:02,895 - sqlalchemy.engine.Engine - INFO - SELECT natal_predictions.telegram_id, natal_predictions.predictions, natal_predictions.assistant_data, natal_predictions.created_at, natal_predictions.updated_at 
+FROM natal_predictions 
+WHERE natal_predictions.telegram_id = $1::BIGINT
+2025-11-28 20:46:02,895 - sqlalchemy.engine.Engine - INFO - [generated in 0.00041s] (5960877187,)
+2025-11-28 20:46:02,908 - backend.prediction_services - INFO - 📝 Обновлено существующее предсказание для 5960877187
+2025-11-28 20:46:02,915 - sqlalchemy.engine.Engine - INFO - UPDATE natal_predictions SET predictions=$1::JSON, updated_at=now() WHERE natal_predictions.telegram_id = $2::BIGINT
+2025-11-28 20:46:02,915 - sqlalchemy.engine.Engine - INFO - [generated in 0.00124s] ('{"prediction_date": "2025-11-28", "energy_analysis": "\\u26a1 \\u0423\\u0440\\u043e\\u0432\\u0435\\u043d\\u044c \\u044d\\u043d\\u0435\\u0440\\u0433\\ ... (15189 characters truncated) ... stamp": "2025-11-28T20:46:02.884604", "data_sources": ["astrology", "biorhythms"], "calculation_methods": ["swiss_ephemeris", "sine_wave_analysis"]}}', 5960877187)
+2025-11-28 20:46:02,926 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-28 20:46:02,929 - backend.prediction_services - INFO - 💾 Предсказание успешно сохранено в БД для 5960877187
+2025-11-28 20:46:03,349 - aiogram.event - INFO - Update id=94580126 is handled. Duration 769 ms by bot id=7900025353
+2025-11-28 20:50:27,030 - aiogram.dispatcher - WARNING - Received SIGINT signal
+2025-11-28 20:50:27,031 - aiogram.dispatcher - INFO - Polling stopped for bot @i_natal_bot id=7900025353 - 'натальная_карта'
+2025-11-28 20:50:27,031 - aiogram.dispatcher - INFO - Polling stopped
+2025-11-28 20:53:53,135 - __main__ - INFO - 🔍 Проверка подключения к базе данных...
+2025-11-28 20:53:53,155 - sqlalchemy.engine.Engine - INFO - select pg_catalog.version()
+2025-11-28 20:53:53,156 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-28 20:53:53,161 - sqlalchemy.engine.Engine - INFO - select current_schema()
+2025-11-28 20:53:53,161 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-28 20:53:53,166 - sqlalchemy.engine.Engine - INFO - show standard_conforming_strings
+2025-11-28 20:53:53,167 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-28 20:53:53,171 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:53:53,172 - sqlalchemy.engine.Engine - INFO - SELECT 1
+2025-11-28 20:53:53,172 - sqlalchemy.engine.Engine - INFO - [generated in 0.00027s] ()
+2025-11-28 20:53:53,176 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:53:53,178 - backend.db_connection - INFO - ✅ Подключение к БД успешно
+2025-11-28 20:53:53,200 - __main__ - INFO - ✅ Бот запущен и готов к работе...
+2025-11-28 20:53:53,200 - __main__ - INFO - ✅ База данных подключена успешно
+2025-11-28 20:53:53,200 - __main__ - INFO - ✅ Personal Assistant инициализирован
+2025-11-28 20:53:53,201 - aiogram.dispatcher - INFO - Start polling
+2025-11-28 20:53:53,423 - aiogram.dispatcher - INFO - Run polling for bot @i_natal_bot id=7900025353 - 'натальная_карта'
+2025-11-28 20:53:53,520 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:53:53,531 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 20:53:53,531 - sqlalchemy.engine.Engine - INFO - [generated in 0.00041s] (5960877187,)
+2025-11-28 20:53:53,539 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:53:53,546 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:53:53,549 - sqlalchemy.engine.Engine - INFO - SELECT user_natal_charts.telegram_id, user_natal_charts.natal_data, user_natal_charts.created_at, user_natal_charts.updated_at 
+FROM user_natal_charts 
+WHERE user_natal_charts.telegram_id = $1::BIGINT
+2025-11-28 20:53:53,550 - sqlalchemy.engine.Engine - INFO - [generated in 0.00043s] (5960877187,)
+2025-11-28 20:53:53,556 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:53:53,562 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:53:53,564 - sqlalchemy.engine.Engine - INFO - SELECT psyho_matrix.telegram_id, psyho_matrix.matrix_data, psyho_matrix.created_at, psyho_matrix.updated_at 
+FROM psyho_matrix 
+WHERE psyho_matrix.telegram_id = $1::BIGINT
+2025-11-28 20:53:53,564 - sqlalchemy.engine.Engine - INFO - [generated in 0.00038s] (5960877187,)
+2025-11-28 20:53:53,570 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:53:53,577 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:53:53,580 - sqlalchemy.engine.Engine - INFO - SELECT biorhythms.telegram_id, biorhythms.biorhythm_data, biorhythms.calculation_date, biorhythms.created_at, biorhythms.updated_at 
+FROM biorhythms 
+WHERE biorhythms.telegram_id = $1::BIGINT AND biorhythms.calculation_date = $2::DATE
+2025-11-28 20:53:53,580 - sqlalchemy.engine.Engine - INFO - [generated in 0.00041s] (5960877187, datetime.date(2025, 11, 28))
+2025-11-28 20:53:53,587 - backend.biorhythm_services - INFO - 🔄 Биоритмы не найдены, рассчитываем заново для 5960877187
+2025-11-28 20:53:53,609 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:53:53,609 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 20:53:53,610 - sqlalchemy.engine.Engine - INFO - [cached since 0.07913s ago] (5960877187,)
+2025-11-28 20:53:53,617 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:53:53,619 - backend.biorhythm_services - ERROR - ❌ Ошибка при расчете биоритмов для 5960877187: Пользователь 5960877187 не найден
+2025-11-28 20:53:53,620 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:53:53,622 - backend.biorhythm_services - ERROR - ❌ Ошибка при получении биоритмов 5960877187: Пользователь 5960877187 не найден
+2025-11-28 20:53:53,887 - aiogram.event - INFO - Update id=94580127 is handled. Duration 376 ms by bot id=7900025353
+2025-11-28 20:54:07,714 - aiogram.event - INFO - Update id=94580128 is handled. Duration 115 ms by bot id=7900025353
+2025-11-28 20:54:14,811 - aiogram.event - INFO - Update id=94580129 is handled. Duration 93 ms by bot id=7900025353
+2025-11-28 20:54:24,714 - aiogram.event - INFO - Update id=94580130 is handled. Duration 114 ms by bot id=7900025353
+2025-11-28 20:54:32,767 - aiogram.event - INFO - Update id=94580131 is handled. Duration 130 ms by bot id=7900025353
+2025-11-28 20:54:41,526 - aiogram.event - INFO - Update id=94580132 is handled. Duration 104 ms by bot id=7900025353
+2025-11-28 20:54:50,450 - backend.assistant - INFO - 🔄 Начало сбора данных для пользователя 5960877187
+2025-11-28 20:54:50,457 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:54:50,458 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 20:54:50,458 - sqlalchemy.engine.Engine - INFO - [cached since 56.93s ago] (5960877187,)
+2025-11-28 20:54:50,463 - backend.user_services - INFO - 🆕 Создан новый пользователь 5960877187
+2025-11-28 20:54:50,468 - sqlalchemy.engine.Engine - INFO - INSERT INTO users (telegram_id, birth_date, birth_time, birth_city, profession, job_position, current_city) VALUES ($1::BIGINT, $2::DATE, $3::TIME WITHOUT TIME ZONE, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR) RETURNING users.created_at, users.updated_at
+2025-11-28 20:54:50,468 - sqlalchemy.engine.Engine - INFO - [generated in 0.00066s] (5960877187, datetime.date(1973, 10, 16), datetime.time(11, 48), 'калининград', 'программист', 'кладовщик', 'калининград')
+2025-11-28 20:54:50,476 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-28 20:54:50,486 - backend.assistant - INFO - ✅ Данные пользователя сохранены
+2025-11-28 20:54:50,486 - backend.natal_chart - INFO - ✅ Swiss Ephemeris инициализирован с путем: /app/ephe
+2025-11-28 20:54:50,487 - backend.chart_services - INFO - Создание натальной карты для пользователя 5960877187
+2025-11-28 20:54:50,492 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 20:54:50,492 - sqlalchemy.engine.Engine - INFO - SELECT user_natal_charts.telegram_id, user_natal_charts.natal_data, user_natal_charts.created_at, user_natal_charts.updated_at 
+FROM user_natal_charts 
+WHERE user_natal_charts.telegram_id = $1::BIGINT
+2025-11-28 20:54:50,493 - sqlalchemy.engine.Engine - INFO - [cached since 56.94s ago] (5960877187,)
+2025-11-28 20:54:50,497 - backend.chart_services - INFO - 🆕 Создана новая натальная карта для 5960877187
+2025-11-28 20:54:50,500 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 20:54:50,503 - backend.chart_services - ERROR - ❌ Ошибка при создании натальной карты для 5960877187: (builtins.TypeError) Object of type coroutine is not JSON serializable
+[SQL: INSERT INTO user_natal_charts (telegram_id, natal_data) VALUES ($1::BIGINT, $2::JSON) RETURNING user_natal_charts.created_at, user_natal_charts.updated_at]
+[parameters: [{'natal_data': <coroutine object MLNatalChartCalculator.calculate_natal_chart_ml at 0x779c293e1bd0>, 'telegram_id': 5960877187}]]
+2025-11-28 20:54:50,503 - backend.assistant - ERROR - ❌ Ошибка в транзакции сбора данных для 5960877187: (builtins.TypeError) Object of type coroutine is not JSON serializable
+[SQL: INSERT INTO user_natal_charts (telegram_id, natal_data) VALUES ($1::BIGINT, $2::JSON) RETURNING user_natal_charts.created_at, user_natal_charts.updated_at]
+[parameters: [{'natal_data': <coroutine object MLNatalChartCalculator.calculate_natal_chart_ml at 0x779c293e1bd0>, 'telegram_id': 5960877187}]]
+2025-11-28 20:54:50,503 - backend.assistant - ERROR - ❌ Ошибка сбора данных для 5960877187: (builtins.TypeError) Object of type coroutine is not JSON serializable
+[SQL: INSERT INTO user_natal_charts (telegram_id, natal_data) VALUES ($1::BIGINT, $2::JSON) RETURNING user_natal_charts.created_at, user_natal_charts.updated_at]
+[parameters: [{'natal_data': <coroutine object MLNatalChartCalculator.calculate_natal_chart_ml at 0x779c293e1bd0>, 'telegram_id': 5960877187}]]
+2025-11-28 20:54:50,608 - aiogram.event - INFO - Update id=94580133 is handled. Duration 161 ms by bot id=7900025353
+2025-11-28 20:57:08,838 - aiogram.dispatcher - WARNING - Received SIGINT signal
+2025-11-28 20:57:08,839 - aiogram.dispatcher - INFO - Polling stopped for bot @i_natal_bot id=7900025353 - 'натальная_карта'
+2025-11-28 20:57:08,839 - aiogram.dispatcher - INFO - Polling stopped
+2025-11-28 20:57:09,310 - __main__ - INFO - 🛑 Бот остановлен
+2025-11-28 21:03:17,190 - __main__ - INFO - 🔍 Проверка подключения к базе данных...
+2025-11-28 21:03:17,211 - sqlalchemy.engine.Engine - INFO - select pg_catalog.version()
+2025-11-28 21:03:17,212 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-28 21:03:17,219 - sqlalchemy.engine.Engine - INFO - select current_schema()
+2025-11-28 21:03:17,219 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-28 21:03:17,225 - sqlalchemy.engine.Engine - INFO - show standard_conforming_strings
+2025-11-28 21:03:17,225 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-28 21:03:17,230 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:03:17,232 - sqlalchemy.engine.Engine - INFO - SELECT 1
+2025-11-28 21:03:17,232 - sqlalchemy.engine.Engine - INFO - [generated in 0.00044s] ()
+2025-11-28 21:03:17,236 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:03:17,238 - backend.db_connection - INFO - ✅ Подключение к БД успешно
+2025-11-28 21:03:17,260 - __main__ - INFO - ✅ Бот запущен и готов к работе...
+2025-11-28 21:03:17,260 - __main__ - INFO - ✅ База данных подключена успешно
+2025-11-28 21:03:17,261 - __main__ - INFO - ✅ Personal Assistant инициализирован
+2025-11-28 21:03:17,261 - aiogram.dispatcher - INFO - Start polling
+2025-11-28 21:03:17,518 - aiogram.dispatcher - INFO - Run polling for bot @i_natal_bot id=7900025353 - 'натальная_карта'
+2025-11-28 21:03:22,959 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:03:22,969 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 21:03:22,969 - sqlalchemy.engine.Engine - INFO - [generated in 0.00041s] (5960877187,)
+2025-11-28 21:03:22,976 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:03:22,982 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:03:22,985 - sqlalchemy.engine.Engine - INFO - SELECT user_natal_charts.telegram_id, user_natal_charts.natal_data, user_natal_charts.created_at, user_natal_charts.updated_at 
+FROM user_natal_charts 
+WHERE user_natal_charts.telegram_id = $1::BIGINT
+2025-11-28 21:03:22,985 - sqlalchemy.engine.Engine - INFO - [generated in 0.00047s] (5960877187,)
+2025-11-28 21:03:22,990 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:03:22,996 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:03:22,998 - sqlalchemy.engine.Engine - INFO - SELECT psyho_matrix.telegram_id, psyho_matrix.matrix_data, psyho_matrix.created_at, psyho_matrix.updated_at 
+FROM psyho_matrix 
+WHERE psyho_matrix.telegram_id = $1::BIGINT
+2025-11-28 21:03:22,999 - sqlalchemy.engine.Engine - INFO - [generated in 0.00048s] (5960877187,)
+2025-11-28 21:03:23,005 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:03:23,011 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:03:23,015 - sqlalchemy.engine.Engine - INFO - SELECT biorhythms.telegram_id, biorhythms.biorhythm_data, biorhythms.calculation_date, biorhythms.created_at, biorhythms.updated_at 
+FROM biorhythms 
+WHERE biorhythms.telegram_id = $1::BIGINT AND biorhythms.calculation_date = $2::DATE
+2025-11-28 21:03:23,015 - sqlalchemy.engine.Engine - INFO - [generated in 0.00058s] (5960877187, datetime.date(2025, 11, 28))
+2025-11-28 21:03:23,028 - backend.biorhythm_services - INFO - 🔄 Биоритмы не найдены, рассчитываем заново для 5960877187
+2025-11-28 21:03:23,066 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:03:23,066 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 21:03:23,067 - sqlalchemy.engine.Engine - INFO - [cached since 0.09808s ago] (5960877187,)
+2025-11-28 21:03:23,091 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:03:23,101 - backend.biorhythm_calculator - INFO - ✅ Биоритмы рассчитаны для 2025-11-28, прожито дней: 19036
+2025-11-28 21:03:23,113 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:03:23,115 - sqlalchemy.engine.Engine - INFO - DELETE FROM biorhythms WHERE biorhythms.telegram_id = $1::BIGINT AND biorhythms.calculation_date = $2::DATE
+2025-11-28 21:03:23,115 - sqlalchemy.engine.Engine - INFO - [generated in 0.00040s] (5960877187, datetime.date(2025, 11, 28))
+2025-11-28 21:03:23,121 - backend.biorhythm_services - INFO - 🆕 Созданы новые биоритмы для 5960877187 на 2025-11-28
+2025-11-28 21:03:23,124 - sqlalchemy.engine.Engine - INFO - INSERT INTO biorhythms (telegram_id, biorhythm_data, calculation_date) VALUES ($1::BIGINT, $2::JSON, $3::DATE) RETURNING biorhythms.created_at, biorhythms.updated_at
+2025-11-28 21:03:23,124 - sqlalchemy.engine.Engine - INFO - [generated in 0.00055s] (5960877187, '{"calculation_date": "2025-11-28", "days_lived": 19036, "cycles": {"physical": {"value": -0.817, "percentage": 9.15, "day_in_cycle": 15, "phase": "\\ ... (2435 characters truncated) ... 3a\\u043e\\u0440\\u043e\\u0442\\u043a\\u0438\\u0435 \\u043f\\u0435\\u0440\\u0435\\u0440\\u044b\\u0432\\u044b"], "critical_days": [], "peak_days": []}', datetime.date(2025, 11, 28))
+2025-11-28 21:03:23,136 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-28 21:03:23,152 - backend.biorhythm_services - INFO - 💾 Биоритмы успешно сохранены для 5960877187
+2025-11-28 21:03:23,153 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:03:23,484 - aiogram.event - INFO - Update id=94580134 is handled. Duration 536 ms by bot id=7900025353
+2025-11-28 21:03:34,289 - aiogram.event - INFO - Update id=94580135 is handled. Duration 159 ms by bot id=7900025353
+2025-11-28 21:03:42,943 - aiogram.event - INFO - Update id=94580136 is handled. Duration 91 ms by bot id=7900025353
+2025-11-28 21:03:51,250 - aiogram.event - INFO - Update id=94580137 is handled. Duration 139 ms by bot id=7900025353
+2025-11-28 21:03:59,594 - aiogram.event - INFO - Update id=94580138 is handled. Duration 108 ms by bot id=7900025353
+2025-11-28 21:04:07,685 - aiogram.event - INFO - Update id=94580139 is handled. Duration 97 ms by bot id=7900025353
+2025-11-28 21:04:14,846 - backend.assistant - INFO - 🔄 Начало сбора данных для пользователя 5960877187
+2025-11-28 21:04:14,851 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:14,852 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 21:04:14,853 - sqlalchemy.engine.Engine - INFO - [cached since 51.88s ago] (5960877187,)
+2025-11-28 21:04:14,857 - backend.user_services - INFO - 📝 Обновлен пользователь 5960877187
+2025-11-28 21:04:14,859 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-28 21:04:14,862 - backend.assistant - INFO - ✅ Данные пользователя сохранены
+2025-11-28 21:04:14,863 - backend.natal_chart - INFO - ✅ Swiss Ephemeris инициализирован с путем: /app/ephe
+2025-11-28 21:04:14,863 - backend.natal_chart - INFO - 🔮 Расчет натальной карты для калининград на 1973-10-16 11:48:00
+2025-11-28 21:04:15,327 - backend.natal_chart - INFO - ✅ Координаты для калининград: 54.710128, 20.5105838
+2025-11-28 21:04:15,328 - backend.natal_chart - INFO - 📍 Координаты калининград: широта 54.710128, долгота 20.5105838
+2025-11-28 21:04:15,329 - backend.natal_chart - INFO - 📅 Юлианская дата: 2441971.9916666667
+2025-11-28 21:04:15,333 - backend.natal_chart - INFO - ✅ Натальная карта успешно рассчитана
+2025-11-28 21:04:15,333 - backend.chart_services - INFO - Создание натальной карты для пользователя 5960877187
+2025-11-28 21:04:15,338 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:15,339 - sqlalchemy.engine.Engine - INFO - SELECT user_natal_charts.telegram_id, user_natal_charts.natal_data, user_natal_charts.created_at, user_natal_charts.updated_at 
+FROM user_natal_charts 
+WHERE user_natal_charts.telegram_id = $1::BIGINT
+2025-11-28 21:04:15,339 - sqlalchemy.engine.Engine - INFO - [cached since 52.35s ago] (5960877187,)
+2025-11-28 21:04:15,343 - backend.chart_services - INFO - 🆕 Создана новая натальная карта для 5960877187
+2025-11-28 21:04:15,346 - sqlalchemy.engine.Engine - INFO - INSERT INTO user_natal_charts (telegram_id, natal_data) VALUES ($1::BIGINT, $2::JSON) RETURNING user_natal_charts.created_at, user_natal_charts.updated_at
+2025-11-28 21:04:15,346 - sqlalchemy.engine.Engine - INFO - [generated in 0.00074s] (5960877187, '{"planets": {}, "houses": {"house_1": {"sign": "Capricorn", "degree": 4.34, "longitude": 274.344695}, "house_2": {"sign": "Aquarius", "degree": 28.6, ... (2325 characters truncated) ... , "data_quality": {"completeness_score": 0.9, "ml_features_count": 6, "planets_analyzed": 0, "calculation_timestamp": "2025-11-28T21:04:15.333397"}}}')
+2025-11-28 21:04:15,355 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-28 21:04:15,359 - backend.chart_services - INFO - 💾 Натальная карта успешно сохранена для 5960877187
+2025-11-28 21:04:15,359 - backend.assistant - INFO - ✅ Натальная карта создана
+2025-11-28 21:04:15,363 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:15,364 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 21:04:15,364 - sqlalchemy.engine.Engine - INFO - [cached since 52.4s ago] (5960877187,)
+2025-11-28 21:04:15,368 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:04:15,376 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:15,377 - sqlalchemy.engine.Engine - INFO - SELECT psyho_matrix.telegram_id, psyho_matrix.matrix_data, psyho_matrix.created_at, psyho_matrix.updated_at 
+FROM psyho_matrix 
+WHERE psyho_matrix.telegram_id = $1::BIGINT
+2025-11-28 21:04:15,377 - sqlalchemy.engine.Engine - INFO - [cached since 52.38s ago] (5960877187,)
+2025-11-28 21:04:15,381 - backend.matrix_services - INFO - 🆕 Создана новая психоматрица для 5960877187
+2025-11-28 21:04:15,384 - sqlalchemy.engine.Engine - INFO - INSERT INTO psyho_matrix (telegram_id, matrix_data) VALUES ($1::BIGINT, $2::JSON) RETURNING psyho_matrix.created_at, psyho_matrix.updated_at
+2025-11-28 21:04:15,384 - sqlalchemy.engine.Engine - INFO - [generated in 0.00058s] (5960877187, '{"basic_numbers": {"first": 28, "second": 10, "third": 26, "fourth": 8}, "pythagoras_matrix": {"1": 3, "2": 0, "3": 1, "4": 0, "5": 0, "6": 1, "7": 1 ... (2373 characters truncated) ... 8\\u043d\\u0438\\u0440\\u0443\\u044e\\u0449\\u0430\\u044f \\u0446\\u0438\\u0444\\u0440\\u0430 1: 3)"], "calculated_at": "2025-11-28T21:04:15.371413"}')
+2025-11-28 21:04:15,391 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-28 21:04:15,394 - backend.matrix_services - INFO - ✅ Психоматрица рассчитана и сохранена для 5960877187
+2025-11-28 21:04:15,395 - backend.assistant - INFO - ✅ Психоматрица рассчитана
+2025-11-28 21:04:15,399 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:15,400 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 21:04:15,400 - sqlalchemy.engine.Engine - INFO - [cached since 52.43s ago] (5960877187,)
+2025-11-28 21:04:15,404 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:04:15,406 - backend.biorhythm_calculator - INFO - ✅ Биоритмы рассчитаны для 2025-11-28, прожито дней: 19036
+2025-11-28 21:04:15,411 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:15,412 - sqlalchemy.engine.Engine - INFO - DELETE FROM biorhythms WHERE biorhythms.telegram_id = $1::BIGINT AND biorhythms.calculation_date = $2::DATE
+2025-11-28 21:04:15,412 - sqlalchemy.engine.Engine - INFO - [cached since 52.3s ago] (5960877187, datetime.date(2025, 11, 28))
+2025-11-28 21:04:15,417 - backend.biorhythm_services - INFO - 🆕 Созданы новые биоритмы для 5960877187 на 2025-11-28
+2025-11-28 21:04:15,418 - sqlalchemy.engine.Engine - INFO - INSERT INTO biorhythms (telegram_id, biorhythm_data, calculation_date) VALUES ($1::BIGINT, $2::JSON, $3::DATE) RETURNING biorhythms.created_at, biorhythms.updated_at
+2025-11-28 21:04:15,418 - sqlalchemy.engine.Engine - INFO - [cached since 52.29s ago] (5960877187, '{"calculation_date": "2025-11-28", "days_lived": 19036, "cycles": {"physical": {"value": -0.817, "percentage": 9.15, "day_in_cycle": 15, "phase": "\\ ... (2435 characters truncated) ... 3a\\u043e\\u0440\\u043e\\u0442\\u043a\\u0438\\u0435 \\u043f\\u0435\\u0440\\u0435\\u0440\\u044b\\u0432\\u044b"], "critical_days": [], "peak_days": []}', datetime.date(2025, 11, 28))
+2025-11-28 21:04:15,424 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-28 21:04:15,427 - backend.biorhythm_services - INFO - 💾 Биоритмы успешно сохранены для 5960877187
+2025-11-28 21:04:15,428 - backend.assistant - INFO - ✅ Биоритмы рассчитаны
+2025-11-28 21:04:15,617 - aiogram.event - INFO - Update id=94580140 is handled. Duration 773 ms by bot id=7900025353
+2025-11-28 21:04:20,198 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:20,199 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 21:04:20,200 - sqlalchemy.engine.Engine - INFO - [cached since 57.23s ago] (5960877187,)
+2025-11-28 21:04:20,204 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:04:20,212 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:20,213 - sqlalchemy.engine.Engine - INFO - SELECT user_natal_charts.telegram_id, user_natal_charts.natal_data, user_natal_charts.created_at, user_natal_charts.updated_at 
+FROM user_natal_charts 
+WHERE user_natal_charts.telegram_id = $1::BIGINT
+2025-11-28 21:04:20,213 - sqlalchemy.engine.Engine - INFO - [cached since 57.23s ago] (5960877187,)
+2025-11-28 21:04:20,219 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:04:20,226 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:20,227 - sqlalchemy.engine.Engine - INFO - SELECT psyho_matrix.telegram_id, psyho_matrix.matrix_data, psyho_matrix.created_at, psyho_matrix.updated_at 
+FROM psyho_matrix 
+WHERE psyho_matrix.telegram_id = $1::BIGINT
+2025-11-28 21:04:20,227 - sqlalchemy.engine.Engine - INFO - [cached since 57.23s ago] (5960877187,)
+2025-11-28 21:04:20,235 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:04:20,245 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:20,246 - sqlalchemy.engine.Engine - INFO - SELECT biorhythms.telegram_id, biorhythms.biorhythm_data, biorhythms.calculation_date, biorhythms.created_at, biorhythms.updated_at 
+FROM biorhythms 
+WHERE biorhythms.telegram_id = $1::BIGINT AND biorhythms.calculation_date = $2::DATE
+2025-11-28 21:04:20,246 - sqlalchemy.engine.Engine - INFO - [cached since 57.23s ago] (5960877187, datetime.date(2025, 11, 28))
+2025-11-28 21:04:20,256 - backend.biorhythm_services - INFO - ✅ Найдены сохраненные биоритмы для 5960877187 на 2025-11-28
+2025-11-28 21:04:20,257 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:04:20,364 - backend.assistant - INFO - 📅 Формирование рекомендаций на сегодня для 5960877187
+2025-11-28 21:04:20,364 - backend.prediction_services - INFO - 🔮 Генерация предсказания для пользователя 5960877187 на 2025-11-28
+2025-11-28 21:04:20,371 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:20,371 - sqlalchemy.engine.Engine - INFO - SELECT user_natal_charts.telegram_id, user_natal_charts.natal_data, user_natal_charts.created_at, user_natal_charts.updated_at 
+FROM user_natal_charts 
+WHERE user_natal_charts.telegram_id = $1::BIGINT
+2025-11-28 21:04:20,371 - sqlalchemy.engine.Engine - INFO - [cached since 57.39s ago] (5960877187,)
+2025-11-28 21:04:20,377 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:04:20,378 - backend.prediction_services - INFO - ✅ Натальная карта найдена для 5960877187
+2025-11-28 21:04:20,382 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:20,382 - sqlalchemy.engine.Engine - INFO - SELECT users.telegram_id, users.birth_date, users.birth_time, users.birth_city, users.profession, users.job_position, users.current_city, users.created_at, users.updated_at 
+FROM users 
+WHERE users.telegram_id = $1::BIGINT
+2025-11-28 21:04:20,382 - sqlalchemy.engine.Engine - INFO - [cached since 57.41s ago] (5960877187,)
+2025-11-28 21:04:20,386 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2025-11-28 21:04:20,388 - backend.biorhythm_calculator - INFO - ✅ Биоритмы рассчитаны для 2025-11-28, прожито дней: 19036
+2025-11-28 21:04:20,391 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:20,392 - sqlalchemy.engine.Engine - INFO - DELETE FROM biorhythms WHERE biorhythms.telegram_id = $1::BIGINT AND biorhythms.calculation_date = $2::DATE
+2025-11-28 21:04:20,392 - sqlalchemy.engine.Engine - INFO - [cached since 57.28s ago] (5960877187, datetime.date(2025, 11, 28))
+2025-11-28 21:04:20,395 - backend.biorhythm_services - INFO - 🆕 Созданы новые биоритмы для 5960877187 на 2025-11-28
+2025-11-28 21:04:20,396 - sqlalchemy.engine.Engine - INFO - INSERT INTO biorhythms (telegram_id, biorhythm_data, calculation_date) VALUES ($1::BIGINT, $2::JSON, $3::DATE) RETURNING biorhythms.created_at, biorhythms.updated_at
+2025-11-28 21:04:20,397 - sqlalchemy.engine.Engine - INFO - [cached since 57.27s ago] (5960877187, '{"calculation_date": "2025-11-28", "days_lived": 19036, "cycles": {"physical": {"value": -0.817, "percentage": 9.15, "day_in_cycle": 15, "phase": "\\ ... (2435 characters truncated) ... 3a\\u043e\\u0440\\u043e\\u0442\\u043a\\u0438\\u0435 \\u043f\\u0435\\u0440\\u0435\\u0440\\u044b\\u0432\\u044b"], "critical_days": [], "peak_days": []}', datetime.date(2025, 11, 28))
+2025-11-28 21:04:20,399 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-28 21:04:20,408 - backend.biorhythm_services - INFO - 💾 Биоритмы успешно сохранены для 5960877187
+2025-11-28 21:04:20,408 - backend.prediction_services - INFO - ✅ Биоритмы рассчитаны для 5960877187
+2025-11-28 21:04:20,409 - backend.prediction_services - INFO - ✅ Астрологическое предсказание сгенерировано для 5960877187
+2025-11-28 21:04:20,409 - backend.prediction_services - INFO - ✅ Комбинированное предсказание создано для 5960877187
+2025-11-28 21:04:20,415 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-28 21:04:20,418 - sqlalchemy.engine.Engine - INFO - SELECT natal_predictions.telegram_id, natal_predictions.predictions, natal_predictions.assistant_data, natal_predictions.created_at, natal_predictions.updated_at 
+FROM natal_predictions 
+WHERE natal_predictions.telegram_id = $1::BIGINT
+2025-11-28 21:04:20,418 - sqlalchemy.engine.Engine - INFO - [generated in 0.00043s] (5960877187,)
+2025-11-28 21:04:20,425 - backend.prediction_services - INFO - 🆕 Создано новое предсказание для 5960877187
+2025-11-28 21:04:20,428 - sqlalchemy.engine.Engine - INFO - INSERT INTO natal_predictions (telegram_id, predictions, assistant_data) VALUES ($1::BIGINT, $2::JSON, $3::JSON) RETURNING natal_predictions.created_at, natal_predictions.updated_at
+2025-11-28 21:04:20,428 - sqlalchemy.engine.Engine - INFO - [generated in 0.00067s] (5960877187, '{"prediction_date": "2025-11-28", "energy_analysis": "\\u26a1 \\u0423\\u0440\\u043e\\u0432\\u0435\\u043d\\u044c \\u044d\\u043d\\u0435\\u0440\\u0433\\ ... (9919 characters truncated) ... stamp": "2025-11-28T21:04:20.409963", "data_sources": ["astrology", "biorhythms"], "calculation_methods": ["swiss_ephemeris", "sine_wave_analysis"]}}', '{}')
+2025-11-28 21:04:20,436 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-28 21:04:20,441 - backend.prediction_services - INFO - 💾 Предсказание успешно сохранено в БД для 5960877187
+2025-11-28 21:04:20,638 - aiogram.event - INFO - Update id=94580141 is handled. Duration 447 ms by bot id=7900025353
+2025-11-28 21:49:06,433 - aiogram.dispatcher - WARNING - Received SIGINT signal
+2025-11-28 21:49:06,434 - aiogram.dispatcher - INFO - Polling stopped for bot @i_natal_bot id=7900025353 - 'натальная_карта'
+2025-11-28 21:49:06,434 - aiogram.dispatcher - INFO - Polling stopped
+2025-11-28 21:49:06,907 - __main__ - INFO - 🛑 Бот остановлен
