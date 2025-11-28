@@ -23,3 +23,5 @@ pyswisseph>=2.10.0
 # async-timeout НЕ нужен - используем встроенный asyncio
 fastapi[all]
 uvicorn
+email-validator
+schedule

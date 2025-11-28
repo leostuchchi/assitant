@@ -534,7 +534,9 @@ async def check_db_connection():
     """
     try:
         async with async_session() as session:
-            await session.execute("SELECT 1")
+            # Используем text() для SQL выражений
+            from sqlalchemy import text
+            await session.execute(text("SELECT 1"))
         logger.info("✅ Подключение к БД успешно")
         return True
     except Exception as e:
@@ -547,40 +549,42 @@ async def get_database_stats():
     Получение статистики базы данных с ML метриками
     """
     try:
+        from sqlalchemy import text
+
         async with async_session() as session:
             # Статистика пользователей
-            users_count = await session.execute("SELECT COUNT(*) FROM users")
+            users_count = await session.execute(text("SELECT COUNT(*) FROM users"))
             users_count = users_count.scalar()
 
             # Статистика астропрофилей
-            profiles_count = await session.execute("SELECT COUNT(*) FROM user_astro_profile")
+            profiles_count = await session.execute(text("SELECT COUNT(*) FROM user_astro_profile"))
             profiles_count = profiles_count.scalar()
 
             # Статистика daily calculations
-            calc_count = await session.execute("SELECT COUNT(*) FROM daily_calculations")
+            calc_count = await session.execute(text("SELECT COUNT(*) FROM daily_calculations"))
             calc_count = calc_count.scalar()
 
             # НОВАЯ СТАТИСТИКА: ML данные
             ml_data_count = await session.execute(
-                "SELECT COUNT(*) FROM daily_calculations WHERE ml_features IS NOT NULL"
+                text("SELECT COUNT(*) FROM daily_calculations WHERE ml_features IS NOT NULL")
             )
             ml_data_count = ml_data_count.scalar()
 
             # Статистика биоритмов
-            bio_count = await session.execute("SELECT COUNT(*) FROM biorhythms")
+            bio_count = await session.execute(text("SELECT COUNT(*) FROM biorhythms"))
             bio_count = bio_count.scalar()
 
             # Статистика ML моделей
-            ml_models_count = await session.execute("SELECT COUNT(*) FROM ml_models WHERE is_active = 1")
+            ml_models_count = await session.execute(text("SELECT COUNT(*) FROM ml_models WHERE is_active = 1"))
             ml_models_count = ml_models_count.scalar()
 
             # Размер базы данных
-            db_size = await session.execute("SELECT pg_size_pretty(pg_database_size('astra_db'))")
+            db_size = await session.execute(text("SELECT pg_size_pretty(pg_database_size('astra_db'))"))
             db_size = db_size.scalar()
 
             # Среднее качество ML данных
             avg_ml_quality = await session.execute(
-                "SELECT AVG(ml_data_quality) FROM daily_calculations WHERE ml_data_quality > 0"
+                text("SELECT AVG(ml_data_quality) FROM daily_calculations WHERE ml_data_quality > 0")
             )
             avg_ml_quality = round(avg_ml_quality.scalar() or 0, 1)
 

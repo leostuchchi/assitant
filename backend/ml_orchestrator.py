@@ -577,6 +577,60 @@ class MLOchestrator:
             logger.error(f"❌ Ошибка очистки кэша: {e}")
             return 0
 
+    async def health_check(self) -> Dict[str, Any]:
+        """
+        Проверка здоровья ML оркестратора
+        Интеграция с существующей системой health checks
+        """
+        try:
+            # Проверяем доступность ML модулей
+            from backend.feature_engineering import feature_engine
+            from backend.trend_analyzer import trend_analyzer
+            from backend.insight_generator import insight_generator
+
+            # Проверяем статистику выполнения
+            stats = await self.get_orchestrator_stats()
+
+            # Анализируем состояние
+            cache_hit_rate = stats.get('cache_hit_rate', 0)
+            error_rate = (stats.get('errors', 0) / stats.get('total_requests', 1)) * 100
+
+            if error_rate > 10:
+                status = 'degraded'
+                message = f'Высокий уровень ошибок: {error_rate:.1f}%'
+            elif cache_hit_rate < 20:
+                status = 'degraded'
+                message = f'Низкая эффективность кэша: {cache_hit_rate:.1f}%'
+            else:
+                status = 'healthy'
+                message = 'ML система работает нормально'
+
+            return {
+                'status': status,
+                'message': message,
+                'timestamp': datetime.now().isoformat(),
+                'statistics': {
+                    'total_requests': stats.get('total_requests', 0),
+                    'cache_hit_rate': cache_hit_rate,
+                    'error_rate': error_rate,
+                    'active_tasks': stats.get('active_tasks', 0),
+                    'avg_execution_time': stats.get('avg_execution_time_seconds', 0)
+                },
+                'components': {
+                    'feature_engineering': 'available',
+                    'trend_analyzer': 'available',
+                    'insight_generator': 'available'
+                }
+            }
+
+        except Exception as e:
+            return {
+                'status': 'unhealthy',
+                'message': f'Ошибка проверки здоровья: {str(e)}',
+                'timestamp': datetime.now().isoformat(),
+                'error': str(e)
+            }
+
 
 # Глобальный экземпляр для использования во всем проекте
 ml_orchestrator = MLOchestrator()

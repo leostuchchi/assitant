@@ -317,6 +317,64 @@ class FeatureEngine:
             'daily_score': 0.5
         }
 
+    def calculate_risk_factors(self, biorhythm_data: Dict, astro_data: Dict, ml_features: Dict) -> List[str]:
+        """Расчет факторов риска"""
+        risks = []
+
+        try:
+            # Анализ низкой энергии
+            energy_level = ml_features.get('energy_overall', 0.5)
+            if energy_level < 0.3:
+                risks.append("Критически низкий уровень энергии")
+
+            # Анализ критических дней
+            if biorhythm_data.get('critical_days_count', 0) > 0:
+                risks.append("Критический день по биоритмам")
+
+            # Анализ сложных астрологических аспектов
+            aspect_intensity = ml_features.get('aspect_intensity', 0)
+            if aspect_intensity > 0.7:
+                risks.append("Высокая интенсивность астрологических влияний")
+
+            # Анализ ретроградных планет
+            retrograde_impact = ml_features.get('retrograde_impact', 0)
+            if retrograde_impact > 0.6:
+                risks.append("Сильное влияние ретроградных планет")
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка расчета факторов риска: {e}")
+
+        return risks if risks else ["Стандартные меры предосторожности"]
+
+    def calculate_opportunities(self, biorhythm_data: Dict, astro_data: Dict, ml_features: Dict) -> List[str]:
+        """Расчет возможностей"""
+        opportunities = []
+
+        try:
+            # Анализ высокой энергии
+            energy_level = ml_features.get('energy_overall', 0.5)
+            if energy_level > 0.8:
+                opportunities.append("Идеальный уровень энергии для сложных задач")
+
+            # Анализ пиковых дней
+            if biorhythm_data.get('peak_days_count', 0) > 0:
+                opportunities.append("Пиковый день для продуктивной работы")
+
+            # Анализ гармоничных аспектов
+            harmonic_balance = ml_features.get('harmonic_balance', 0.5)
+            if harmonic_balance > 0.7:
+                opportunities.append("Гармоничные астрологические влияния")
+
+            # Анализ продуктивности
+            productivity = ml_features.get('productivity_index', 0.5)
+            if productivity > 0.7:
+                opportunities.append("Высокий потенциал продуктивности")
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка расчета возможностей: {e}")
+
+        return opportunities if opportunities else ["Стандартные возможности дня"]
+
 
 # Глобальный экземпляр для использования во всем проекте
 feature_engine = FeatureEngine()

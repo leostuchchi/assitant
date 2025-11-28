@@ -47,4 +47,23 @@ docker exec ollama_assistant ollama pull llama3.1:8b-instruct-q4_0
 docker-compose up -d postgres
 
 
+# 1. Запускаем исправления
+python database_fixes.py
+
+# 2. Перезапускаем API с автоматическими исправлениями
+python api_entrypoint.py
+
+# 3. Запускаем тесты для проверки
+python test_api.py
+
+# Запускаем на порту 8001
+python -m uvicorn api_entrypoint:app --host 0.0.0.0 --port 8001 --reload
+
+# исправление ошибок в Б!!! ЗАПУСТИТЬ !!!
+ update_database.py
+ 
+# Makefile в корне проекта:
+make run      # запуск сервера
+make test     # запуск тестов  
+make fix-db   # исправление БД
 

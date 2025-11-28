@@ -188,6 +188,14 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"⚠️ Ошибка инициализации БД: {e}")
 
+    # 🔧 ЗАПУСКАЕМ АВТОМАТИЧЕСКИЕ ИСПРАВЛЕНИЯ БАЗЫ ДАННЫХ
+    try:
+        from backend.database_fixes import apply_database_fixes
+        await apply_database_fixes()
+        logger.info("✅ Автоматические исправления БД применены")
+    except Exception as e:
+        logger.warning(f"⚠️ Ошибка применения исправлений БД: {e}")
+
     # Проверяем ML систему
     try:
         ml_health = await ml_orchestrator.health_check()
@@ -1036,11 +1044,30 @@ async def general_exception_handler(request, exc):
 
 
 # Для запуска напрямую
+#if __name__ == "__main__":
+#    uvicorn.run(
+#        "api_entrypoint:app",
+#        host="0.0.0.0",
+#        port=8000,
+#        reload=True,
+#        log_level="info"
+#    )
+
+
+
 if __name__ == "__main__":
+    import os
+
+    # Используем переменные окружения или значения по умолчанию
+    API_HOST = os.getenv("API_HOST", "0.0.0.0")
+    API_PORT = int(os.getenv("API_PORT", 8000))
+
+    print(f"🚀 Запуск API на {API_HOST}:{API_PORT}")
+
     uvicorn.run(
         "api_entrypoint:app",
-        host="0.0.0.0",
-        port=8000,
+        host=API_HOST,
+        port=API_PORT,
         reload=True,
         log_level="info"
     )

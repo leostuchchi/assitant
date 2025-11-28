@@ -216,3 +216,5 @@ async def get_users_statistics():
             'average_requests': 0,
             'error': str(e)
         }
+
+
